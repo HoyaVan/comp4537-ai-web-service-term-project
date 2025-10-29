@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Signup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../styles/global.css">
+  <link rel="stylesheet" href="../styles/signup.css">
+  <script>window.BACKEND_URL = 'http://localhost:3000';</script>
+  <script src="../auth/signup.js" defer></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Create account</h1>
+    <div class="sub">Backend: <span id="backend-url"></span></div>
+
+    <form id="signup-form" novalidate>
+      <label for="name">Name</label>
+      <input id="name" name="name" type="text" placeholder="Jane Doe" required>
+
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" placeholder="jane@example.com" required>
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" placeholder="••••••••" minlength="6" required>
+
+      <label for="confirm">Confirm Password</label>
+      <input id="confirm" name="confirm" type="password" placeholder="••••••••" minlength="6" required>
+
+      <button id="submit-btn" type="submit" class="btn">Sign up</button>
+      <div class="hint">By signing up you agree to our terms.</div>
+      <div id="message" class="msg"></div>
+    </form>
+  </div>
+</body>
+</html>
