@@ -1,20 +1,12 @@
-# Use the official Node.js LTS image
-FROM node:20-alpine
+# Use nginx to serve static files
+FROM nginx:alpine
 
-# Set working directory
-WORKDIR /app
+# Copy static files from public directory
+COPY public /usr/share/nginx/html
 
-# Copy package files first (for caching layers)
-COPY package*.json ./
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Install dependencies
-RUN npm install --production
+EXPOSE 80
 
-# Copy the rest of your project
-COPY . .
-
-# Expose port (adjust to your app’s port)
-EXPOSE 3000
-
-# Start the app
-CMD ["npm", "start"]
+CMD ["nginx", "-g", "daemon off;"]

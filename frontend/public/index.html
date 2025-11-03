@@ -13,7 +13,17 @@
 </head>
 
 <body>
-    <%- include('partials/header') %>
+    <header class="header">
+    <div class="header-content">
+        <a href="/" class="logo">DJ Clownfish</a>
+        <nav class="header-nav">
+            <a href="/login.html" class="header-btn">Login</a>
+            <a href="/signup.html" class="header-btn header-btn-primary">Sign Up</a>
+        </nav>
+    </div>
+</header>
+
+
     <div class="wrap">
         <h1>Welcome</h1>
         <div class="sub">Backend: <span id="backend-url"></span></div>
@@ -26,3 +36,4 @@
 </body>
 
 </html>
+
