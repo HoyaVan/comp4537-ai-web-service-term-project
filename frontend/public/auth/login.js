@@ -49,7 +49,17 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         const message = typeof data === 'string' ? data : (data.message || 'Logged in.');
         setMessage('Success: ' + message, true);
-        if (data && data.token) { try { localStorage.setItem('token', data.token); } catch (_) {} }
+        // Backend returns { success: true, data: { user: {...}, token: "..." } }
+        const token = data?.data?.token || data?.token;
+        if (token) { 
+          try { 
+            localStorage.setItem('token', token); 
+            // Redirect to dashboard after successful login
+            setTimeout(() => {
+              window.location.href = '/dashboard.html';
+            }, 1000);
+          } catch (_) {} 
+        }
       }
     } catch (err) {
       setMessage('Network error: ' + err, false);
