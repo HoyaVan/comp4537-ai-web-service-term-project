@@ -13,7 +13,6 @@ app.set('view engine', 'ejs');
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes
 app.get("/", (req, res) => {
@@ -27,6 +26,9 @@ app.get("/login", (req, res) => {
 app.get("/signup", (req, res) => {
   res.render("signup");
 });
+
+// Static files must come after routes to avoid conflicts
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Start server
 app.listen(PORT, () => {
