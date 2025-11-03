@@ -5,18 +5,20 @@ const aiService = require("../services/aiService");
  */
 const sendMessage = async (req, res) => {
   try {
-    const { message, prompt, ...otherData } = req.body;
+    const { message, prompt, messages, ...otherData } = req.body;
 
-    if (!message && !prompt) {
+    // Validate input: need either message, prompt, or messages array
+    if (!message && !prompt && !Array.isArray(messages)) {
       return res.status(400).json({
         success: false,
-        error: 'Either "message" or "prompt" is required in the request body',
+        error: 'Either "message", "prompt", or "messages" array is required in the request body',
       });
     }
 
     const response = await aiService.sendMessage({
       message,
       prompt,
+      messages,
       ...otherData,
     });
 
@@ -26,7 +28,15 @@ const sendMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("Error sending message to AI agent:", error);
-    res.status(500).json({
+    
+    // Return 400 for validation errors, 500 for server errors
+    const isValidationError = error.message && (
+      error.message.includes("Messages array cannot be empty") ||
+      error.message.includes("Each message must have")
+    );
+    
+    const statusCode = isValidationError ? 400 : 500;
+    res.status(statusCode).json({
       success: false,
       error: error.message || "Failed to communicate with AI agent",
     });
@@ -47,7 +57,16 @@ const callAgentEndpoint = async (req, res) => {
       });
     }
 
-    const response = await aiService.callAgent(endpoint, data, method);
+    // Validate HTTP method
+    const validMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+    if (!validMethods.includes(method.toUpperCase())) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid HTTP method. Must be one of: ${validMethods.join(", ")}`,
+      });
+    }
+
+    const response = await aiService.callAgent(endpoint, data, method.toUpperCase());
 
     res.json({
       success: true,
@@ -55,7 +74,15 @@ const callAgentEndpoint = async (req, res) => {
     });
   } catch (error) {
     console.error("Error calling AI agent endpoint:", error);
-    res.status(500).json({
+    
+    // Return 400 for client errors (4xx), 500 for server errors
+    const isClientError = error.message && (
+      error.message.includes("authentication failed") ||
+      error.message.includes("endpoint not found")
+    );
+    
+    const statusCode = isClientError ? 400 : 500;
+    res.status(statusCode).json({
       success: false,
       error: error.message || "Failed to communicate with AI agent",
     });

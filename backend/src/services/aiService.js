@@ -28,10 +28,9 @@ class AIService {
     this.client.interceptors.request.use(
       (config) => {
         console.log(`[AI Service] ${config.method?.toUpperCase()} ${config.url}`);
-        // Debug: Check if Authorization header is present (don't log the full key)
+        // Debug: Check if Authorization header is present (don't log the key)
         if (config.headers?.Authorization) {
-          const keyPreview = config.headers.Authorization.substring(0, 20);
-          console.log(`[AI Service] Authorization header present: ${keyPreview}...`);
+          console.log(`[AI Service] Authorization header present (API key configured)`);
         } else {
           console.warn(`[AI Service] ⚠️  No Authorization header! API key: ${this.apiKey ? 'SET' : 'NOT SET'}`);
         }
@@ -82,6 +81,25 @@ class AIService {
         }
       }
 
+      // Validate that messages array is not empty
+      if (!messages || messages.length === 0) {
+        throw new Error("Messages array cannot be empty. Provide either 'message', 'prompt', or 'messages' array with at least one message.");
+      }
+
+      // Validate message structure
+      const hasValidMessages = messages.every(msg => 
+        msg && 
+        typeof msg === 'object' && 
+        msg.role && 
+        msg.content &&
+        typeof msg.content === 'string' &&
+        msg.content.trim().length > 0
+      );
+
+      if (!hasValidMessages) {
+        throw new Error("Each message must have 'role' and 'content' properties, and content must be a non-empty string.");
+      }
+
       // Build request body with messages array
       const requestBody = {
         messages: messages,
@@ -107,10 +125,30 @@ class AIService {
       });
       return response.data;
     } catch (error) {
+      // If it's already our validation error, re-throw it
+      if (error.message && (
+          error.message.includes("Messages array cannot be empty") || 
+          error.message.includes("Each message must have")
+        )) {
+        throw error;
+      }
+      
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
         const errorData = error.response?.data;
         const message = errorData?.error || errorData?.message || error.message;
+        
+        // Provide more helpful error messages based on status code
+        if (status === 401) {
+          throw new Error("AI Agent authentication failed. Check your AI_AGENT_API_KEY.");
+        } else if (status === 404) {
+          throw new Error("AI Agent endpoint not found. Check your AI_AGENT_URL.");
+        } else if (status === 429) {
+          throw new Error("AI Agent rate limit exceeded. Please try again later.");
+        } else if (status >= 500) {
+          throw new Error(`AI Agent server error (${status}). The service may be temporarily unavailable.`);
+        }
+        
         throw new Error(`AI Agent request failed: ${status} - ${message}`);
       }
       throw error;
@@ -137,7 +175,20 @@ class AIService {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
-        const message = error.response?.data?.message || error.message;
+        const errorData = error.response?.data;
+        const message = errorData?.error || errorData?.message || error.message;
+        
+        // Provide more helpful error messages based on status code
+        if (status === 401) {
+          throw new Error("AI Agent authentication failed. Check your AI_AGENT_API_KEY.");
+        } else if (status === 404) {
+          throw new Error(`AI Agent endpoint not found: ${endpoint}. Check your AI_AGENT_URL.`);
+        } else if (status === 429) {
+          throw new Error("AI Agent rate limit exceeded. Please try again later.");
+        } else if (status >= 500) {
+          throw new Error(`AI Agent server error (${status}). The service may be temporarily unavailable.`);
+        }
+        
         throw new Error(`AI Agent request failed: ${status} - ${message}`);
       }
       throw error;
