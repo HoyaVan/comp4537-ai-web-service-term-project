@@ -13,8 +13,10 @@ COPY public /app/build
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Verify nginx configuration
-RUN nginx -t
+# Verify files are copied and nginx configuration
+RUN ls -la /usr/share/nginx/html/ && \
+    test -f /usr/share/nginx/html/index.html && \
+    nginx -t
 
 EXPOSE 80
 
