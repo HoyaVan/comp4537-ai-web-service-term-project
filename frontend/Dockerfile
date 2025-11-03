@@ -4,18 +4,18 @@ FROM nginx:alpine
 # Remove default nginx configuration
 RUN rm -f /etc/nginx/conf.d/default.conf
 
-# Copy static files from public directory to nginx html directory
+# Copy static files to both locations
+# /usr/share/nginx/html for nginx to serve
+# /app/build for DigitalOcean App Platform static site deployment
 COPY public /usr/share/nginx/html
-
-# Also copy to /app/build for deployment platform
 COPY public /app/build
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Verify files are copied and nginx configuration
-RUN ls -la /usr/share/nginx/html/ && \
-    test -f /usr/share/nginx/html/index.html && \
+# Verify files exist and nginx config is valid
+RUN test -f /usr/share/nginx/html/index.html && \
+    test -f /app/build/index.html && \
     nginx -t
 
 EXPOSE 80
