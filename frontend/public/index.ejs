@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Frontend ↔ Backend</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/styles/global.css">
+    <link rel="stylesheet" href="/styles/header.css">
+    <link rel="stylesheet" href="/styles/index.css">
+    <script>window.BACKEND_URL = 'https://dj-clownfish-uxa88.ondigitalocean.app';</script>
+    <link rel="shortcut icon" href="#">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+    <div class="wrap">
+        <h1>Welcome</h1>
+        <div class="sub">Backend: <span id="backend-url"></span></div>
+        <br>
+        <p>Please login or sign up to continue!</p>
+    </div>
+    <script>
+        document.getElementById('backend-url').textContent = window.BACKEND_URL;
+    </script>
+</body>
+
+</html>
