@@ -7,6 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 // Import routes
 const authRoutes = require("./src/routes/authRoutes");
+const aiRoutes = require("./src/routes/aiRoutes");
 
 // Middleware
 app.use(cors());
@@ -26,10 +27,14 @@ app.get("/health", (req, res) => {
 // Authentication routes
 app.use("/api/auth", authRoutes);
 
+// AI Agent routes
+app.use("/api/ai", aiRoutes);
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Auth endpoints available at http://localhost:${PORT}/api/auth`);
+  console.log(`AI endpoints available at http://localhost:${PORT}/api/ai`);
 });
 
 module.exports = app;
