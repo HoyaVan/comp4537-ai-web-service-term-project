@@ -1,0 +1,20 @@
+.wrap { max-width: 420px; margin: 48px auto; padding: 24px; background:#fff; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,.05); }
+h1 { margin: 0 0 8px; font-size: 24px; }
+.sub { color: var(--muted); margin-bottom: 20px; font-size: 14px; }
+.nav-links { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+.nav-links a { 
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer; 
+    background: var(--brand); 
+    color: #fff; 
+    border: 0;
+    padding: 12px 14px; 
+    border-radius: 8px; 
+    font-weight: 600;
+    transition: filter 0.2s;
+}
+.nav-links a:hover { filter: brightness(1.05); }
+.nav-links a:focus-visible { outline: 3px solid color-mix(in srgb, var(--brand) 50%, white); outline-offset: 2px; }
+
