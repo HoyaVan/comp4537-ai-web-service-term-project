@@ -8,7 +8,16 @@
     <link rel="stylesheet" href="/styles/global.css">
     <link rel="stylesheet" href="/styles/header.css">
     <link rel="stylesheet" href="/styles/dashboard.css">
-    <script>window.BACKEND_URL = 'http://localhost:3000';</script>
+    <script>
+        // Auto-detect backend URL based on environment
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            window.BACKEND_URL = 'http://localhost:3000';
+        } else {
+            // Production backend URL
+            window.BACKEND_URL = 'https://dj-clownfish-uxa88.ondigitalocean.app';
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" onload="window.QRCodeLoaded = true"></script>
     <link rel="shortcut icon" href="#">
 </head>

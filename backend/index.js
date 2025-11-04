@@ -16,6 +16,7 @@ const votingRoutes = require("./src/routes/votingRoutes");
 const allowedOrigins = [
   'http://localhost:8080',
   'http://127.0.0.1:8080',
+  'https://dj-clownfish-ui-da6vv.ondigitalocean.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean); // Remove any undefined values
 
@@ -39,6 +40,8 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
