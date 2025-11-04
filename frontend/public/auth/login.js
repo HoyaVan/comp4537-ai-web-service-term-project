@@ -17,17 +17,21 @@ async function submitLogin(payload) {
   return { ok: res.ok, data };
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function initLogin() {
   const form = document.getElementById('login-form');
   const backend = document.getElementById('backend-url');
   const msg = document.getElementById('message');
   const btn = document.getElementById('submit-btn');
 
+  if (!form) return; // Exit if form not found
+  
   if (backend) backend.textContent = BACKEND_URL;
 
   function setMessage(text, ok = false) {
-    msg.textContent = text;
-    msg.className = 'msg ' + (ok ? 'ok' : 'err');
+    if (msg) {
+      msg.textContent = text;
+      msg.className = 'msg ' + (ok ? 'ok' : 'err');
+    }
   }
 
   form.addEventListener('submit', async (e) => {
@@ -67,5 +71,12 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.disabled = false; btn.textContent = 'Login';
     }
   });
-});
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initLogin);
+} else {
+  initLogin();
+}
 
