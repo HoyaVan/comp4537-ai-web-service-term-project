@@ -99,13 +99,53 @@ function generateQRCode(url, containerId) {
   const container = document.getElementById(containerId);
   container.innerHTML = '<p>Generating QR code...</p>';
   
-  QRCode.toDataURL(url, { width: 256, margin: 2 }, (error, dataUrl) => {
-    if (error) {
-      container.innerHTML = '<p>Error generating QR code</p>';
+  // Function to try generating QR code
+  const tryGenerateQR = () => {
+    // Check if QRCode library is available (try multiple possible names)
+    const QRCodeLib = window.QRCode || window.qrcode;
+    
+    if (QRCodeLib && typeof QRCodeLib.toDataURL === 'function') {
+      try {
+        QRCodeLib.toDataURL(url, { width: 256, margin: 2 }, (error, dataUrl) => {
+          if (error) {
+            console.error('QR Code generation error:', error);
+            // Fallback to online QR code generator
+            useFallbackQR();
+          } else {
+            container.innerHTML = `<img src="${dataUrl}" alt="QR Code" style="max-width: 100%; height: auto;" />`;
+          }
+        });
+      } catch (error) {
+        console.error('QR Code error:', error);
+        useFallbackQR();
+      }
     } else {
-      container.innerHTML = `<img src="${dataUrl}" alt="QR Code" style="max-width: 100%; height: auto;" />`;
+      // Library not loaded yet, wait a bit and try again
+      setTimeout(() => {
+        if (window.QRCodeLoaded || window.QRCode || window.qrcode) {
+          tryGenerateQR();
+        } else {
+          // After 2 seconds, give up and use fallback
+          useFallbackQR();
+        }
+      }, 200);
     }
-  });
+  };
+  
+  // Fallback function using online QR code API
+  const useFallbackQR = () => {
+    container.innerHTML = `
+      <div style="text-align: center;">
+        <p>Voting URL:</p>
+        <p style="word-break: break-all; margin: 10px 0;"><a href="${url}" target="_blank" style="color: #007bff;">${url}</a></p>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(url)}" alt="QR Code" style="max-width: 100%; height: auto; border: 1px solid #ddd; padding: 10px; background: white;" />
+        <p style="margin-top: 10px; font-size: 0.9em; color: #666;">Scan this QR code with your phone to access the voting page</p>
+      </div>
+    `;
+  };
+  
+  // Start trying to generate QR code
+  tryGenerateQR();
 }
 
 // Generate next round

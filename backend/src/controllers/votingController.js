@@ -372,6 +372,7 @@ module.exports = {
   submitVote,
   getResults,
   generateNextRound,
+  updateRoundStatus,
   getSpotifyTrack,
   searchSpotifyTracks,
   getQRCode,
