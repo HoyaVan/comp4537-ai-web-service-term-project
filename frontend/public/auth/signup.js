@@ -19,12 +19,24 @@ async function submitSignup(payload) {
 }
 
 function initSignup() {
+  // Initialize header first (if headerUtils is loaded)
+  if (typeof initLoggedOutHeader === 'function') {
+    try {
+      initLoggedOutHeader();
+    } catch (err) {
+      console.warn('Failed to initialize header:', err);
+    }
+  }
+
   const form = document.getElementById('signup-form');
   const backend = document.getElementById('backend-url');
   const msg = document.getElementById('message');
   const btn = document.getElementById('submit-btn');
 
-  if (!form) return; // Exit if form not found
+  if (!form) {
+    console.error('Signup form not found');
+    return; // Exit if form not found
+  }
   
   if (backend) backend.textContent = BACKEND_URL;
 
