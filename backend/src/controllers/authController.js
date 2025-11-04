@@ -82,8 +82,29 @@ async function getProfile(req, res) {
   }
 }
 
+/**
+ * Get all users (admin function)
+ */
+async function getAllUsers(req, res) {
+  try {
+    const users = authService.getAllUsers();
+
+    return res.status(200).json({
+      success: true,
+      data: users,
+      count: users.length,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching users",
+    });
+  }
+}
+
 module.exports = {
   signup,
   login,
   getProfile,
+  getAllUsers,
 };

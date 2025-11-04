@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Admin - Users List</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/styles/global.css">
+    <link rel="stylesheet" href="/styles/header.css">
+    <link rel="stylesheet" href="/styles/admin.css">
+    <script>window.BACKEND_URL = 'https://dj-clownfish-uxa88.ondigitalocean.app';</script>
+    <link rel="shortcut icon" href="#">
+</head>
+
+<body>
+    <!-- Header will be loaded by headerUtils.js -->
+
+    <div class="wrap">
+        <h1>Admin Panel</h1>
+        <div class="sub">User Management</div>
+        
+        <div class="admin-actions">
+            <button id="refresh-btn" class="admin-btn">Refresh List</button>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <p>Loading users...</p>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+
+        <div id="users-container" class="users-container">
+            <div class="users-header">
+                <h2>All Users</h2>
+                <span id="user-count" class="user-count">0 users</span>
+            </div>
+            <div id="users-list" class="users-list"></div>
+        </div>
+    </div>
+    <script src="/auth/headerUtils.js"></script>
+    <script src="/auth/admin.js"></script>
+</body>
+
+</html>

@@ -129,9 +129,21 @@ function getUserById(userId) {
   return userWithoutPassword;
 }
 
+/**
+ * Get all users (admin function)
+ * Returns all users without passwords
+ */
+function getAllUsers() {
+  return users.map((user) => {
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  });
+}
+
 module.exports = {
   signup,
   login,
   getUserById,
   verifyToken,
+  getAllUsers,
 };

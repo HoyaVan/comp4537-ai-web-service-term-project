@@ -58,22 +58,10 @@ async function verifyTokenAndGetUser(token) {
   }
 }
 
-// Logout function
-function logout() {
-  try {
-    localStorage.removeItem('token');
-    window.location.href = '/index.html';
-  } catch (_) {
-    window.location.href = '/index.html';
-  }
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
   const backend = document.getElementById('backend-url');
-  const userEmail = document.getElementById('user-email');
   const infoEmail = document.getElementById('info-email');
   const infoUserId = document.getElementById('info-user-id');
-  const logoutBtn = document.getElementById('logout-btn');
 
   if (backend) backend.textContent = BACKEND_URL;
 
@@ -90,6 +78,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  // Initialize header with Admin link
+  await initLoggedInHeader([{ href: '/admin.html', text: 'Admin' }]);
+
   // Verify token with backend and get user info
   const { valid, user } = await verifyTokenAndGetUser(token);
   if (!valid) {
@@ -101,27 +92,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Display user info from backend
+  // Display user info in dashboard
   if (user) {
     const email = user.email || '';
     const userId = user.id || user.userId || 'N/A';
     
-    if (userEmail) userEmail.textContent = email;
     if (infoEmail) infoEmail.textContent = email;
     if (infoUserId) infoUserId.textContent = userId;
   } else {
     // Fallback to token decode if backend doesn't return user
     const decoded = decodeToken(token);
     if (decoded && decoded.email) {
-      if (userEmail) userEmail.textContent = decoded.email;
       if (infoEmail) infoEmail.textContent = decoded.email;
       if (infoUserId) infoUserId.textContent = decoded.userId || 'N/A';
     }
-  }
-
-  // Setup logout button
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', logout);
   }
 
   // Setup health check button

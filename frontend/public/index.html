@@ -13,15 +13,7 @@
 </head>
 
 <body>
-    <header class="header">
-        <div class="header-content">
-            <a href="/" class="logo">DJ Clownfish</a>
-            <nav class="header-nav">
-                <a href="/login.html" class="header-btn">Login</a>
-                <a href="/signup.html" class="header-btn header-btn-primary">Sign Up</a>
-            </nav>
-        </div>
-    </header>
+    <!-- Header will be loaded by headerUtils.js -->
 
     <div class="wrap">
         <h1>Welcome</h1>
@@ -62,7 +54,18 @@
         </p>
     </div>
 
+    <script src="/auth/headerUtils.js"></script>
     <script>
+        // Initialize header when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                initLoggedOutHeader();
+            });
+        } else {
+            initLoggedOutHeader();
+        }
+        
+        // Set backend URL
         document.getElementById('backend-url').textContent = window.BACKEND_URL;
     </script>
 </body>

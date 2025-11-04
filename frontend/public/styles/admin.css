@@ -1,0 +1,168 @@
+.wrap { 
+  max-width: 900px; 
+  margin: 48px auto; 
+  padding: 24px; 
+  background:#fff; 
+  border-radius:12px; 
+  box-shadow:0 10px 25px rgba(0,0,0,.05); 
+}
+
+h1 { 
+  margin: 0 0 8px; 
+  font-size: 24px; 
+}
+
+.sub { 
+  color: var(--muted); 
+  margin-bottom: 20px; 
+  font-size: 14px; 
+}
+
+.admin-actions {
+  margin-top: 24px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 12px;
+}
+
+.admin-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  background-color: var(--brand);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.admin-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.admin-btn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.loading {
+  text-align: center;
+  padding: 24px;
+  color: var(--muted);
+}
+
+.loading.hidden,
+.error.hidden {
+  display: none;
+}
+
+.error {
+  padding: 16px;
+  background-color: #fee2e2;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  color: #991b1b;
+  margin-bottom: 24px;
+}
+
+.users-container {
+  margin-top: 24px;
+}
+
+.users-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.users-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.user-count {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.users-list {
+  overflow-x: auto;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.users-table thead {
+  background-color: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.users-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.users-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.users-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.users-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.user-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  color: #475569;
+}
+
+.user-email-cell {
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.user-name {
+  color: #475569;
+}
+
+.user-created {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--muted);
+}
+
+.empty-state p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.user-email {
+  color: var(--muted);
+  font-size: 14px;
+  margin-right: 8px;
+  padding: 8px 0;
+}
