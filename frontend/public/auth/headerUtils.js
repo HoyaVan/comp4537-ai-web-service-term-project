@@ -1,5 +1,29 @@
 const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
+// Header templates embedded to avoid fetch requests (which trigger Cloudflare cookie warnings)
+const LOGGED_OUT_HEADER_HTML = `
+<header class="header">
+    <div class="header-content">
+        <a href="/" class="logo">DJ Clownfish</a>
+        <nav class="header-nav">
+            <a href="/login.html" class="header-btn">Login</a>
+            <a href="/signup.html" class="header-btn header-btn-primary">Sign Up</a>
+        </nav>
+    </div>
+</header>`;
+
+const LOGGED_IN_HEADER_HTML = `
+<header class="header">
+    <div class="header-content">
+        <a href="/" class="logo">DJ Clownfish</a>
+        <nav class="header-nav" id="header-nav">
+            <!-- Navigation links will be inserted here by JavaScript -->
+            <span id="user-email" class="user-email"></span>
+            <button id="logout-btn" class="header-btn">Logout</button>
+        </nav>
+    </div>
+</header>`;
+
 // Get token from localStorage
 function getToken() {
   try {
@@ -44,25 +68,16 @@ function logout() {
 /**
  * Initialize the logged-out header
  * Simple header with Login and Sign Up links
+ * Uses embedded HTML template to avoid fetch requests that trigger Cloudflare cookie warnings
  */
-async function initLoggedOutHeader() {
-  try {
-    const response = await fetch('/partials/logged-out-header.html');
-    if (!response.ok) {
-      throw new Error('Failed to load header');
-    }
-    const headerHtml = await response.text();
-    
-    // Find or create header container
-    const existingHeader = document.querySelector('header.header');
-    if (existingHeader) {
-      existingHeader.outerHTML = headerHtml;
-    } else {
-      // If no header exists, prepend to body
-      document.body.insertAdjacentHTML('afterbegin', headerHtml);
-    }
-  } catch (error) {
-    console.error('Error initializing logged-out header:', error);
+function initLoggedOutHeader() {
+  // Find or create header container
+  const existingHeader = document.querySelector('header.header');
+  if (existingHeader) {
+    existingHeader.outerHTML = LOGGED_OUT_HEADER_HTML.trim();
+  } else {
+    // If no header exists, prepend to body
+    document.body.insertAdjacentHTML('afterbegin', LOGGED_OUT_HEADER_HTML.trim());
   }
 }
 
@@ -71,33 +86,25 @@ async function initLoggedOutHeader() {
  * @param {Array<string>} additionalLinks - Array of link objects with {href, text} or just text strings for simple links
  * Example: [{href: '/dashboard.html', text: 'Dashboard'}, {href: '/admin.html', text: 'Admin'}]
  * Or simple: ['Dashboard', 'Admin'] for auto-generating links
+ * Uses embedded HTML template to avoid fetch requests that trigger Cloudflare cookie warnings
  */
 async function initLoggedInHeader(additionalLinks = []) {
-  // Load header partial
-  try {
-    const response = await fetch('/partials/logged-in-header.html');
-    if (!response.ok) {
-      throw new Error('Failed to load header');
-    }
-    const headerHtml = await response.text();
-    
-    // Find or create header container
-    const existingHeader = document.querySelector('header.header');
-    if (existingHeader) {
-      existingHeader.outerHTML = headerHtml;
-    } else {
-      // If no header exists, prepend to body
-      document.body.insertAdjacentHTML('afterbegin', headerHtml);
-    }
-    
-    // Wait for DOM to update
-    await new Promise(resolve => setTimeout(resolve, 0));
+  // Find or create header container
+  const existingHeader = document.querySelector('header.header');
+  if (existingHeader) {
+    existingHeader.outerHTML = LOGGED_IN_HEADER_HTML.trim();
+  } else {
+    // If no header exists, prepend to body
+    document.body.insertAdjacentHTML('afterbegin', LOGGED_IN_HEADER_HTML.trim());
+  }
+  
+  // Wait for DOM to update
+  await new Promise(resolve => setTimeout(resolve, 0));
     
     // Add additional navigation links if provided
     const headerNav = document.getElementById('header-nav');
     if (headerNav && additionalLinks.length > 0) {
       const userEmailSpan = document.getElementById('user-email');
-      const logoutBtn = document.getElementById('logout-btn');
       
       // Insert links before user email
       additionalLinks.forEach(link => {
@@ -119,28 +126,20 @@ async function initLoggedInHeader(additionalLinks = []) {
         headerNav.insertBefore(linkElement, userEmailSpan);
       });
     }
-    
-    // Setup logout button
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', logout);
-    }
-    
-    // Get user info and display email
-    const token = getToken();
-    if (token) {
-      const { valid, user } = await verifyTokenAndGetUser(token);
-      const userEmail = document.getElementById('user-email');
-      if (user && userEmail) {
-        userEmail.textContent = user.email || '';
-      }
-    }
-  } catch (error) {
-    console.error('Error initializing header:', error);
-    // Fallback: if header partial fails to load, ensure logout button still works
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', logout);
+  
+  // Setup logout button
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', logout);
+  }
+  
+  // Get user info and display email
+  const token = getToken();
+  if (token) {
+    const { valid, user } = await verifyTokenAndGetUser(token);
+    const userEmail = document.getElementById('user-email');
+    if (user && userEmail) {
+      userEmail.textContent = user.email || '';
     }
   }
 }
