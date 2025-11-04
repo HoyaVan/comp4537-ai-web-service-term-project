@@ -342,8 +342,22 @@ async function getQRCode(req, res) {
       });
     }
 
-    // Generate voting page URL
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:8080";
+    // Generate voting page URL - use request origin if available, otherwise fall back to env var or localhost
+    let frontendUrl = process.env.FRONTEND_URL || "http://localhost:8080";
+    
+    // Try to detect frontend URL from request origin (for production)
+    const origin = req.headers.origin || req.headers.referer;
+    if (origin) {
+      try {
+        const originUrl = new URL(origin);
+        // Use the origin's protocol and host for the frontend URL
+        frontendUrl = `${originUrl.protocol}//${originUrl.host}`;
+      } catch (e) {
+        // If origin parsing fails, fall back to default
+        console.warn("Failed to parse origin header, using default frontend URL");
+      }
+    }
+    
     const votingUrl = `${frontendUrl}/vote.html?round=${roundId}`;
 
     // QR code data URL can be generated on frontend using a library like qrcode.js
