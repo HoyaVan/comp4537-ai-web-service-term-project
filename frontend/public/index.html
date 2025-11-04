@@ -57,16 +57,23 @@
     <script src="/auth/headerUtils.js"></script>
     <script>
         // Initialize header when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                initLoggedOutHeader();
-            });
-        } else {
-            initLoggedOutHeader();
+        async function initHeader() {
+            if (typeof initLoggedOutHeader === 'function') {
+                await initLoggedOutHeader();
+            }
+            
+            // Set backend URL
+            const backendUrlEl = document.getElementById('backend-url');
+            if (backendUrlEl && window.getBackendUrl) {
+                backendUrlEl.textContent = window.getBackendUrl();
+            }
         }
         
-        // Set backend URL
-        document.getElementById('backend-url').textContent = window.BACKEND_URL;
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initHeader);
+        } else {
+            initHeader();
+        }
     </script>
 </body>
 

@@ -1,5 +1,3 @@
-const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
-
 // Check if user is authenticated
 function isAuthenticated() {
   try {
@@ -39,7 +37,7 @@ function decodeToken(token) {
 // Verify token with backend and get user info
 async function verifyTokenAndGetUser(token) {
   try {
-    const res = await fetch(BACKEND_URL + '/api/auth/profile', {
+    const res = await fetch(window.getBackendUrl() + '/api/auth/profile', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -63,7 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const infoEmail = document.getElementById('info-email');
   const infoUserId = document.getElementById('info-user-id');
 
-  if (backend) backend.textContent = BACKEND_URL;
+  if (backend) backend.textContent = window.getBackendUrl();
 
   // Check authentication
   if (!isAuthenticated()) {
@@ -120,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       healthStatus.classList.add('hidden');
       
       try {
-        const response = await fetch(BACKEND_URL + '/api/ai/health', {
+        const response = await fetch(window.getBackendUrl() + '/api/ai/health', {
           method: 'GET',
           headers: {
             'Accept': 'application/json'

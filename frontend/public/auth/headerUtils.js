@@ -1,28 +1,27 @@
-const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+// Cache for loaded partials
+const partialCache = {};
 
-// Header templates embedded to avoid fetch requests (which trigger Cloudflare cookie warnings)
-const LOGGED_OUT_HEADER_HTML = `
-<header class="header">
-    <div class="header-content">
-        <a href="/" class="logo">DJ Clownfish</a>
-        <nav class="header-nav">
-            <a href="/login.html" class="header-btn">Login</a>
-            <a href="/signup.html" class="header-btn header-btn-primary">Sign Up</a>
-        </nav>
-    </div>
-</header>`;
+// Fetch partial HTML from the partials directory
+async function fetchPartial(partialName) {
+  // Return cached version if available
+  if (partialCache[partialName]) {
+    return partialCache[partialName];
+  }
 
-const LOGGED_IN_HEADER_HTML = `
-<header class="header">
-    <div class="header-content">
-        <a href="/" class="logo">DJ Clownfish</a>
-        <nav class="header-nav" id="header-nav">
-            <!-- Navigation links will be inserted here by JavaScript -->
-            <span id="user-email" class="user-email"></span>
-            <button id="logout-btn" class="header-btn">Logout</button>
-        </nav>
-    </div>
-</header>`;
+  try {
+    const response = await fetch(`/partials/${partialName}`);
+    if (!response.ok) {
+      throw new Error(`Failed to load partial: ${partialName}`);
+    }
+    const html = await response.text();
+    // Cache the result
+    partialCache[partialName] = html.trim();
+    return partialCache[partialName];
+  } catch (error) {
+    console.error(`Error loading partial ${partialName}:`, error);
+    throw error;
+  }
+}
 
 // Get token from localStorage
 function getToken() {
@@ -36,7 +35,7 @@ function getToken() {
 // Verify token with backend and get user info
 async function verifyTokenAndGetUser(token) {
   try {
-    const res = await fetch(BACKEND_URL + '/api/auth/profile', {
+    const res = await fetch(window.getBackendUrl() + '/api/auth/profile', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -68,16 +67,30 @@ function logout() {
 /**
  * Initialize the logged-out header
  * Simple header with Login and Sign Up links
- * Uses embedded HTML template to avoid fetch requests that trigger Cloudflare cookie warnings
+ * Fetches the header partial from /partials/logged-out-header.html
  */
-function initLoggedOutHeader() {
-  // Find or create header container
-  const existingHeader = document.querySelector('header.header');
-  if (existingHeader) {
-    existingHeader.outerHTML = LOGGED_OUT_HEADER_HTML.trim();
-  } else {
-    // If no header exists, prepend to body
-    document.body.insertAdjacentHTML('afterbegin', LOGGED_OUT_HEADER_HTML.trim());
+async function initLoggedOutHeader() {
+  try {
+    const html = await fetchPartial('logged-out-header.html');
+    
+    // Find or create header container
+    const existingHeader = document.querySelector('header.header');
+    if (existingHeader) {
+      existingHeader.outerHTML = html;
+    } else {
+      // If no header exists, prepend to body
+      document.body.insertAdjacentHTML('afterbegin', html);
+    }
+  } catch (error) {
+    console.error('Failed to initialize logged-out header:', error);
+    // Fallback: create a basic header if fetch fails
+    const existingHeader = document.querySelector('header.header');
+    const fallbackHtml = '<header class="header"><div class="header-content"><a href="/" class="logo">DJ Clownfish</a><nav class="header-nav"><a href="/login.html" class="header-btn">Login</a><a href="/signup.html" class="header-btn header-btn-primary">Sign Up</a></nav></div></header>';
+    if (existingHeader) {
+      existingHeader.outerHTML = fallbackHtml;
+    } else {
+      document.body.insertAdjacentHTML('afterbegin', fallbackHtml);
+    }
   }
 }
 
@@ -86,16 +99,30 @@ function initLoggedOutHeader() {
  * @param {Array<string>} additionalLinks - Array of link objects with {href, text} or just text strings for simple links
  * Example: [{href: '/dashboard.html', text: 'Dashboard'}, {href: '/admin.html', text: 'Admin'}]
  * Or simple: ['Dashboard', 'Admin'] for auto-generating links
- * Uses embedded HTML template to avoid fetch requests that trigger Cloudflare cookie warnings
+ * Fetches the header partial from /partials/logged-in-header.html
  */
 async function initLoggedInHeader(additionalLinks = []) {
-  // Find or create header container
-  const existingHeader = document.querySelector('header.header');
-  if (existingHeader) {
-    existingHeader.outerHTML = LOGGED_IN_HEADER_HTML.trim();
-  } else {
-    // If no header exists, prepend to body
-    document.body.insertAdjacentHTML('afterbegin', LOGGED_IN_HEADER_HTML.trim());
+  try {
+    const html = await fetchPartial('logged-in-header.html');
+    
+    // Find or create header container
+    const existingHeader = document.querySelector('header.header');
+    if (existingHeader) {
+      existingHeader.outerHTML = html;
+    } else {
+      // If no header exists, prepend to body
+      document.body.insertAdjacentHTML('afterbegin', html);
+    }
+  } catch (error) {
+    console.error('Failed to initialize logged-in header:', error);
+    // Fallback: create a basic header if fetch fails
+    const existingHeader = document.querySelector('header.header');
+    const fallbackHtml = '<header class="header"><div class="header-content"><a href="/" class="logo">DJ Clownfish</a><nav class="header-nav" id="header-nav"><span id="user-email" class="user-email"></span><button id="logout-btn" class="header-btn">Logout</button></nav></div></header>';
+    if (existingHeader) {
+      existingHeader.outerHTML = fallbackHtml;
+    } else {
+      document.body.insertAdjacentHTML('afterbegin', fallbackHtml);
+    }
   }
   
   // Wait for DOM to update

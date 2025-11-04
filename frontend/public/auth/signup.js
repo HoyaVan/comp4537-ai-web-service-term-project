@@ -1,8 +1,7 @@
-const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 const SIGNUP_PATH = '/api/auth/signup';
 
 async function submitSignup(payload) {
-  const res = await fetch(BACKEND_URL + SIGNUP_PATH, {
+  const res = await fetch(window.getBackendUrl() + SIGNUP_PATH, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     mode: 'cors',
@@ -18,11 +17,11 @@ async function submitSignup(payload) {
   return { ok: res.ok, data };
 }
 
-function initSignup() {
+async function initSignup() {
   // Initialize header first (if headerUtils is loaded)
   if (typeof initLoggedOutHeader === 'function') {
     try {
-      initLoggedOutHeader();
+      await initLoggedOutHeader();
     } catch (err) {
       console.warn('Failed to initialize header:', err);
     }
@@ -38,7 +37,7 @@ function initSignup() {
     return; // Exit if form not found
   }
   
-  if (backend) backend.textContent = BACKEND_URL;
+  if (backend) backend.textContent = window.getBackendUrl();
 
   function setMessage(text, ok = false) {
     if (msg) {

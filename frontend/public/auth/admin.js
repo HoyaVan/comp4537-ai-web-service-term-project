@@ -1,5 +1,3 @@
-const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
-
 // Check if user is authenticated
 function isAuthenticated() {
   try {
@@ -22,7 +20,7 @@ function getToken() {
 // Verify token with backend and get user info
 async function verifyTokenAndGetUser(token) {
   try {
-    const res = await fetch(BACKEND_URL + '/api/auth/profile', {
+    const res = await fetch(window.getBackendUrl() + '/api/auth/profile', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -49,7 +47,7 @@ async function fetchAllUsers() {
   }
 
   try {
-    const res = await fetch(BACKEND_URL + '/api/auth/users', {
+    const res = await fetch(window.getBackendUrl() + '/api/auth/users', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
