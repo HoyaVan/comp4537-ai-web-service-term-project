@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Vote for Your Favorite Song</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/styles/global.css">
+    <link rel="stylesheet" href="/styles/header.css">
+    <link rel="stylesheet" href="/styles/vote.css">
+    <script>
+        // Auto-detect backend URL based on environment
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            window.BACKEND_URL = 'http://localhost:3000';
+        } else {
+            // Production backend URL
+            window.BACKEND_URL = 'https://dj-clownfish-uxa88.ondigitalocean.app';
+        }
+    </script>
+    <link rel="shortcut icon" href="#">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">DJ Clownfish</a>
+            <nav class="header-nav">
+                <span>Voting</span>
+            </nav>
+        </div>
+    </header>
+
+    <div class="wrap">
+        <div id="loading" class="loading">
+            <p>Loading voting round...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <h2>Error</h2>
+            <p id="error-message"></p>
+            <a href="/" class="btn">Go Home</a>
+        </div>
+
+        <div id="voting-container" style="display: none;">
+            <h1>Round <span id="round-number"></span> - Vote for Your Favorite Song</h1>
+            <div class="round-info">
+                <p id="round-genre"></p>
+                <p id="total-votes" class="vote-count">Total Votes: <span id="votes-count">0</span></p>
+            </div>
+
+            <div id="vote-message" class="msg" style="display: none;"></div>
+
+            <div id="songs-container" class="songs-container">
+                <!-- Songs will be loaded here -->
+            </div>
+
+            <div id="results-section" class="results-section" style="display: none;">
+                <h2>Current Results</h2>
+                <div id="results-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/auth/vote.js"></script>
+</body>
+
+</html>

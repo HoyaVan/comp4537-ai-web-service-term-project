@@ -3,12 +3,13 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Dashboard</title>
+    <title>Dashboard - DJ Clownfish</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/styles/global.css">
     <link rel="stylesheet" href="/styles/header.css">
     <link rel="stylesheet" href="/styles/dashboard.css">
     <script src="/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" onload="window.QRCodeLoaded = true"></script>
     <link rel="shortcut icon" href="#">
 </head>
 
@@ -16,13 +17,71 @@
     <!-- Header will be loaded by headerUtils.js -->
 
     <div class="wrap">
-        <h1>Welcome to your Dashboard</h1>
+        <h1>Voting Rounds Dashboard</h1>
         <div class="sub">Backend: <span id="backend-url"></span></div>
-        <br>
-        <p>You have successfully logged in!</p>
-        <div id="user-info" class="user-info">
-            <p><strong>Email:</strong> <span id="info-email"></span></p>
-            <p><strong>User ID:</strong> <span id="info-user-id"></span></p>
+
+        <!-- Create New Round Section -->
+        <section class="create-round-section">
+            <h2>Create New Voting Round</h2>
+            <form id="create-round-form" class="round-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="genre">Genre</label>
+                        <input id="genre" name="genre" type="text" placeholder="Pop, Rock, EDM, etc.">
+                    </div>
+                    <div class="form-group">
+                        <label for="bpm">BPM (Optional)</label>
+                        <input id="bpm" name="bpm" type="number" placeholder="120" min="60" max="200">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="artists">Artists (comma-separated)</label>
+                    <input id="artists" name="artists" type="text" placeholder="Artist 1, Artist 2, etc.">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="mood">Mood (Optional)</label>
+                        <select id="mood" name="mood">
+                            <option value="">Any</option>
+                            <option value="energetic">Energetic</option>
+                            <option value="chill">Chill</option>
+                            <option value="party">Party</option>
+                            <option value="romantic">Romantic</option>
+                            <option value="upbeat">Upbeat</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="energy">Energy Level (Optional)</label>
+                        <select id="energy" name="energy">
+                            <option value="">Any</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="create-btn">Create Voting Round</button>
+                <div id="create-message" class="msg"></div>
+            </form>
+        </section>
+
+        <!-- Rounds List Section -->
+        <section class="rounds-section">
+            <h2>Your Voting Rounds</h2>
+            <div id="rounds-container" class="rounds-container">
+                <p class="loading">Loading rounds...</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qr-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>QR Code for Voting</h3>
+            <p>Scan this code to access the voting page:</p>
+            <div id="qr-code-container"></div>
+            <p id="qr-url" class="qr-url"></p>
         </div>
         
         <div class="health-check-section">
@@ -30,6 +89,16 @@
             <div id="health-status" class="health-status hidden"></div>
         </div>
     </div>
+
+    <!-- Results Modal -->
+    <div id="results-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-results">&times;</span>
+            <h3>Voting Results</h3>
+            <div id="results-container"></div>
+        </div>
+    </div>
+
     <script src="/auth/headerUtils.js"></script>
     <script src="/auth/dashboard.js"></script>
 </body>
