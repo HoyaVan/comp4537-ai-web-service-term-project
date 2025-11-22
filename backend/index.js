@@ -10,39 +10,48 @@ const PORT = process.env.PORT || 3000;
 const authRoutes = require("./src/routes/authRoutes");
 const aiRoutes = require("./src/routes/aiRoutes");
 const votingRoutes = require("./src/routes/votingRoutes");
+const spotifyRoutes = require("./src/routes/spotifyRoutes");
+
+// Import controllers
+const spotifyController = require("./src/controllers/spotifyController");
+
+// Import services
+const spotifyService = require("./src/services/spotifyService");
 
 // Middleware
 // CORS configuration - must explicitly allow origins when credentials are included
 const allowedOrigins = [
-  'http://localhost:8080',
-  'http://127.0.0.1:8080',
-  'https://dj-clownfish-ui-da6vv.ondigitalocean.app',
+  "http://localhost:8080",
+  "http://127.0.0.1:8080",
+  "https://dj-clownfish-ui-da6vv.ondigitalocean.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean); // Remove any undefined values
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Check if origin is in allowed list
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      // For development, allow any localhost origin
-      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        // For development, allow any localhost origin
+        if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
       }
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-}));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -66,12 +75,17 @@ app.use("/api/ai", aiRoutes);
 // Voting routes
 app.use("/api/voting", votingRoutes);
 
+// Spotify routes
+app.use("/api/spotify", spotifyRoutes);
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Auth endpoints available at http://localhost:${PORT}/api/auth`);
   console.log(`AI endpoints available at http://localhost:${PORT}/api/ai`);
-  console.log(`Voting endpoints available at http://localhost:${PORT}/api/voting`);
+  console.log(
+    `Voting endpoints available at http://localhost:${PORT}/api/voting`
+  );
 });
 
 module.exports = app;
