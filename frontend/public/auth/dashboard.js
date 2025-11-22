@@ -50,7 +50,38 @@ async function loadUserInfo() {
     const user = data.data;
     const userEmail = document.getElementById('user-email');
     if (userEmail) userEmail.textContent = user.email || 'User';
+    
+    // Display API consumption
+    displayApiConsumption(user.apiConsumption);
   }
+}
+
+// Display API consumption
+function displayApiConsumption(consumption) {
+  const container = document.getElementById('api-consumption');
+  if (!container || !consumption) return;
+  
+  const callsUsed = consumption.callsUsed || 0;
+  const isUnlimited = consumption.hasUnlimitedCalls || consumption.callsLimit === 'unlimited';
+  
+  container.innerHTML = `
+    <div class="api-stats">
+      <div class="api-stat-item">
+        <span class="api-stat-label">API Calls Used:</span>
+        <span class="api-stat-value">${callsUsed.toLocaleString()}</span>
+      </div>
+      <div class="api-stat-item">
+        <span class="api-stat-label">Limit:</span>
+        <span class="api-stat-value api-stat-unlimited">${isUnlimited ? 'Unlimited' : (consumption.callsLimit || 'N/A')}</span>
+      </div>
+      ${!isUnlimited && consumption.callsRemaining !== undefined ? `
+        <div class="api-stat-item">
+          <span class="api-stat-label">Remaining:</span>
+          <span class="api-stat-value">${consumption.callsRemaining}</span>
+        </div>
+      ` : ''}
+    </div>
+  `;
 }
 
 // Create new voting round

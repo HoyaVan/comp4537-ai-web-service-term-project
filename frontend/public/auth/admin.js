@@ -1,3 +1,29 @@
+const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+
+// Make authenticated API request
+async function apiRequest(url, options = {}) {
+  const token = getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    ...(options.headers || {}),
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(BACKEND_URL + url, {
+    ...options,
+    headers,
+    mode: 'cors',
+    credentials: 'include',
+  });
+
+  const data = await response.json();
+  return { ok: response.ok, status: response.status, data };
+}
+
 // Check if user is authenticated
 function isAuthenticated() {
   try {
@@ -203,11 +229,149 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize header with Dashboard link
   await initLoggedInHeader([{ href: '/dashboard.html', text: 'Dashboard' }]);
 
-  // Setup refresh button
+  // Setup refresh button (refresh all)
   if (refreshBtn) {
-    refreshBtn.addEventListener('click', loadUsers);
+    refreshBtn.addEventListener('click', async () => {
+      await Promise.all([
+        loadUsers(),
+        loadEndpointStats(),
+        loadConsumptionStats()
+      ]);
+    });
   }
 
-  // Load users on page load
-  await loadUsers();
+  // Load all data on page load
+  await Promise.all([
+    loadUsers(),
+    loadEndpointStats(),
+    loadConsumptionStats()
+  ]);
+  
+  // Setup refresh buttons
+  const refreshEndpointsBtn = document.getElementById('refresh-endpoints-btn');
+  const refreshConsumptionBtn = document.getElementById('refresh-consumption-btn');
+  
+  if (refreshEndpointsBtn) {
+    refreshEndpointsBtn.addEventListener('click', loadEndpointStats);
+  }
+  
+  if (refreshConsumptionBtn) {
+    refreshConsumptionBtn.addEventListener('click', loadConsumptionStats);
+  }
 });
+
+// Load endpoint statistics
+async function loadEndpointStats() {
+  const container = document.getElementById('endpoints-container');
+  if (!container) return;
+  
+  container.innerHTML = '<p class="loading">Loading endpoint statistics...</p>';
+  
+  try {
+    const { ok, data } = await apiRequest('/api/admin/stats/endpoints');
+    if (ok && data.success) {
+      displayEndpointStats(data.data || []);
+    } else {
+      container.innerHTML = `<p class="error">Failed to load endpoint statistics: ${data.message || 'Unknown error'}</p>`;
+    }
+  } catch (error) {
+    container.innerHTML = `<p class="error">Error loading endpoint statistics: ${error.message}</p>`;
+  }
+}
+
+// Display endpoint statistics
+function displayEndpointStats(stats) {
+  const container = document.getElementById('endpoints-container');
+  if (!container) return;
+  
+  if (!stats || stats.length === 0) {
+    container.innerHTML = '<p class="empty-state">No endpoint statistics available.</p>';
+    return;
+  }
+  
+  const table = document.createElement('table');
+  table.className = 'stats-table';
+  
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr>
+      <th>Method</th>
+      <th>Endpoint</th>
+      <th>Requests</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+  
+  const tbody = document.createElement('tbody');
+  stats.forEach(stat => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td class="method-cell">${stat.method || 'N/A'}</td>
+      <td class="endpoint-cell">${stat.endpoint || 'N/A'}</td>
+      <td class="requests-cell">${(stat.requests || 0).toLocaleString()}</td>
+    `;
+    tbody.appendChild(row);
+  });
+  table.appendChild(tbody);
+  
+  container.innerHTML = '';
+  container.appendChild(table);
+}
+
+// Load user consumption statistics
+async function loadConsumptionStats() {
+  const container = document.getElementById('consumption-container');
+  if (!container) return;
+  
+  container.innerHTML = '<p class="loading">Loading consumption statistics...</p>';
+  
+  try {
+    const { ok, data } = await apiRequest('/api/admin/stats/users');
+    if (ok && data.success) {
+      displayConsumptionStats(data.data || []);
+    } else {
+      container.innerHTML = `<p class="error">Failed to load consumption statistics: ${data.message || 'Unknown error'}</p>`;
+    }
+  } catch (error) {
+    container.innerHTML = `<p class="error">Error loading consumption statistics: ${error.message}</p>`;
+  }
+}
+
+// Display user consumption statistics
+function displayConsumptionStats(stats) {
+  const container = document.getElementById('consumption-container');
+  if (!container) return;
+  
+  if (!stats || stats.length === 0) {
+    container.innerHTML = '<p class="empty-state">No consumption statistics available.</p>';
+    return;
+  }
+  
+  const table = document.createElement('table');
+  table.className = 'stats-table';
+  
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Total Requests</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+  
+  const tbody = document.createElement('tbody');
+  stats.forEach(stat => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td class="name-cell">${stat.name || 'N/A'}</td>
+      <td class="email-cell">${stat.email || 'N/A'}</td>
+      <td class="requests-cell">${(stat.totalRequests || 0).toLocaleString()}</td>
+    `;
+    tbody.appendChild(row);
+  });
+  table.appendChild(tbody);
+  
+  container.innerHTML = '';
+  container.appendChild(table);
+}

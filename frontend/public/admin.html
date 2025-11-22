@@ -17,25 +17,48 @@
 
     <div class="wrap">
         <h1>Admin Panel</h1>
-        <div class="sub">User Management</div>
+        <div class="sub">API Statistics & User Management</div>
         
         <div class="admin-actions">
-            <button id="refresh-btn" class="admin-btn">Refresh List</button>
+            <button id="refresh-btn" class="admin-btn">Refresh All</button>
         </div>
 
         <div id="loading" class="loading hidden">
-            <p>Loading users...</p>
+            <p>Loading data...</p>
         </div>
 
         <div id="error" class="error hidden"></div>
 
-        <div id="users-container" class="users-container">
-            <div class="users-header">
+        <!-- API Endpoint Statistics -->
+        <section class="admin-section">
+            <div class="section-header">
+                <h2>API Endpoint Statistics</h2>
+                <button id="refresh-endpoints-btn" class="admin-btn-small">Refresh</button>
+            </div>
+            <div id="endpoints-container" class="stats-container">
+                <p class="loading">Loading endpoint statistics...</p>
+            </div>
+        </section>
+
+        <!-- User API Consumption Statistics -->
+        <section class="admin-section">
+            <div class="section-header">
+                <h2>User API Consumption</h2>
+                <button id="refresh-consumption-btn" class="admin-btn-small">Refresh</button>
+            </div>
+            <div id="consumption-container" class="stats-container">
+                <p class="loading">Loading consumption statistics...</p>
+            </div>
+        </section>
+
+        <!-- Users List -->
+        <section class="admin-section">
+            <div class="section-header">
                 <h2>All Users</h2>
                 <span id="user-count" class="user-count">0 users</span>
             </div>
             <div id="users-list" class="users-list"></div>
-        </div>
+        </section>
     </div>
     <script src="/auth/headerUtils.js"></script>
     <script src="/auth/admin.js"></script>

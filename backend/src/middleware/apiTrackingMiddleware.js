@@ -2,7 +2,7 @@
  * API Tracking Middleware
  * 
  * Tracks API calls for:
- * 1. Per-user API consumption (for 30 free calls limit)
+ * 1. Per-user API consumption (unlimited calls)
  * 2. Per-endpoint statistics (for admin dashboard)
  * 
  * This middleware should be applied to all API routes.
@@ -15,9 +15,6 @@ const apiCallLogs = [];
 const userApiCounts = new Map(); // userId -> count
 const endpointStats = new Map(); // "METHOD /endpoint" -> count
 
-// Free API calls limit per user
-const FREE_API_CALLS_LIMIT = 30;
-
 /**
  * Get API call count for a user
  * @param {string} userId - User ID
@@ -28,12 +25,12 @@ const getUserApiCount = (userId) => {
 };
 
 /**
- * Check if user has exceeded free API calls
+ * Check if user has exceeded API calls (deprecated - unlimited calls now)
  * @param {string} userId - User ID
- * @returns {boolean} True if user has exceeded limit
+ * @returns {boolean} Always returns false (unlimited calls)
  */
 const hasExceededLimit = (userId) => {
-  return getUserApiCount(userId) >= FREE_API_CALLS_LIMIT;
+  return false; // Unlimited calls - always return false
 };
 
 /**
@@ -178,32 +175,11 @@ const apiTrackingMiddleware = (req, res, next) => {
 
 /**
  * Middleware to check API call limit
- * Should be used after authentication middleware
- * Returns 429 if user has exceeded free API calls
+ * Currently disabled - unlimited calls for all users
+ * This middleware is kept for compatibility but does nothing
  */
 const checkApiLimitMiddleware = (req, res, next) => {
-  const userId = req.userId || req.user?.id;
-  
-  // Skip limit check for anonymous users or if no user ID
-  if (!userId) {
-    return next();
-  }
-  
-  // Skip limit check for admin users
-  if (req.user?.role === 'admin') {
-    return next();
-  }
-  
-  // Check if user has exceeded limit
-  if (hasExceededLimit(userId)) {
-    return res.status(429).json({
-      success: false,
-      message: 'You have exceeded your free API call limit (30 calls). Please contact support for more information.',
-      apiCallsUsed: getUserApiCount(userId),
-      apiCallsLimit: FREE_API_CALLS_LIMIT,
-    });
-  }
-  
+  // Unlimited calls - always allow
   next();
 };
 
@@ -217,6 +193,5 @@ module.exports = {
   getUserApiLogs,
   getAllApiLogs,
   resetUserApiCount,
-  FREE_API_CALLS_LIMIT,
 };
 

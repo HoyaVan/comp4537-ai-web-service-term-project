@@ -166,3 +166,117 @@ h1 {
   margin-right: 8px;
   padding: 8px 0;
 }
+
+/* Admin Sections */
+.admin-section {
+  margin-bottom: 48px;
+  padding: 24px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.admin-btn-small {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+  background-color: var(--brand);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.admin-btn-small:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.admin-btn-small:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.stats-container {
+  margin-top: 16px;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.stats-table thead {
+  background-color: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.stats-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stats-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.stats-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.stats-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.method-cell {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.endpoint-cell {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.requests-cell {
+  font-weight: 600;
+  color: var(--brand);
+  text-align: right;
+}
+
+.name-cell {
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.email-cell {
+  color: #475569;
+}
