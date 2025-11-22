@@ -10,6 +10,10 @@ const PORT = process.env.PORT || 3000;
 const authRoutes = require("./src/routes/authRoutes");
 const aiRoutes = require("./src/routes/aiRoutes");
 const votingRoutes = require("./src/routes/votingRoutes");
+const adminRoutes = require("./src/routes/adminRoutes");
+
+// Import middleware
+const { apiTrackingMiddleware } = require("./src/middleware/apiTrackingMiddleware");
 
 // Middleware
 // CORS configuration - must explicitly allow origins when credentials are included
@@ -47,6 +51,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// API Tracking Middleware - Track all API calls
+// Apply to all routes except health check
+app.use((req, res, next) => {
+  // Skip tracking for health check and root endpoint
+  if (req.path === '/health' || req.path === '/') {
+    return next();
+  }
+  apiTrackingMiddleware(req, res, next);
+});
+
 // Routes
 app.get("/", (req, res) => {
   res.json({ message: "Server is running!" });
@@ -65,6 +79,9 @@ app.use("/api/ai", aiRoutes);
 
 // Voting routes
 app.use("/api/voting", votingRoutes);
+
+// Admin routes (for API statistics and user management)
+app.use("/api/admin", adminRoutes);
 
 // Start server
 app.listen(PORT, () => {

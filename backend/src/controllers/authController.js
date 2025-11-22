@@ -1,4 +1,5 @@
 const authService = require("../services/authService");
+const { getUserApiCount, FREE_API_CALLS_LIMIT } = require("../middleware/apiTrackingMiddleware");
 
 /**
  * Sign up controller
@@ -69,10 +70,23 @@ async function getProfile(req, res) {
   try {
     // User is attached to req by authMiddleware
     const user = req.user;
+    
+    // Get API consumption stats
+    const apiCallsUsed = getUserApiCount(user.id);
+    const apiCallsRemaining = Math.max(0, FREE_API_CALLS_LIMIT - apiCallsUsed);
+    const hasExceededLimit = apiCallsUsed >= FREE_API_CALLS_LIMIT;
 
     return res.status(200).json({
       success: true,
-      data: user,
+      data: {
+        ...user,
+        apiConsumption: {
+          callsUsed: apiCallsUsed,
+          callsLimit: FREE_API_CALLS_LIMIT,
+          callsRemaining: apiCallsRemaining,
+          hasExceededLimit: hasExceededLimit,
+        },
+      },
     });
   } catch (error) {
     return res.status(500).json({
