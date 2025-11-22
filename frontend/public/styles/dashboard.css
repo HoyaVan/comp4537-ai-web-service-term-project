@@ -10,6 +10,48 @@ h2 { margin: 32px 0 16px; font-size: 20px; border-bottom: 2px solid #e2e8f0; pad
   padding: 8px 0;
 }
 
+/* API Consumption Section */
+.api-consumption-section {
+  margin-bottom: 32px;
+}
+
+.api-consumption-card {
+  padding: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.api-stats {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.api-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.api-stat-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.api-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.api-stat-unlimited {
+  color: #10b981;
+}
+
 .health-check-section {
   margin-top: 24px;
   padding-top: 24px;

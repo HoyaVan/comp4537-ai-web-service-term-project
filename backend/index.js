@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 const authRoutes = require("./src/routes/authRoutes");
 const aiRoutes = require("./src/routes/aiRoutes");
 const votingRoutes = require("./src/routes/votingRoutes");
+<<<<<<< HEAD
 const spotifyRoutes = require("./src/routes/spotifyRoutes");
 
 // Import controllers
@@ -17,6 +18,12 @@ const spotifyController = require("./src/controllers/spotifyController");
 
 // Import services
 const spotifyService = require("./src/services/spotifyService");
+=======
+const adminRoutes = require("./src/routes/adminRoutes");
+
+// Import middleware
+const { apiTrackingMiddleware } = require("./src/middleware/apiTrackingMiddleware");
+>>>>>>> 2fcd9ca2ef23793cf2d025252393dff315c18a9d
 
 // Middleware
 // CORS configuration - must explicitly allow origins when credentials are included
@@ -56,6 +63,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// API Tracking Middleware - Track all API calls
+// Apply to all routes except health check
+app.use((req, res, next) => {
+  // Skip tracking for health check and root endpoint
+  if (req.path === '/health' || req.path === '/') {
+    return next();
+  }
+  apiTrackingMiddleware(req, res, next);
+});
+
 // Routes
 app.get("/", (req, res) => {
   res.json({ message: "Server is running!" });
@@ -75,6 +92,7 @@ app.use("/api/ai", aiRoutes);
 // Voting routes
 app.use("/api/voting", votingRoutes);
 
+<<<<<<< HEAD
 // Spotify routes
 app.use("/api/spotify", spotifyRoutes);
 
@@ -86,6 +104,51 @@ app.listen(PORT, () => {
   console.log(
     `Voting endpoints available at http://localhost:${PORT}/api/voting`
   );
+=======
+// Admin routes (for API statistics and user management)
+app.use("/api/admin", adminRoutes);
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`\n🚀 Server is running on port ${PORT}\n`);
+  console.log("📋 Available Endpoints:\n");
+  
+  console.log("🔐 Authentication (/api/auth):");
+  console.log("   POST   /api/auth/signup          - Register new user (public)");
+  console.log("   POST   /api/auth/login           - Login user (public)");
+  console.log("   GET    /api/auth/profile         - Get user profile (protected)");
+  console.log("   GET    /api/auth/users            - Get all users (protected)");
+  
+  console.log("\n🤖 AI Agent (/api/ai):");
+  console.log("   GET    /api/ai/health            - Check AI agent health (public)");
+  console.log("   POST   /api/ai/chat              - Send message to AI (API key)");
+  console.log("   POST   /api/ai/call              - Call AI agent endpoint (API key)");
+  
+  console.log("\n🗳️  Voting (/api/voting):");
+  console.log("   POST   /api/voting/rounds                    - Create round (protected)");
+  console.log("   GET    /api/voting/rounds                     - Get my rounds (protected)");
+  console.log("   GET    /api/voting/rounds/:roundId            - Get round details (public)");
+  console.log("   POST   /api/voting/rounds/:roundId/vote       - Submit vote (public)");
+  console.log("   GET    /api/voting/rounds/:roundId/results    - Get results (protected)");
+  console.log("   GET    /api/voting/rounds/:roundId/public-results - Get public results (public)");
+  console.log("   POST   /api/voting/rounds/:roundId/next-round - Generate next round (protected)");
+  console.log("   PATCH  /api/voting/rounds/:roundId/status    - Update round status (protected)");
+  console.log("   GET    /api/voting/rounds/:roundId/qr        - Get QR code (protected)");
+  console.log("   GET    /api/voting/spotify/search             - Search Spotify (protected)");
+  console.log("   GET    /api/voting/spotify/tracks/:trackId    - Get Spotify track (public)");
+  
+  console.log("\n👑 Admin (/api/admin):");
+  console.log("   GET    /api/admin/stats/endpoints             - Get endpoint stats (admin)");
+  console.log("   GET    /api/admin/stats/users                 - Get user consumption (admin)");
+  console.log("   GET    /api/admin/stats/logs                  - Get API call logs (admin)");
+  console.log("   POST   /api/admin/users/:userId/reset-api-count - Reset user API count (admin)");
+  
+  console.log("\n🏥 Health:");
+  console.log("   GET    /health                  - Health check (public)");
+  console.log("   GET    /                        - Server status (public)");
+  
+  console.log(`\n✅ API Tracking: Enabled (Unlimited calls per user)\n`);
+>>>>>>> 2fcd9ca2ef23793cf2d025252393dff315c18a9d
 });
 
 module.exports = app;

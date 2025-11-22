@@ -68,11 +68,14 @@ async function signup(email, password, name) {
 
   // Create user object
   const userId = Date.now().toString(); // Simple ID generation
+  // Check if this is the admin user (based on assignment requirements)
+  const isAdmin = email.toLowerCase() === 'admin@admin.com';
   const user = {
     id: userId,
     email: email.toLowerCase(),
     password: hashedPassword,
     name: name || email.split("@")[0],
+    role: isAdmin ? 'admin' : 'user',
     createdAt: new Date().toISOString(),
   };
 
