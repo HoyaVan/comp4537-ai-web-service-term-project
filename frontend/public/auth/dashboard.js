@@ -1,9 +1,12 @@
 const BACKEND_URL = window.BACKEND_URL;
 console.log("BACKEND_URL: ", BACKEND_URL);
+const BACKEND_URL = window.BACKEND_URL;
+console.log("BACKEND_URL: ", BACKEND_URL);
 
 // Check if user is authenticated
 function isAuthenticated() {
   try {
+    const token = localStorage.getItem("token");
     const token = localStorage.getItem("token");
     return !!token;
   } catch (_) {
@@ -14,6 +17,7 @@ function isAuthenticated() {
 // Get token from localStorage
 function getToken() {
   try {
+    return localStorage.getItem("token");
     return localStorage.getItem("token");
   } catch (_) {
     return null;
@@ -121,17 +125,123 @@ async function spotifytTrackTest() {
 
 // console.log("spotifytTrackTest: ", await spotifytTrackTest());
 
+// Set spotify token in localStorage
+// function setSpotifyToken(token) {
+//   try {
+//     localStorage.setItem("spotify_token", token);
+//   } catch (_) {
+//     return null;
+//   }
+// }
+
+// get spotify token from localStorage
+// function getSpotifyToken() {
+//   try {
+//     return localStorage.getItem("spotify_token");
+//   } catch (_) {
+//     return null;
+//   }
+// }
+// // Initiate Spotify OAuth - redirects browser to Spotify
+// function initiateSpotifyOAuth() {
+//   window.location.href = BACKEND_URL + "/api/spotify/auth";
+// }
+
+// Handle Spotify OAuth callback - exchange code for token
+// async function handleSpotifyCallback(code) {
+//   try {
+//     const response = await fetch(
+//       BACKEND_URL + "/api/spotify/callback?code=" + encodeURIComponent(code),
+//       {
+//         method: "GET",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Accept: "application/json",
+//         },
+//         mode: "cors",
+//         credentials: "include",
+//       }
+//     );
+//     const data = await response.json();
+//     if (response.ok && data.success && data.data.access_token) {
+//       setSpotifyToken(data.data.access_token);
+//       // Remove code from URL
+//       const url = new URL(window.location.href);
+//       url.searchParams.delete("code");
+//       url.searchParams.delete("state");
+//       window.history.replaceState({}, "", url.toString());
+//       return data.data.access_token;
+//     }
+//     throw new Error(data.message || "Failed to get access token");
+//   } catch (error) {
+//     console.error("Error handling Spotify callback:", error);
+//     throw error;
+//   }
+// }
+
+// Setup Spotify authentication - checks for token or handles callback
+// async function spotifyApiRequest(url, options = {}) {
+//   const token = getSpotifyToken();
+//   const headers = {
+//     "Content-Type": "application/json",
+//     Accept: "application/json",
+//     ...(options.headers || {}),
+//   };
+
+//   if (token) {
+//     headers["Authorization"] = `Bearer ${token}`;
+//   } else {
+//     // Check if we have a code in the URL (from callback)
+//     const urlParams = new URLSearchParams(window.location.search);
+//     const code = urlParams.get("code");
+
+//     if (code) {
+//       // Exchange code for token
+//       const accessToken = await handleSpotifyCallback(code);
+//       headers["Authorization"] = `Bearer ${accessToken}`;
+//     } else {
+//       // No token and no code - redirect to OAuth
+//       initiateSpotifyOAuth();
+//       return null; // Will redirect, so return early
+//     }
+//   }
+
+//   const response = await fetch(BACKEND_URL + url, {
+//     ...options,
+//     headers,
+//     mode: "cors",
+//     credentials: "include",
+//   });
+//   return {
+//     ok: response.ok,
+//     status: response.status,
+//     data: await response.json(),
+//   };
+// }
+
+async function spotifytTrackTest() {
+  let data = await apiRequest("/api/spotify/tracks/2kmgtoTuRdUSvL4LJFOYUI");
+  return data;
+}
+
+// console.log("spotifytTrackTest: ", await spotifytTrackTest());
+
 // Make authenticated API request
 async function apiRequest(url, options = {}) {
   const token = getToken();
 
+
   const headers = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
     "Content-Type": "application/json",
     Accept: "application/json",
     ...(options.headers || {}),
   };
 
+
   if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
     headers["Authorization"] = `Bearer ${token}`;
   }
 
@@ -140,15 +250,19 @@ async function apiRequest(url, options = {}) {
     headers,
     mode: "cors",
     credentials: "include",
+    mode: "cors",
+    credentials: "include",
   });
 
   const data = await response.json();
+
 
   return { ok: response.ok, status: response.status, data };
 }
 
 // Load user info
 async function loadUserInfo() {
+  const { ok, data } = await apiRequest("/api/auth/profile");
   const { ok, data } = await apiRequest("/api/auth/profile");
   if (ok && data.success) {
     const user = data.data;
@@ -196,6 +310,11 @@ async function createRound(roundData) {
         .split(",")
         .map((a) => a.trim())
         .filter((a) => a)
+  const artists = roundData.artists
+    ? roundData.artists
+        .split(",")
+        .map((a) => a.trim())
+        .filter((a) => a)
     : [];
 
   const payload = {
@@ -208,6 +327,8 @@ async function createRound(roundData) {
 
   const { ok, data } = await apiRequest("/api/voting/rounds", {
     method: "POST",
+  const { ok, data } = await apiRequest("/api/voting/rounds", {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 
@@ -216,6 +337,7 @@ async function createRound(roundData) {
 
 // Load all rounds
 async function loadRounds() {
+  const { ok, data } = await apiRequest("/api/voting/rounds");
   const { ok, data } = await apiRequest("/api/voting/rounds");
   if (ok && data.success) {
     return data.data || [];
@@ -237,10 +359,14 @@ function generateQRCode(url, containerId) {
   const container = document.getElementById(containerId);
   container.innerHTML = "<p>Generating QR code...</p>";
 
+  container.innerHTML = "<p>Generating QR code...</p>";
+
   // Function to try generating QR code
   const tryGenerateQR = () => {
     // Check if QRCode library is available (try multiple possible names)
     const QRCodeLib = window.QRCode || window.qrcode;
+
+    if (QRCodeLib && typeof QRCodeLib.toDataURL === "function") {
 
     if (QRCodeLib && typeof QRCodeLib.toDataURL === "function") {
       try {
@@ -257,7 +383,21 @@ function generateQRCode(url, containerId) {
             }
           }
         );
+        QRCodeLib.toDataURL(
+          url,
+          { width: 256, margin: 2 },
+          (error, dataUrl) => {
+            if (error) {
+              console.error("QR Code generation error:", error);
+              // Fallback to online QR code generator
+              useFallbackQR();
+            } else {
+              container.innerHTML = `<img src="${dataUrl}" alt="QR Code" style="max-width: 100%; height: auto;" />`;
+            }
+          }
+        );
       } catch (error) {
+        console.error("QR Code error:", error);
         console.error("QR Code error:", error);
         useFallbackQR();
       }
@@ -274,6 +414,7 @@ function generateQRCode(url, containerId) {
     }
   };
 
+
   // Fallback function using online QR code API
   const useFallbackQR = () => {
     container.innerHTML = `
@@ -283,10 +424,14 @@ function generateQRCode(url, containerId) {
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(
           url
         )}" alt="QR Code" style="max-width: 100%; height: auto; border: 1px solid #ddd; padding: 10px; background: white;" />
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(
+          url
+        )}" alt="QR Code" style="max-width: 100%; height: auto; border: 1px solid #ddd; padding: 10px; background: white;" />
         <p style="margin-top: 10px; font-size: 0.9em; color: #666;">Scan this QR code with your phone to access the voting page</p>
       </div>
     `;
   };
+
 
   // Start trying to generate QR code
   tryGenerateQR();
@@ -300,11 +445,24 @@ async function generateNextRound(roundId) {
       method: "POST",
     }
   );
+  const { ok, data } = await apiRequest(
+    `/api/voting/rounds/${roundId}/next-round`,
+    {
+      method: "POST",
+    }
+  );
   return { ok, data };
 }
 
 // Update round status
 async function updateRoundStatus(roundId, status) {
+  const { ok, data } = await apiRequest(
+    `/api/voting/rounds/${roundId}/status`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }
+  );
   const { ok, data } = await apiRequest(
     `/api/voting/rounds/${roundId}/status`,
     {
@@ -380,9 +538,12 @@ function formatTimeRemaining(seconds) {
 // Display rounds
 function displayRounds(rounds) {
   const container = document.getElementById("rounds-container");
+  const container = document.getElementById("rounds-container");
   if (!container) return;
 
   if (rounds.length === 0) {
+    container.innerHTML =
+      '<p class="no-rounds">No voting rounds yet. Create one above!</p>';
     container.innerHTML =
       '<p class="no-rounds">No voting rounds yet. Create one above!</p>';
     return;
@@ -403,9 +564,21 @@ function displayRounds(rounds) {
             ? `<p><strong>Artists:</strong> ${round.artists.join(", ")}</p>`
             : ""
         }
+        ${round.genre ? `<p><strong>Genre:</strong> ${round.genre}</p>` : ""}
+        ${round.bpm ? `<p><strong>BPM:</strong> ${round.bpm}</p>` : ""}
+        ${
+          round.artists && round.artists.length > 0
+            ? `<p><strong>Artists:</strong> ${round.artists.join(", ")}</p>`
+            : ""
+        }
         <p><strong>Total Votes:</strong> ${round.totalVotes || 0}</p>
         <p><strong>Songs:</strong> ${round.songCount || 0}</p>
       </div>
+      ${
+        round.winner
+          ? `<p class="winner"><strong>Winner:</strong> "${round.winner.title}" by ${round.winner.artist}</p>`
+          : ""
+      }
       ${
         round.winner
           ? `<p class="winner"><strong>Winner:</strong> "${round.winner.title}" by ${round.winner.artist}</p>`
@@ -421,11 +594,29 @@ function displayRounds(rounds) {
         ${
           round.status === "active"
             ? `
+        <button class="btn btn-small" onclick="showQRCode('${
+          round.id
+        }')">Show QR Code</button>
+        <button class="btn btn-small" onclick="viewResults('${
+          round.id
+        }')">View Results</button>
+        ${
+          round.status === "active"
+            ? `
           <button class="btn btn-small btn-warning" onclick="pauseRound('${round.id}')">Pause</button>
         `
             : round.status === "paused"
             ? `
+        `
+            : round.status === "paused"
+            ? `
           <button class="btn btn-small btn-success" onclick="resumeRound('${round.id}')">Resume</button>
+        `
+            : ""
+        }
+        <button class="btn btn-small" onclick="generateNext('${
+          round.id
+        }')">Generate Next Round</button>
         `
             : ""
         }
@@ -437,12 +628,17 @@ function displayRounds(rounds) {
   `
     )
     .join("");
+  `
+    )
+    .join("");
 }
 
 // Show QR code modal
 window.showQRCode = async function (roundId) {
+window.showQRCode = async function (roundId) {
   const qrData = await getQRCode(roundId);
   if (!qrData) {
+    alert("Failed to get QR code");
     alert("Failed to get QR code");
     return;
   }
@@ -451,15 +647,23 @@ window.showQRCode = async function (roundId) {
   const urlEl = document.getElementById("qr-url");
   const container = document.getElementById("qr-code-container");
 
+  const modal = document.getElementById("qr-modal");
+  const urlEl = document.getElementById("qr-url");
+  const container = document.getElementById("qr-code-container");
+
   if (urlEl) urlEl.textContent = qrData.votingUrl;
+  generateQRCode(qrData.votingUrl, "qr-code-container");
+  modal.style.display = "block";
   generateQRCode(qrData.votingUrl, "qr-code-container");
   modal.style.display = "block";
 };
 
 // View results
 window.viewResults = async function (roundId) {
+window.viewResults = async function (roundId) {
   const results = await getResults(roundId);
   if (!results) {
+    alert("Failed to load results");
     alert("Failed to load results");
     return;
   }
@@ -511,6 +715,10 @@ window.viewResults = async function (roundId) {
         .map(
           (song, index) => `
         <div class="result-item ${index === 0 ? "winner" : ""}">
+      ${results.songs
+        .map(
+          (song, index) => `
+        <div class="result-item ${index === 0 ? "winner" : ""}">
           <span class="rank">#${index + 1}</span>
           <span class="song-info">"${song.title}" by ${song.artist}</span>
           <span class="votes">${song.votes} votes</span>
@@ -518,7 +726,13 @@ window.viewResults = async function (roundId) {
       `
         )
         .join("")}
+      `
+        )
+        .join("")}
     </div>
+    ${
+      results.winner
+        ? `
     ${
       results.winner
         ? `
@@ -551,6 +765,9 @@ window.viewResults = async function (roundId) {
           </p>
         `}
       </div>
+    `
+        : ""
+    }
     `
         : ""
     }
@@ -607,14 +824,21 @@ window.viewResults = async function (roundId) {
 window.pauseRound = async function (roundId) {
   const { ok, data } = await updateRoundStatus(roundId, "paused");
 
+window.pauseRound = async function (roundId) {
+  const { ok, data } = await updateRoundStatus(roundId, "paused");
+
   if (ok && data.success) {
     await loadAndDisplayRounds();
   } else {
+    alert("Failed to pause round: " + (data.message || "Unknown error"));
     alert("Failed to pause round: " + (data.message || "Unknown error"));
   }
 };
 
 // Resume round
+window.resumeRound = async function (roundId) {
+  const { ok, data } = await updateRoundStatus(roundId, "active");
+
 window.resumeRound = async function (roundId) {
   const { ok, data } = await updateRoundStatus(roundId, "active");
 
@@ -662,30 +886,45 @@ window.generateNext = async function (roundId) {
       "Generate next round with AI? This will create 10 new songs based on voting patterns."
     )
   ) {
+window.generateNext = async function (roundId) {
+  if (
+    !confirm(
+      "Generate next round with AI? This will create 10 new songs based on voting patterns."
+    )
+  ) {
     return;
   }
 
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = "Generating...";
+  btn.textContent = "Generating...";
 
   const { ok, data } = await generateNextRound(roundId);
 
+
   if (ok && data.success) {
+    alert("Next round generated successfully!");
     alert("Next round generated successfully!");
     loadAndDisplayRounds();
   } else {
     alert(
       "Failed to generate next round: " + (data.message || "Unknown error")
     );
+    alert(
+      "Failed to generate next round: " + (data.message || "Unknown error")
+    );
   }
 
+
   btn.disabled = false;
+  btn.textContent = "Generate Next Round";
   btn.textContent = "Generate Next Round";
 };
 
 // Load and display rounds
 async function loadAndDisplayRounds() {
+  const container = document.getElementById("rounds-container");
   const container = document.getElementById("rounds-container");
   if (container) {
     container.innerHTML = '<p class="loading">Loading rounds...</p>';
@@ -700,11 +939,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   const createForm = document.getElementById("create-round-form");
   const createMessage = document.getElementById("create-message");
   const createBtn = document.getElementById("create-btn");
+document.addEventListener("DOMContentLoaded", async () => {
+  const backend = document.getElementById("backend-url");
+  const createForm = document.getElementById("create-round-form");
+  const createMessage = document.getElementById("create-message");
+  const createBtn = document.getElementById("create-btn");
 
   if (backend) backend.textContent = window.getBackendUrl();
 
   // Check authentication
   if (!isAuthenticated()) {
+    window.location.href = "/index.html";
     window.location.href = "/index.html";
     return;
   }
@@ -713,6 +958,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadUserInfo();
 
   // Initialize header with Admin link (if headerUtils.js is available)
+  if (typeof initLoggedInHeader === "function") {
+    await initLoggedInHeader([{ href: "/admin.html", text: "Admin" }]);
   if (typeof initLoggedInHeader === "function") {
     await initLoggedInHeader([{ href: "/admin.html", text: "Admin" }]);
   }
@@ -724,10 +971,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   const healthCheckBtn = document.getElementById("health-check-btn");
   const healthStatus = document.getElementById("health-status");
 
+  const healthCheckBtn = document.getElementById("health-check-btn");
+  const healthStatus = document.getElementById("health-status");
+
   if (healthCheckBtn && healthStatus) {
+    healthCheckBtn.addEventListener("click", async () => {
     healthCheckBtn.addEventListener("click", async () => {
       // Disable button during check
       healthCheckBtn.disabled = true;
+      healthCheckBtn.textContent = "Checking...";
+      healthStatus.classList.add("hidden");
+
       healthCheckBtn.textContent = "Checking...";
       healthStatus.classList.add("hidden");
 
@@ -744,13 +998,29 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
         );
 
+        const response = await fetch(
+          window.getBackendUrl() + "/api/ai/health",
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+            },
+            mode: "cors",
+            credentials: "omit",
+          }
+        );
+
         const data = await response.json();
+
 
         // Remove hidden class to show status
         healthStatus.classList.remove("hidden");
 
+        healthStatus.classList.remove("hidden");
+
         if (response.ok && data.success && data.connected) {
           // AI is healthy
+          healthStatus.className = "health-status health-status-success";
           healthStatus.className = "health-status health-status-success";
           healthStatus.innerHTML = `
             <strong>✓ AI Service is Healthy</strong>
@@ -758,6 +1028,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           `;
         } else {
           // AI is not healthy
+          healthStatus.className = "health-status health-status-error";
+          const errorMsg =
+            data.error || "The AI agent is not reachable or not connected.";
           healthStatus.className = "health-status health-status-error";
           const errorMsg =
             data.error || "The AI agent is not reachable or not connected.";
@@ -770,6 +1043,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Network or other error
         healthStatus.className = "health-status health-status-error";
         healthStatus.classList.remove("hidden");
+        healthStatus.className = "health-status health-status-error";
+        healthStatus.classList.remove("hidden");
         healthStatus.innerHTML = `
           <strong>✗ Connection Error</strong>
           <p>Unable to reach the backend server. Please check your connection or try again later.</p>
@@ -778,6 +1053,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Re-enable button
         healthCheckBtn.disabled = false;
         healthCheckBtn.textContent = "Check AI Health";
+        healthCheckBtn.textContent = "Check AI Health";
       }
     });
   }
@@ -785,14 +1061,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Setup create form
   if (createForm) {
     createForm.addEventListener("submit", async (e) => {
+    createForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      createMessage.textContent = "";
+      createMessage.className = "msg";
       createMessage.textContent = "";
       createMessage.className = "msg";
       createBtn.disabled = true;
       createBtn.textContent = "Creating...";
+      createBtn.textContent = "Creating...";
 
       const formData = new FormData(createForm);
       const roundData = {
+        genre: formData.get("genre"),
+        bpm: formData.get("bpm"),
+        artists: formData.get("artists"),
+        mood: formData.get("mood"),
+        energy: formData.get("energy"),
         genre: formData.get("genre"),
         bpm: formData.get("bpm"),
         artists: formData.get("artists"),
@@ -815,9 +1100,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         createMessage.textContent =
           "Failed to create round: " + (data.message || "Unknown error");
         createMessage.className = "msg err";
+        createMessage.textContent =
+          "Failed to create round: " + (data.message || "Unknown error");
+        createMessage.className = "msg err";
       }
 
       createBtn.disabled = false;
+      createBtn.textContent = "Create Voting Round";
       createBtn.textContent = "Create Voting Round";
     });
   }
@@ -829,11 +1118,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   const closeQR = document.querySelector(".close");
   const closeResults = document.querySelector(".close-results");
 
+  const qrModal = document.getElementById("qr-modal");
+  const resultsModal = document.getElementById("results-modal");
+
+  const closeQR = document.querySelector(".close");
+  const closeResults = document.querySelector(".close-results");
+
   if (closeQR) {
+    closeQR.addEventListener("click", () => {
+      qrModal.style.display = "none";
     closeQR.addEventListener("click", () => {
       qrModal.style.display = "none";
     });
   }
+
 
   if (closeResults) {
     closeResults.addEventListener("click", () => {
@@ -848,7 +1146,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Close modals when clicking outside
   window.addEventListener("click", (e) => {
+  window.addEventListener("click", (e) => {
     if (e.target === qrModal) {
+      qrModal.style.display = "none";
       qrModal.style.display = "none";
     }
     if (e.target === resultsModal) {
