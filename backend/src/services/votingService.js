@@ -22,67 +22,33 @@ function generateId() {
  * @param {boolean} skipAutoStart - If true, skip auto-starting jukebox (for internal use)
  */
 async function createRound(ownerId, roundData, skipAutoStart = false) {
-  // NEW FLOW: Auto-start jukebox with random song, which will create the voting round
+  // Auto-start jukebox with random song, which will create the voting round
   if (!skipAutoStart) {
-    console.log(`[CreateRound] Starting createRound for owner ${ownerId}, skipAutoStart: ${skipAutoStart}`);
-    console.log(`[CreateRound] jukeboxService available:`, typeof jukeboxService !== 'undefined' && jukeboxService !== null);
     try {
-      // Check if jukebox already exists for this owner
       const existingJukebox = jukeboxService.getJukeboxStatus(ownerId);
-      console.log(`[CreateRound] Existing jukebox check:`, {
-        exists: !!existingJukebox,
-        isActive: existingJukebox?.isActive,
-      });
       if (!existingJukebox || !existingJukebox.isActive) {
-        // Start jukebox with random song - this will create the voting round automatically
-        console.log(`🎵 Auto-starting jukebox for owner ${ownerId} with random song`);
-        console.log(`[CreateRound] Calling startJukeboxWithRandomSong with roundData:`, roundData);
         try {
           await jukeboxService.startJukeboxWithRandomSong(ownerId, roundData);
-          console.log(`✅ Jukebox started with random song - startJukeboxWithRandomSong completed`);
         } catch (jukeboxError) {
-          console.error(`[CreateRound] ERROR in startJukeboxWithRandomSong:`, jukeboxError);
-          console.error(`[CreateRound] Error message:`, jukeboxError.message);
-          console.error(`[CreateRound] Error stack:`, jukeboxError.stack);
-          throw jukeboxError; // Re-throw to be caught by outer catch
+          console.error("Failed to start jukebox:", jukeboxError.message);
+          throw jukeboxError;
         }
         
-        // Get the voting round that was created by jukebox
-        // Wait a tiny bit to ensure the round is fully added to votingRounds
         await new Promise(resolve => setImmediate(resolve));
         
         const jukebox = jukeboxService.getJukeboxStatus(ownerId);
-        console.log(`[CreateRound] Jukebox status after start:`, {
-          isActive: jukebox?.isActive,
-          hasVotingRound: !!jukebox?.votingRound,
-          votingRoundId: jukebox?.votingRound?.roundId,
-          nowPlaying: jukebox?.nowPlaying?.song?.title,
-        });
         
         if (jukebox && jukebox.isActive && jukebox.votingRound) {
-          // Return the voting round that was created by jukebox
-          // Try multiple times in case of timing issues
           let votingRound = null;
           const votingRoundId = jukebox.votingRound.roundId;
           
-          console.log(`[CreateRound] Looking for voting round: ${votingRoundId}`);
-          console.log(`[CreateRound] Current votingRounds array length: ${votingRounds.length}`);
-          console.log(`[CreateRound] Current votingRounds IDs:`, votingRounds.map(r => r.id));
-          
           for (let i = 0; i < 5; i++) {
             votingRound = getRoundById(votingRoundId);
-            if (votingRound) {
-              console.log(`[CreateRound] Found voting round on attempt ${i + 1}`);
-              break;
-            }
-            console.log(`[CreateRound] Attempt ${i + 1} failed, waiting...`);
+            if (votingRound) break;
             if (i < 4) await new Promise(resolve => setTimeout(resolve, 100));
           }
           
           if (votingRound) {
-            console.log(`[CreateRound] Returning voting round: ${votingRound.id}`);
-            console.log(`[CreateRound] Now playing song: "${jukebox.nowPlaying?.song?.title}" by ${jukebox.nowPlaying?.song?.artist}`);
-            // Attach jukebox info to the round for the response
             votingRound._jukeboxInfo = {
               isActive: true,
               nowPlaying: jukebox.nowPlaying?.song,
@@ -90,34 +56,18 @@ async function createRound(ownerId, roundData, skipAutoStart = false) {
             };
             return votingRound;
           } else {
-            console.error(`[CreateRound] Voting round ${votingRoundId} not found in votingRounds after ${5} retries`);
-            console.error(`[CreateRound] Available rounds:`, votingRounds.map(r => r.id));
-            console.error(`[CreateRound] Jukebox says voting round ID is: ${votingRoundId}`);
-            // Don't fall through - throw error so we know something is wrong
+            console.error(`Voting round ${votingRoundId} not found after jukebox start`);
             throw new Error(`Voting round ${votingRoundId} not found after jukebox start`);
           }
         } else {
-          console.warn(`[CreateRound] Jukebox started but voting round not found`);
-          console.warn(`[CreateRound] Jukebox state:`, {
-            exists: !!jukebox,
-            isActive: jukebox?.isActive,
-            hasVotingRound: !!jukebox?.votingRound,
-            votingRoundId: jukebox?.votingRound?.roundId,
-          });
-          throw new Error(`Jukebox started but voting round not found`);
+          console.error("Jukebox started but voting round not found");
+          throw new Error("Jukebox started but voting round not found");
         }
-      } else {
-        console.log(`ℹ️  Jukebox already active, creating voting round normally`);
       }
     } catch (error) {
-      console.error(`⚠️  Failed to auto-start jukebox:`, error);
-      console.error(`⚠️  Error details:`, error.message);
-      console.error(`⚠️  Error stack:`, error.stack);
-      console.warn(`⚠️  Creating round normally as fallback`);
+      console.error("Failed to auto-start jukebox:", error.message);
       // Continue with normal round creation if jukebox start fails
     }
-  } else {
-    console.log(`ℹ️  Skipping auto-start (internal call)`);
   }
 
   // Fallback: Normal round creation (if jukebox start failed or already active)
@@ -246,45 +196,30 @@ Return ONLY the JSON array starting with [ and ending with ]. No other text.`;
     } else if (response.content) {
       aiResponseText = response.content;
     } else {
-      // Log the full response structure if it doesn't match expected format
-      console.error("⚠️  AI response structure unexpected. Full response:", JSON.stringify(response, null, 2));
+      console.error("AI response structure unexpected");
     }
 
-    // Check if we got any response text
     if (!aiResponseText || aiResponseText.trim().length === 0) {
-      console.error("❌ AI returned empty response. Full response object:", JSON.stringify(response, null, 2));
+      console.error("AI returned empty response");
       return generateFallbackSongs(round);
     }
 
-    console.log("✅ AI Response received (first 200 chars):", aiResponseText.substring(0, 200));
-
-    // Try to extract JSON from response
     let songList = [];
     try {
-      // Remove markdown code blocks if present
       aiResponseText = aiResponseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      
-      // Try to find JSON array in the response
       const jsonMatch = aiResponseText.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         songList = JSON.parse(jsonMatch[0]);
-        console.log(`✅ Successfully parsed ${songList.length} songs from AI response`);
       } else {
-        // Try parsing the whole response
         songList = JSON.parse(aiResponseText);
-        console.log(`✅ Successfully parsed ${songList.length} songs from AI response (direct parse)`);
       }
     } catch (parseError) {
-      console.error("❌ Failed to parse AI response as JSON:", parseError.message);
-      console.error("📝 AI Response (first 500 chars):", aiResponseText.substring(0, 500));
-      console.error("📝 Full AI Response:", aiResponseText);
-      // Fallback: generate placeholder songs
+      console.error("Failed to parse AI response as JSON:", parseError.message);
       songList = generateFallbackSongs(round);
     }
 
-    // Ensure we have exactly 10 songs
     if (!Array.isArray(songList) || songList.length === 0) {
-      console.error("❌ Song list is not an array or is empty. Got:", typeof songList, songList);
+      console.error("Song list is not an array or is empty");
       songList = generateFallbackSongs(round);
     }
 
@@ -302,12 +237,7 @@ Return ONLY the JSON array starting with [ and ending with ]. No other text.`;
 
     return songList.slice(0, 10);
   } catch (error) {
-    console.error("❌ Error generating songs with AI:", error.message);
-    console.error("📋 Error stack:", error.stack);
-    if (error.response) {
-      console.error("📋 AI Service Error Response:", JSON.stringify(error.response.data, null, 2));
-    }
-    // Fallback to default songs if AI fails
+    console.error("Error generating songs with AI:", error.message);
     return generateFallbackSongs(round);
   }
 }
@@ -466,16 +396,9 @@ async function generateNextRound(roundId, skipAutoStart = false) {
   // Skip if called from jukebox service to avoid double-generation
   if (!skipAutoStart && previousResults.winner && previousResults.totalVotes > 0) {
     try {
-      // Check if jukebox is already active for this owner
       const existingJukebox = jukeboxService.getJukeboxStatus(round.ownerId);
       if (!existingJukebox || !existingJukebox.isActive) {
-        // Start jukebox with the current round (before incrementing)
-        // The jukebox will use the winner from previousResults and generate its own next round
-        console.log(`🎵 Auto-starting jukebox for owner ${round.ownerId} with round ${roundId} (round ${previousRoundNumber})`);
         await jukeboxService.startJukebox(round.ownerId, roundId);
-        console.log(`✅ Jukebox auto-started successfully`);
-        // Jukebox start will generate the next round, so we can return early
-        // But we need to return the round that was just generated by jukebox
         const jukebox = jukeboxService.getJukeboxStatus(round.ownerId);
         if (jukebox && jukebox.votingRound) {
           const votingRound = getRoundById(jukebox.votingRound.roundId);
@@ -486,12 +409,9 @@ async function generateNextRound(roundId, skipAutoStart = false) {
             jukeboxAutoStarted: true,
           };
         }
-      } else {
-        console.log(`ℹ️  Jukebox already active for owner ${round.ownerId}, skipping auto-start`);
       }
     } catch (error) {
-      // Don't fail the round generation if jukebox start fails
-      console.warn(`⚠️  Failed to auto-start jukebox: ${error.message}`);
+      console.warn("Failed to auto-start jukebox:", error.message);
     }
   }
 

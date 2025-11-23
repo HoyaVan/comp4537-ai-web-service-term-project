@@ -239,18 +239,13 @@ async function getSpotifyTrackInfo(trackId) {
 
 // Get countdown info for round
 async function getRoundCountdown(roundId) {
-  console.log('[Dashboard] Calling countdown API for round:', roundId);
   try {
     const { ok, data } = await apiRequest(`/api/voting/rounds/${roundId}/countdown`);
-    console.log('[Dashboard] Countdown API response:', { ok, data });
     if (ok && data.success) {
-      console.log('[Dashboard] Countdown data:', data.data);
       return data.data;
-    } else {
-      console.warn('[Dashboard] Countdown API returned error:', data);
     }
   } catch (error) {
-    console.error('[Dashboard] Error fetching countdown:', error);
+    console.error('Error fetching countdown:', error);
   }
   return null;
 }
@@ -272,12 +267,6 @@ function displayRounds(rounds) {
     container.innerHTML = '<p class="no-rounds">No voting rounds yet. Create one above!</p>';
     return;
   }
-
-  // Log which rounds are jukebox voting rounds
-  const jukeboxRounds = rounds.filter(r => r._isJukeboxVotingRound);
-  console.log('[Dashboard] Total rounds:', rounds.length);
-  console.log('[Dashboard] Jukebox voting rounds:', jukeboxRounds.map(r => r.id));
-  console.log('[Dashboard] All round IDs:', rounds.map(r => r.id));
 
   container.innerHTML = rounds.map(round => `
     <div class="round-card ${round._isJukeboxVotingRound ? 'jukebox-round' : ''}">
@@ -327,84 +316,48 @@ window.showQRCode = async function(roundId) {
 
 // View results
 window.viewResults = async function(roundId) {
-  console.log('[Dashboard] viewResults called for round:', roundId);
-  
-  // First, check if this round is marked as the jukebox voting round
-  const rounds = await loadRounds();
-  const currentRound = rounds.find(r => r.id === roundId);
-  if (currentRound && currentRound._isJukeboxVotingRound) {
-    console.log('[Dashboard] This round is marked as the jukebox voting round');
-  } else {
-    console.log('[Dashboard] This round is NOT marked as the jukebox voting round');
-    console.log('[Dashboard] Round data:', currentRound);
-  }
-  
   const results = await getResults(roundId);
   if (!results) {
     alert('Failed to load results');
     return;
   }
 
-  // Try to get Spotify track info only if spotifyId exists
   let spotifyTrackInfo = null;
   if (results.winner && results.winner.spotifyId) {
     try {
       spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
-      console.log('Spotify track info:', spotifyTrackInfo);
     } catch (error) {
-      console.warn('Failed to load Spotify track info:', error);
-      // Continue without Spotify info - don't block showing results
+      // Continue without Spotify info
     }
   }
 
-  // Get countdown info
-  console.log('[Dashboard] Fetching countdown for round:', roundId);
   const countdownData = await getRoundCountdown(roundId);
-  console.log('[Dashboard] Countdown data received:', countdownData);
-  
   const modal = document.getElementById('results-modal');
   const container = document.getElementById('results-container');
   
-  // Build countdown HTML if available
   let countdownHTML = '';
-  if (countdownData) {
-    console.log('[Dashboard] Countdown data exists:', {
-      isJukeboxRound: countdownData.isJukeboxRound,
-      timeRemainingSeconds: countdownData.timeRemainingSeconds,
-      nowPlaying: countdownData.nowPlaying
-    });
-    
-    if (countdownData.isJukeboxRound && countdownData.timeRemainingSeconds !== null) {
-      const timeStr = formatTimeRemaining(countdownData.timeRemainingSeconds);
-      const warningClass = countdownData.timeRemainingSeconds < 30 ? 'countdown-warning' : '';
-      countdownHTML = `
-        <div class="countdown-section" style="margin: 16px 0; padding: 12px; background: #f5f5f5; border-radius: 8px;">
-          <p style="margin: 0 0 8px 0; font-weight: bold;">⏱️ Voting ends in:</p>
-          <p class="countdown-timer ${warningClass}" id="results-countdown-timer" style="font-size: 24px; font-weight: bold; margin: 0; color: #007bff;">${timeStr}</p>
-          ${countdownData.nowPlaying ? `
-            <p style="margin: 8px 0 0 0; font-size: 0.9em; color: #666;">
-              Currently playing: "${countdownData.nowPlaying.title}" by ${countdownData.nowPlaying.artist}
-            </p>
-          ` : ''}
-        </div>
-      `;
-      console.log('[Dashboard] Countdown HTML generated');
-    } else {
-      console.log('[Dashboard] Countdown not shown - isJukeboxRound:', countdownData.isJukeboxRound, 'timeRemainingSeconds:', countdownData.timeRemainingSeconds);
-    }
-  } else {
-    console.log('[Dashboard] No countdown data returned - round may not be part of a jukebox');
-    // Show helpful message if round has a winner but jukebox isn't started
-    if (results.winner) {
-      countdownHTML = `
-        <div class="countdown-section" style="margin: 16px 0; padding: 12px; background: #fef3c7; border-radius: 8px; border: 1px solid #fcd34d;">
-          <p style="margin: 0; font-size: 0.9em; color: #92400e;">
-            💡 <strong>Tip:</strong> Start the jukebox to enable countdown timers and automated playlist management. 
-            Click "🎧 Start Jukebox" on the round card to begin.
+  if (countdownData && countdownData.isJukeboxRound && countdownData.timeRemainingSeconds !== null) {
+    const timeStr = formatTimeRemaining(countdownData.timeRemainingSeconds);
+    const warningClass = countdownData.timeRemainingSeconds < 30 ? 'countdown-warning' : '';
+    countdownHTML = `
+      <div class="countdown-section" style="margin: 16px 0; padding: 12px; background: #f5f5f5; border-radius: 8px;">
+        <p style="margin: 0 0 8px 0; font-weight: bold;">⏱️ Voting ends in:</p>
+        <p class="countdown-timer ${warningClass}" id="results-countdown-timer" style="font-size: 24px; font-weight: bold; margin: 0; color: #007bff;">${timeStr}</p>
+        ${countdownData.nowPlaying ? `
+          <p style="margin: 8px 0 0 0; font-size: 0.9em; color: #666;">
+            Currently playing: "${countdownData.nowPlaying.title}" by ${countdownData.nowPlaying.artist}
           </p>
-        </div>
-      `;
-    }
+        ` : ''}
+      </div>
+    `;
+  } else if (results.winner) {
+    countdownHTML = `
+      <div class="countdown-section" style="margin: 16px 0; padding: 12px; background: #fef3c7; border-radius: 8px; border: 1px solid #fcd34d;">
+        <p style="margin: 0; font-size: 0.9em; color: #92400e;">
+          💡 <strong>Tip:</strong> Start the jukebox to enable countdown timers and automated playlist management.
+        </p>
+      </div>
+    `;
   }
   
   container.innerHTML = `
@@ -696,17 +649,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         createForm.reset();
         
         // Log the created round info
-        console.log('[Dashboard] Round created successfully:', {
-          roundId: data.data?.round?.id,
-          jukeboxInfo: data.data?.jukebox,
-          debug: data.data?._debug,
-        });
-        
-        // If there's a debug warning about round ID mismatch, log it
-        if (data.data?._debug) {
-          console.warn('[Dashboard] Round ID mismatch detected:', data.data._debug);
-          console.warn('[Dashboard] You should use voting round ID:', data.data._debug.votingRoundId);
-        }
         
         await loadAndDisplayRounds();
       } else {

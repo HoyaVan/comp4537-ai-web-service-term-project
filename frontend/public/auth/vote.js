@@ -81,7 +81,6 @@ function updateCountdownDisplay(countdownData) {
   const timerEl = document.getElementById('countdown-timer');
   
   if (!container || !timerEl) {
-    console.warn('Countdown container or timer element not found');
     return;
   }
 
@@ -99,11 +98,8 @@ function updateCountdownDisplay(countdownData) {
       timerEl.className = 'countdown-timer';
     }
     
-    console.log('Countdown updated:', seconds, 'seconds');
   } else {
-    // Hide countdown - round is not part of an active jukebox
     container.style.display = 'none';
-    console.log('Hiding countdown - round is not part of an active jukebox. Data:', countdownData);
   }
 }
 
@@ -114,21 +110,16 @@ async function startCountdownTimer(roundId) {
     clearInterval(countdownInterval);
   }
 
-  // Update immediately
   const { ok, data } = await getRoundCountdown(roundId);
-  console.log('Countdown response:', { ok, data });
   
   if (ok && data.success) {
     const countdownData = data.data;
     if (countdownData && countdownData.isJukeboxRound && countdownData.timeRemainingSeconds !== null) {
-      console.log('Displaying countdown:', countdownData);
       updateCountdownDisplay(countdownData);
     } else {
-      console.log('No countdown data or not a jukebox round:', countdownData);
       updateCountdownDisplay(null);
     }
   } else {
-    console.log('Failed to get countdown:', data);
     updateCountdownDisplay(null);
   }
 

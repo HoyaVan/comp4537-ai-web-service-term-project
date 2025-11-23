@@ -1,54 +1,38 @@
 // Use lazy requires to avoid circular dependency issues
-// We'll require these inside functions when needed
 const spotifyService = require("./spotifyService");
 const crypto = require("crypto");
 const aiService = require("./aiService");
 
 // Jukebox state for each owner
-const jukeboxes = new Map(); // ownerId -> jukebox state
+const jukeboxes = new Map();
 
 /**
  * Jukebox state structure:
  * {
  *   ownerId: string,
  *   isActive: boolean,
- *   nowPlaying: {
- *     roundId: string,
- *     roundNumber: number,
- *     song: { title, artist, spotifyId, spotifyUri, ... },
- *     startedAt: ISO timestamp,
- *     durationMs: number,
- *     endsAt: ISO timestamp
- *   },
- *   nextUp: {
- *     roundId: string,
- *     roundNumber: number,
- *     song: { title, artist, spotifyId, spotifyUri, ... },
- *   },
- *   votingRound: {
- *     roundId: string,
- *     roundNumber: number,
- *   },
+ *   nowPlaying: { roundId, roundNumber, song, startedAt, durationMs, endsAt },
+ *   nextUp: { roundId, roundNumber, song },
+ *   votingRound: { roundId, roundNumber },
  *   timer: NodeJS.Timeout | null
  * }
  */
 
 /**
- * Generate fallback songs if AI fails (duplicated from votingService)
+ * Generate fallback songs if AI fails
  */
 function generateFallbackSongs(round) {
-  const defaultSongs = [
-    { title: "Song 1", artist: "Artist 1", spotifyId: null, spotifyUri: null, genre: round.genre || "Pop", bpm: round.bpm || 120 },
-    { title: "Song 2", artist: "Artist 2", spotifyId: null, spotifyUri: null, genre: round.genre || "Pop", bpm: round.bpm || 120 },
-    { title: "Song 3", artist: "Artist 3", spotifyId: null, spotifyUri: null, genre: round.genre || "Pop", bpm: round.bpm || 120 },
-    { title: "Song 4", artist: "Artist 4", spotifyId: null, spotifyUri: null, genre: round.genre || "Pop", bpm: round.bpm || 120 },
-    { title: "Song 5", artist: "Artist 5", spotifyId: null, spotifyUri: null, genre: round.genre || "Pop", bpm: round.bpm || 120 },
-    { title: "Song 6", artist: "Artist 6", spotifyId: null, spotifyUri: null, genre: round.genre || "Pop", bpm: round.bpm || 120 },
-    { title: "Song 7", artist: "Artist 7", spotifyId: null, spotifyUri: null, genre: round.genre || "Pop", bpm: round.bpm || 120 },
-    { title: "Song 8", artist: "Artist 8", spotifyId: null, spotifyUri: null, genre: round.genre || "Pop", bpm: round.bpm || 120 },
-    { title: "Song 9", artist: "Artist 9", spotifyId: null, spotifyUri: null, genre: round.genre || "Pop", bpm: round.bpm || 120 },
-    { title: "Song 10", artist: "Artist 10", spotifyId: null, spotifyUri: null, genre: round.genre || "Pop", bpm: round.bpm || 120 },
-  ];
+  const defaultSongs = [];
+  for (let i = 1; i <= 10; i++) {
+    defaultSongs.push({
+      title: `Song ${i}`,
+      artist: `Artist ${i}`,
+      spotifyId: null,
+      spotifyUri: null,
+      genre: round.genre || "Pop",
+      bpm: round.bpm || 120,
+    });
+  }
   return defaultSongs;
 }
 
@@ -108,54 +92,39 @@ Return ONLY the JSON array starting with [ and ending with ]. No other text.`;
       max_tokens: 2500,
     });
 
-    // Parse AI response
     let aiResponseText = "";
     if (response.choices && response.choices[0]) {
       aiResponseText = response.choices[0].message?.content || "";
     } else if (response.content) {
       aiResponseText = response.content;
     } else {
-      console.error("⚠️  AI response structure unexpected. Full response:", JSON.stringify(response, null, 2));
+      console.error("AI response structure unexpected:", JSON.stringify(response, null, 2));
     }
 
-    // Check if we got any response text
     if (!aiResponseText || aiResponseText.trim().length === 0) {
-      console.error("❌ AI returned empty response. Full response object:", JSON.stringify(response, null, 2));
+      console.error("AI returned empty response");
       return generateFallbackSongs(round);
     }
 
-    console.log("✅ AI Response received (first 200 chars):", aiResponseText.substring(0, 200));
-
-    // Try to extract JSON from response
     let songList = [];
     try {
-      // Remove markdown code blocks if present
       aiResponseText = aiResponseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      
-      // Try to find JSON array in the response
       const jsonMatch = aiResponseText.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         songList = JSON.parse(jsonMatch[0]);
-        console.log(`✅ Successfully parsed ${songList.length} songs from AI response`);
       } else {
-        // Try parsing the whole response
         songList = JSON.parse(aiResponseText);
-        console.log(`✅ Successfully parsed ${songList.length} songs from AI response (direct parse)`);
       }
     } catch (parseError) {
-      console.error("❌ Failed to parse AI response as JSON:", parseError.message);
-      console.error("📝 AI Response (first 500 chars):", aiResponseText.substring(0, 500));
-      // Fallback: generate placeholder songs
+      console.error("Failed to parse AI response as JSON:", parseError.message);
       songList = generateFallbackSongs(round);
     }
 
-    // Ensure we have exactly 10 songs
     if (!Array.isArray(songList) || songList.length === 0) {
-      console.error("❌ Song list is not an array or is empty. Got:", typeof songList, songList);
+      console.error("Song list is not an array or is empty");
       songList = generateFallbackSongs(round);
     }
 
-    // Pad or trim to exactly 10 songs
     while (songList.length < 10) {
       songList.push({
         title: `Generated Song ${songList.length + 1}`,
@@ -169,31 +138,19 @@ Return ONLY the JSON array starting with [ and ending with ]. No other text.`;
 
     return songList.slice(0, 10);
   } catch (error) {
-    console.error("❌ Error generating songs with AI:", error.message);
-    console.error("📋 Error stack:", error.stack);
-    if (error.response) {
-      console.error("📋 AI Service Error Response:", JSON.stringify(error.response.data, null, 2));
-    }
-    // Fallback to default songs if AI fails
+    console.error("Error generating songs with AI:", error.message);
     return generateFallbackSongs(round);
   }
 }
 
 /**
- * Start jukebox mode with a random song (new flow)
- * Picks a random song from Spotify based on criteria and starts playing
+ * Start jukebox mode with a random song
  */
 async function startJukeboxWithRandomSong(ownerId, roundData) {
-  console.log(`[startJukeboxWithRandomSong] Starting jukebox for owner ${ownerId} with data:`, {
-    genre: roundData.genre,
-    mood: roundData.mood,
-    artists: roundData.artists,
-  });
   try {
     // Search Spotify for a random song based on criteria
     let searchQuery = "";
     if (roundData.genre) {
-      // Use genre as a keyword search (Spotify doesn't support genre: filter in search)
       searchQuery += `${roundData.genre} `;
     }
     if (roundData.artists && roundData.artists.length > 0) {
@@ -202,56 +159,41 @@ async function startJukeboxWithRandomSong(ownerId, roundData) {
     if (roundData.mood) {
       searchQuery += roundData.mood + " ";
     }
-    
-    // If no specific criteria, use a general popular search
     if (!searchQuery.trim()) {
       searchQuery = "popular";
     }
 
-    // Search Spotify for tracks
     let randomTrack = null;
     try {
-      console.log(`[startJukeboxWithRandomSong] Searching Spotify with query: "${searchQuery.trim()}"`);
       const tracks = await spotifyService.searchTracks(searchQuery.trim(), 50);
-      console.log(`[startJukeboxWithRandomSong] Spotify returned ${tracks?.length || 0} tracks`);
       if (tracks && tracks.length > 0) {
-        // Pick a random track from results
         const randomIndex = Math.floor(Math.random() * tracks.length);
         randomTrack = tracks[randomIndex];
-        console.log(`🎲 Selected random song: "${randomTrack.name}" by ${randomTrack.artist} (ID: ${randomTrack.id})`);
-      } else {
-        console.warn(`[startJukeboxWithRandomSong] No tracks returned from Spotify search`);
       }
     } catch (error) {
-      console.error(`[startJukeboxWithRandomSong] Failed to get random song from Spotify:`, error);
-      console.warn("Using fallback song");
+      console.error("Failed to get random song from Spotify:", error.message);
     }
 
-    // Fallback if Spotify search fails
     if (!randomTrack) {
-      // Use a default popular song or create a placeholder
       randomTrack = {
         id: null,
         uri: null,
         name: "Welcome Song",
         artist: "Various Artists",
-        duration_ms: 180000, // 3 minutes default
+        duration_ms: 180000,
       };
-      console.log("⚠️  Using fallback song (Spotify unavailable)");
     }
 
-    // Create a temporary "now playing" round entry
     const now = new Date();
     const durationMs = randomTrack.duration_ms || 180000;
     const startedAt = now.toISOString();
     const endsAt = new Date(now.getTime() + durationMs).toISOString();
 
-    // Create jukebox state with random song
     const jukebox = {
       ownerId,
       isActive: true,
       nowPlaying: {
-        roundId: null, // No round yet - this is the initial random song
+        roundId: null,
         roundNumber: 0,
         song: {
           id: randomTrack.id,
@@ -267,14 +209,10 @@ async function startJukeboxWithRandomSong(ownerId, roundData) {
       nextUp: null,
       votingRound: null,
       timer: null,
-      initialCriteria: roundData, // Store criteria for generating first voting round
+      initialCriteria: roundData,
     };
 
     // Generate first voting round
-    // Use internal helper functions to avoid circular dependency
-    console.log(`[startJukeboxWithRandomSong] Creating voting round using internal helpers`);
-    
-    // Generate round ID using crypto directly (avoid circular dependency issue)
     const roundId = crypto.randomBytes(16).toString("hex");
     const round = {
       id: roundId,
@@ -290,139 +228,85 @@ async function startJukeboxWithRandomSong(ownerId, roundData) {
       updatedAt: new Date().toISOString(),
     };
     
-    // Generate songs using AI (duplicate logic to avoid circular dependency)
     const initialSongs = await generateSongsWithAI(round, null, null);
     
     // Add round to storage using lazy require to avoid circular dependency
-    console.log(`[startJukeboxWithRandomSong] Adding round ${round.id} to votingRounds`);
-    // Use lazy require - get votingService after it's fully loaded
     const votingServiceLazy = require("./votingService");
-    
-    // Use setImmediate to ensure votingService is fully initialized
     await new Promise((resolve) => setImmediate(resolve));
     
-    // Try to access the internal functions
-    if (typeof votingServiceLazy._internalAddRound === 'function') {
-      votingServiceLazy._internalAddRound(round);
-    } else {
-      console.error(`[startJukeboxWithRandomSong] _internalAddRound is not a function. Available exports:`, Object.keys(votingServiceLazy));
-      throw new Error(`_internalAddRound is not available - circular dependency issue`);
+    if (typeof votingServiceLazy._internalAddRound !== 'function') {
+      console.error("_internalAddRound is not available - circular dependency issue");
+      throw new Error("_internalAddRound is not available");
     }
     
-    // Verify it was added
+    votingServiceLazy._internalAddRound(round);
+    
     const verifyAfterAdd = votingServiceLazy.getRoundById(round.id);
-    console.log(`[startJukeboxWithRandomSong] Round ${round.id} exists after add:`, !!verifyAfterAdd);
     if (!verifyAfterAdd) {
-      console.error(`[startJukeboxWithRandomSong] CRITICAL: Round ${round.id} not found after adding!`);
+      console.error(`Round ${round.id} not found after adding`);
       throw new Error(`Failed to add round ${round.id} to votingRounds`);
     }
     
-    // Add songs to storage using lazy require
     initialSongs.forEach((song, index) => {
-      if (typeof votingServiceLazy._internalAddSong === 'function') {
-        votingServiceLazy._internalAddSong({
-          id: crypto.randomBytes(16).toString("hex"),
-          roundId,
-          roundNumber: 1,
-          title: song.title,
-          artist: song.artist,
-          spotifyId: song.spotifyId || null,
-          spotifyUri: song.spotifyUri || null,
-          votes: 0,
-          order: index + 1,
-          genre: song.genre || round.genre,
-          bpm: song.bpm || round.bpm,
-          createdAt: new Date().toISOString(),
-        });
-      } else {
-        console.error(`[startJukeboxWithRandomSong] _internalAddSong is not a function for song ${index + 1}`);
-        throw new Error(`_internalAddSong is not available - circular dependency issue`);
+      if (typeof votingServiceLazy._internalAddSong !== 'function') {
+        throw new Error("_internalAddSong is not available");
       }
+      votingServiceLazy._internalAddSong({
+        id: crypto.randomBytes(16).toString("hex"),
+        roundId,
+        roundNumber: 1,
+        title: song.title,
+        artist: song.artist,
+        spotifyId: song.spotifyId || null,
+        spotifyUri: song.spotifyUri || null,
+        votes: 0,
+        order: index + 1,
+        genre: song.genre || round.genre,
+        bpm: song.bpm || round.bpm,
+        createdAt: new Date().toISOString(),
+      });
     });
     
     const votingRound = round;
-    console.log(`[startJukeboxWithRandomSong] Voting round created: ${votingRound.id}`);
-    
-    // Verify the round exists (use lazy require)
     const votingServiceLazy1 = require("./votingService");
     const verifyRound = votingServiceLazy1.getRoundById(votingRound.id);
     if (!verifyRound) {
-      console.error(`[startJukeboxWithRandomSong] ERROR: Voting round ${votingRound.id} not found after creation!`);
+      console.error(`Voting round ${votingRound.id} not found after creation`);
       throw new Error(`Voting round ${votingRound.id} not found after creation`);
-    } else {
-      console.log(`[startJukeboxWithRandomSong] Verified: Voting round ${votingRound.id} exists in votingService`);
     }
     
     jukebox.votingRound = {
       roundId: votingRound.id,
       roundNumber: votingRound.currentRoundNumber,
     };
-    
-    console.log(`[startJukeboxWithRandomSong] Jukebox voting round set:`, {
-      roundId: jukebox.votingRound.roundId,
-      roundNumber: jukebox.votingRound.roundNumber,
-    });
 
-    // Set up timer to check when song ends
     setupJukeboxTimer(jukebox);
-
     jukeboxes.set(ownerId, jukebox);
-    console.log(`🎵 Jukebox started with random song: "${jukebox.nowPlaying.song.title}"`);
-    console.log(`🗳️  First voting round created: ${votingRound.id}`);
-    console.log(`[startJukeboxWithRandomSong] Jukebox state saved:`, {
-      ownerId,
-      votingRoundId: jukebox.votingRound.roundId,
-      nowPlayingSong: jukebox.nowPlaying.song.title,
-      isActive: jukebox.isActive,
-    });
     
-    // Verify jukebox was saved correctly
-    const savedJukebox = jukeboxes.get(ownerId);
-    console.log(`[startJukeboxWithRandomSong] Verification - saved jukebox:`, {
-      exists: !!savedJukebox,
-      isActive: savedJukebox?.isActive,
-      votingRoundId: savedJukebox?.votingRound?.roundId,
-      totalJukeboxes: jukeboxes.size,
-    });
-    
-    // Final verification - check if countdown would work
-    const testCountdown = getRoundCountdown(votingRound.id);
-    if (testCountdown && testCountdown.isJukeboxRound) {
-      console.log(`✅ [startJukeboxWithRandomSong] Countdown test PASSED for round ${votingRound.id}`);
-    } else {
-      console.error(`❌ [startJukeboxWithRandomSong] Countdown test FAILED for round ${votingRound.id}`);
-      console.error(`   Countdown result:`, testCountdown);
-    }
-    
-    // Return jukebox without timer (to avoid circular JSON error)
     const { timer, ...jukeboxResponse } = jukebox;
     return jukeboxResponse;
   } catch (error) {
-    console.error("[startJukeboxWithRandomSong] ERROR starting jukebox with random song:", error);
-    console.error("[startJukeboxWithRandomSong] Error stack:", error.stack);
+    console.error("Error starting jukebox with random song:", error);
     throw error;
   }
 }
 
 /**
- * Start jukebox mode for an owner (original method - for existing rounds with winners)
+ * Start jukebox mode for an owner (for existing rounds with winners)
  */
 async function startJukebox(ownerId, initialRoundId) {
   try {
-    // Get or create initial round
     const votingServiceLazy2 = require("./votingService");
     let round = votingServiceLazy2.getRoundById(initialRoundId);
     if (!round) {
       throw new Error("Initial round not found");
     }
 
-    // Get the winner of the initial round
     const results = votingServiceLazy2.getVotingResults(initialRoundId, round.currentRoundNumber);
     if (!results.winner) {
       throw new Error("No winner found for initial round. Ensure voting has completed.");
     }
 
-    // Get winner song details
     const winnerSong = votingServiceLazy2.getSongsByRound(initialRoundId, round.currentRoundNumber)
       .find(s => s.id === results.winner.songId);
 
@@ -430,14 +314,13 @@ async function startJukebox(ownerId, initialRoundId) {
       throw new Error("Winner song not found");
     }
 
-    // Get Spotify track info to get duration
-    let durationMs = 180000; // Default 3 minutes if Spotify fails
+    let durationMs = 180000;
     if (winnerSong.spotifyId) {
       try {
         const trackInfo = await spotifyService.getTrack(winnerSong.spotifyId);
         durationMs = trackInfo.duration_ms || durationMs;
       } catch (error) {
-        console.warn("Failed to get Spotify track duration, using default:", error.message);
+        console.warn("Failed to get Spotify track duration:", error.message);
       }
     }
 
@@ -445,7 +328,6 @@ async function startJukebox(ownerId, initialRoundId) {
     const startedAt = now.toISOString();
     const endsAt = new Date(now.getTime() + durationMs).toISOString();
 
-    // Create jukebox state
     const jukebox = {
       ownerId,
       isActive: true,
@@ -468,8 +350,6 @@ async function startJukebox(ownerId, initialRoundId) {
       timer: null,
     };
 
-    // Generate first voting round for next song
-    // Pass skipAutoStart=true to prevent recursive jukebox start
     const votingServiceLazy3 = require("./votingService");
     const { round: votingRound } = await votingServiceLazy3.generateNextRound(initialRoundId, true);
     jukebox.votingRound = {
@@ -477,13 +357,9 @@ async function startJukebox(ownerId, initialRoundId) {
       roundNumber: votingRound.currentRoundNumber,
     };
 
-    // Set up timer to check when song ends
     setupJukeboxTimer(jukebox);
-
     jukeboxes.set(ownerId, jukebox);
-    console.log(`🎵 Jukebox started for owner ${ownerId}. Now playing: "${jukebox.nowPlaying.song.title}"`);
     
-    // Return jukebox without timer (to avoid circular JSON error)
     const { timer, ...jukeboxResponse } = jukebox;
     return jukeboxResponse;
   } catch (error) {
@@ -496,7 +372,6 @@ async function startJukebox(ownerId, initialRoundId) {
  * Setup timer to automatically advance when song ends
  */
 function setupJukeboxTimer(jukebox) {
-  // Clear existing timer
   if (jukebox.timer) {
     clearTimeout(jukebox.timer);
   }
@@ -510,17 +385,13 @@ function setupJukeboxTimer(jukebox) {
   const timeUntilEnd = endsAt.getTime() - now.getTime();
 
   if (timeUntilEnd <= 0) {
-    // Song already ended, advance immediately
     advanceJukebox(jukebox.ownerId);
     return;
   }
 
-  // Set timer to advance when song ends
   jukebox.timer = setTimeout(() => {
     advanceJukebox(jukebox.ownerId);
   }, timeUntilEnd);
-
-  console.log(`⏰ Jukebox timer set: "${jukebox.nowPlaying.song.title}" will end in ${Math.round(timeUntilEnd / 1000)}s`);
 }
 
 /**
@@ -533,18 +404,11 @@ async function advanceJukebox(ownerId) {
       return;
     }
 
-    console.log(`🎵 Advancing jukebox for owner ${ownerId}...`);
-
-    // Handle case where initial random song is playing (no voting round yet or roundId is null)
     if (!jukebox.votingRound || !jukebox.votingRound.roundId) {
-      console.log("Initial random song ended, but no voting round yet. Waiting...");
-      // If no voting round, we can't advance - this shouldn't happen in normal flow
-      // but if it does, just wait a bit and try again
       setTimeout(() => advanceJukebox(ownerId), 5000);
       return;
     }
 
-    // Get current voting round
     const votingServiceLazy4 = require("./votingService");
     const votingRound = votingServiceLazy4.getRoundById(jukebox.votingRound.roundId);
     if (!votingRound) {
@@ -553,15 +417,12 @@ async function advanceJukebox(ownerId) {
       return;
     }
 
-    // Get winner of voting round
     const results = votingServiceLazy4.getVotingResults(
       jukebox.votingRound.roundId,
       jukebox.votingRound.roundNumber
     );
 
-    // If no winner yet, use the song with most votes, or first song if no votes
     if (!results.winner || results.totalVotes === 0) {
-      console.warn("No votes in voting round yet, using first song as default");
       const songs = votingServiceLazy4.getSongsByRound(
         jukebox.votingRound.roundId,
         jukebox.votingRound.roundNumber
@@ -571,7 +432,6 @@ async function advanceJukebox(ownerId) {
         stopJukebox(ownerId);
         return;
       }
-      // Use first song (or song with most votes if any)
       const topSong = songs.sort((a, b) => (b.votes || 0) - (a.votes || 0))[0];
       results.winner = {
         songId: topSong.id,
@@ -582,7 +442,6 @@ async function advanceJukebox(ownerId) {
       };
     }
 
-    // Get winner song details
     const winnerSong = votingServiceLazy4.getSongsByRound(
       jukebox.votingRound.roundId,
       jukebox.votingRound.roundNumber
@@ -594,8 +453,7 @@ async function advanceJukebox(ownerId) {
       return;
     }
 
-    // Get Spotify track duration
-    let durationMs = 180000; // Default 3 minutes
+    let durationMs = 180000;
     if (winnerSong.spotifyId) {
       try {
         const trackInfo = await spotifyService.getTrack(winnerSong.spotifyId);
@@ -605,7 +463,6 @@ async function advanceJukebox(ownerId) {
       }
     }
 
-    // Move voting round winner to now playing
     const now = new Date();
     jukebox.nowPlaying = {
       roundId: jukebox.votingRound.roundId,
@@ -622,15 +479,10 @@ async function advanceJukebox(ownerId) {
       endsAt: new Date(now.getTime() + durationMs).toISOString(),
     };
 
-    // Move next up to now playing (if it exists)
     if (jukebox.nextUp) {
-      // This would be the previous round's winner, but we're already using voting round
-      // So we can clear nextUp
       jukebox.nextUp = null;
     }
 
-    // Generate new voting round
-    // Pass skipAutoStart=true to prevent recursive jukebox start
     const votingServiceLazy5 = require("./votingService");
     const { round: newVotingRound } = await votingServiceLazy5.generateNextRound(
       jukebox.votingRound.roundId,
@@ -641,18 +493,12 @@ async function advanceJukebox(ownerId) {
       roundNumber: newVotingRound.currentRoundNumber,
     };
 
-    // Setup timer for next song
     setupJukeboxTimer(jukebox);
 
-    console.log(`✅ Jukebox advanced. Now playing: "${jukebox.nowPlaying.song.title}"`);
-    console.log(`🗳️  New voting round: ${jukebox.votingRound.roundId} (Round ${jukebox.votingRound.roundNumber})`);
-
-    // Return jukebox without timer (to avoid circular JSON error)
     const { timer, ...jukeboxResponse } = jukebox;
     return jukeboxResponse;
   } catch (error) {
     console.error("Error advancing jukebox:", error);
-    // Try to continue, but log error
     return jukeboxes.get(ownerId);
   }
 }
@@ -666,7 +512,6 @@ function stopJukebox(ownerId) {
     return;
   }
 
-  // Clear timer
   if (jukebox.timer) {
     clearTimeout(jukebox.timer);
     jukebox.timer = null;
@@ -674,7 +519,6 @@ function stopJukebox(ownerId) {
 
   jukebox.isActive = false;
   jukeboxes.set(ownerId, jukebox);
-  console.log(`🛑 Jukebox stopped for owner ${ownerId}`);
 }
 
 /**
@@ -686,7 +530,6 @@ function getJukeboxStatus(ownerId) {
     return null;
   }
 
-  // Calculate time remaining
   let timeRemainingMs = 0;
   let progress = 0;
   if (jukebox.nowPlaying) {
@@ -698,7 +541,6 @@ function getJukeboxStatus(ownerId) {
       : 0;
   }
 
-  // Return jukebox without timer (to avoid circular JSON error)
   const { timer, ...jukeboxWithoutTimer } = jukebox;
   return {
     ...jukeboxWithoutTimer,
@@ -722,46 +564,19 @@ function getJukeboxVotingRound(ownerId) {
 
 /**
  * Get countdown info for a round (if it's part of a jukebox)
- * Returns time remaining until current song ends (when voting closes)
- * Works for both voting rounds and now-playing rounds
  */
 function getRoundCountdown(roundId) {
-  console.log(`[getRoundCountdown] Checking countdown for round ${roundId}`);
-  console.log(`[getRoundCountdown] Total jukeboxes in memory: ${jukeboxes.size}`);
-  
-  // Log all active jukeboxes for debugging
-  for (const [ownerId, jukebox] of jukeboxes) {
-    console.log(`[getRoundCountdown] Jukebox for owner ${ownerId}:`, {
-      isActive: jukebox.isActive,
-      votingRoundId: jukebox.votingRound?.roundId,
-      nowPlayingRoundId: jukebox.nowPlaying?.roundId,
-      nowPlayingSong: jukebox.nowPlaying?.song?.title,
-    });
-  }
-  
-  // Check all jukeboxes to see if this round is part of the jukebox
   for (const [ownerId, jukebox] of jukeboxes) {
     if (!jukebox.isActive) {
-      console.log(`[getRoundCountdown] Jukebox for owner ${ownerId} is not active`);
       continue;
     }
     
-    console.log(`[getRoundCountdown] Checking jukebox for owner ${ownerId}:`, {
-      votingRoundId: jukebox.votingRound?.roundId,
-      nowPlayingRoundId: jukebox.nowPlaying?.roundId,
-      targetRoundId: roundId,
-    });
-    
-    // Check if this is the voting round
     if (jukebox.votingRound && jukebox.votingRound.roundId === roundId) {
-      // This round is the active voting round in a jukebox
       if (jukebox.nowPlaying) {
         const now = new Date();
         const endsAt = new Date(jukebox.nowPlaying.endsAt);
         const timeRemainingMs = Math.max(0, endsAt.getTime() - now.getTime());
         const timeRemainingSeconds = Math.round(timeRemainingMs / 1000);
-        
-        console.log(`[Countdown] Round ${roundId} - Voting round, Time remaining: ${timeRemainingSeconds}s (${Math.round(timeRemainingMs / 1000 / 60)}m)`);
         
         return {
           isJukeboxRound: true,
@@ -775,15 +590,11 @@ function getRoundCountdown(roundId) {
       }
     }
     
-    // Check if this is the now-playing round
     if (jukebox.nowPlaying && jukebox.nowPlaying.roundId === roundId) {
-      // This round is currently playing
       const now = new Date();
       const endsAt = new Date(jukebox.nowPlaying.endsAt);
       const timeRemainingMs = Math.max(0, endsAt.getTime() - now.getTime());
       const timeRemainingSeconds = Math.round(timeRemainingMs / 1000);
-      
-      console.log(`[Countdown] Round ${roundId} - Now playing round, Time remaining: ${timeRemainingSeconds}s (${Math.round(timeRemainingMs / 1000 / 60)}m)`);
       
       return {
         isJukeboxRound: true,
@@ -794,14 +605,12 @@ function getRoundCountdown(roundId) {
         endsAt: jukebox.nowPlaying.endsAt,
         nowPlaying: jukebox.nowPlaying.song,
         durationMs: jukebox.nowPlaying.durationMs,
-        votingRound: jukebox.votingRound, // Include info about the voting round
+        votingRound: jukebox.votingRound,
       };
     }
   }
   
-  console.log(`[getRoundCountdown] Round ${roundId} - Not found in any active jukebox`);
-  console.log(`[getRoundCountdown] Summary: Checked ${jukeboxes.size} jukebox(es), none matched round ${roundId}`);
-  return null; // Round is not part of an active jukebox
+  return null;
 }
 
 /**
@@ -813,19 +622,15 @@ async function skipCurrentSong(ownerId) {
     throw new Error("Jukebox is not active");
   }
 
-  // Clear current timer
   if (jukebox.timer) {
     clearTimeout(jukebox.timer);
   }
 
-  // Advance immediately
-  const result = await advanceJukebox(ownerId);
-  // advanceJukebox already returns without timer, so we can return it directly
-  return result;
+  return await advanceJukebox(ownerId);
 }
 
 /**
- * Pause jukebox (pause timer, but keep state)
+ * Pause jukebox
  */
 function pauseJukebox(ownerId) {
   const jukebox = jukeboxes.get(ownerId);
@@ -840,11 +645,10 @@ function pauseJukebox(ownerId) {
 
   jukebox.isActive = false;
   jukeboxes.set(ownerId, jukebox);
-  console.log(`⏸️  Jukebox paused for owner ${ownerId}`);
 }
 
 /**
- * Resume jukebox (resume timer)
+ * Resume jukebox
  */
 function resumeJukebox(ownerId) {
   const jukebox = jukeboxes.get(ownerId);
@@ -856,25 +660,20 @@ function resumeJukebox(ownerId) {
     throw new Error("No song currently playing");
   }
 
-  // Recalculate end time based on elapsed time
   const now = new Date();
   const startedAt = new Date(jukebox.nowPlaying.startedAt);
   const elapsed = now.getTime() - startedAt.getTime();
   const remaining = jukebox.nowPlaying.durationMs - elapsed;
 
   if (remaining <= 0) {
-    // Song already finished, advance
     advanceJukebox(ownerId);
     return;
   }
 
-  // Update end time
   jukebox.nowPlaying.endsAt = new Date(now.getTime() + remaining).toISOString();
-
   jukebox.isActive = true;
   setupJukeboxTimer(jukebox);
   jukeboxes.set(ownerId, jukebox);
-  console.log(`▶️  Jukebox resumed for owner ${ownerId}`);
 }
 
 module.exports = {
@@ -889,4 +688,3 @@ module.exports = {
   pauseJukebox,
   resumeJukebox,
 };
-
