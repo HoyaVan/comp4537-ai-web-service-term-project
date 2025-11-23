@@ -226,6 +226,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  // Check if user is admin - only admins can view API statistics
+  if (!user || user.role !== 'admin') {
+    alert('Access denied. Admin privileges required.');
+    window.location.href = '/dashboard.html';
+    return;
+  }
+
   // Initialize header with Dashboard link
   await initLoggedInHeader([{ href: '/dashboard.html', text: 'Dashboard' }]);
 
@@ -297,7 +304,8 @@ function displayEndpointStats(stats) {
     <tr>
       <th>Method</th>
       <th>Endpoint</th>
-      <th>Requests</th>
+      <th>Total Requests</th>
+      <th>Users</th>
     </tr>
   `;
   table.appendChild(thead);
@@ -305,10 +313,27 @@ function displayEndpointStats(stats) {
   const tbody = document.createElement('tbody');
   stats.forEach(stat => {
     const row = document.createElement('tr');
+    
+    // Format users list
+    let usersHtml = '<div class="users-list-inline">';
+    if (stat.users && stat.users.length > 0) {
+      stat.users.forEach((user, index) => {
+        if (index > 0) usersHtml += ', ';
+        usersHtml += `<span class="user-badge" title="${user.email}">${user.name || user.email || 'Unknown'}</span>`;
+        if (user.count > 1) {
+          usersHtml += ` <span class="user-count-badge">(${user.count})</span>`;
+        }
+      });
+    } else {
+      usersHtml += '<span class="muted-text">Anonymous</span>';
+    }
+    usersHtml += '</div>';
+    
     row.innerHTML = `
       <td class="method-cell">${stat.method || 'N/A'}</td>
       <td class="endpoint-cell">${stat.endpoint || 'N/A'}</td>
       <td class="requests-cell">${(stat.requests || 0).toLocaleString()}</td>
+      <td class="users-cell">${usersHtml}</td>
     `;
     tbody.appendChild(row);
   });
@@ -355,6 +380,7 @@ function displayConsumptionStats(stats) {
     <tr>
       <th>Name</th>
       <th>Email</th>
+      <th>User ID</th>
       <th>Total Requests</th>
     </tr>
   `;
@@ -366,6 +392,7 @@ function displayConsumptionStats(stats) {
     row.innerHTML = `
       <td class="name-cell">${stat.name || 'N/A'}</td>
       <td class="email-cell">${stat.email || 'N/A'}</td>
+      <td class="user-id-cell">${stat.userId || 'N/A'}</td>
       <td class="requests-cell">${(stat.totalRequests || 0).toLocaleString()}</td>
     `;
     tbody.appendChild(row);

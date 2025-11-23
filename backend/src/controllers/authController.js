@@ -65,25 +65,28 @@ async function login(req, res) {
 
 /**
  * Get current user profile
+ * API consumption stats are only included for admin users
  */
 async function getProfile(req, res) {
   try {
     // User is attached to req by authMiddleware
     const user = req.user;
     
-    // Get API consumption stats (unlimited calls)
-    const apiCallsUsed = getUserApiCount(user.id);
+    // Only include API consumption for admin users
+    const responseData = { ...user };
+    
+    if (user.role === 'admin') {
+      const apiCallsUsed = getUserApiCount(user.id);
+      responseData.apiConsumption = {
+        callsUsed: apiCallsUsed,
+        callsLimit: 'unlimited',
+        hasUnlimitedCalls: true,
+      };
+    }
 
     return res.status(200).json({
       success: true,
-      data: {
-        ...user,
-        apiConsumption: {
-          callsUsed: apiCallsUsed,
-          callsLimit: 'unlimited',
-          hasUnlimitedCalls: true,
-        },
-      },
+      data: responseData,
     });
   } catch (error) {
     return res.status(500).json({

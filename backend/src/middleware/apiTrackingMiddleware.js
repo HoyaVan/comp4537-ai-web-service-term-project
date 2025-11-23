@@ -14,6 +14,7 @@
 const apiCallLogs = [];
 const userApiCounts = new Map(); // userId -> count
 const endpointStats = new Map(); // "METHOD /endpoint" -> count
+const endpointUserStats = new Map(); // "METHOD /endpoint" -> Map<userId, count>
 
 /**
  * Get API call count for a user
@@ -77,6 +78,16 @@ const trackApiCall = (method, endpoint, userId, statusCode, responseTime) => {
     const endpointKey = `${method} ${endpoint}`;
     const currentCount = endpointStats.get(endpointKey) || 0;
     endpointStats.set(endpointKey, currentCount + 1);
+    
+    // Track which users called this endpoint
+    if (userId && userId !== 'anonymous') {
+      if (!endpointUserStats.has(endpointKey)) {
+        endpointUserStats.set(endpointKey, new Map());
+      }
+      const userStats = endpointUserStats.get(endpointKey);
+      const userCount = userStats.get(userId) || 0;
+      userStats.set(userId, userCount + 1);
+    }
   }
   
   // Log to console
@@ -87,17 +98,29 @@ const trackApiCall = (method, endpoint, userId, statusCode, responseTime) => {
 };
 
 /**
- * Get endpoint statistics
- * @returns {Array} Array of endpoint stats
+ * Get endpoint statistics with user information
+ * @returns {Array} Array of endpoint stats with user details
  */
 const getEndpointStats = () => {
   const stats = [];
   for (const [endpointKey, count] of endpointStats) {
     const [method, endpoint] = endpointKey.split(' ', 2);
+    const userStats = endpointUserStats.get(endpointKey) || new Map();
+    
+    // Get user IDs who called this endpoint
+    const users = [];
+    for (const [userId, userCount] of userStats) {
+      users.push({
+        userId,
+        count: userCount,
+      });
+    }
+    
     stats.push({
       method,
       endpoint,
       requests: count,
+      users: users.sort((a, b) => b.count - a.count), // Sort by count descending
     });
   }
   const sortedStats = [...stats];

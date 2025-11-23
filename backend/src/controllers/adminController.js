@@ -22,11 +22,31 @@ async function getApiEndpointStats(req, res) {
     }
 
     const stats = getEndpointStats();
+    
+    // Enrich endpoint stats with user details
+    const enrichedStats = stats.map((stat) => {
+      const enrichedUsers = stat.users.map((user) => {
+        const userDetails = authService.getUserById(user.userId);
+        return {
+          userId: user.userId,
+          name: userDetails?.name || 'Unknown',
+          email: userDetails?.email || 'Unknown',
+          count: user.count,
+        };
+      });
+      
+      return {
+        method: stat.method,
+        endpoint: stat.endpoint,
+        requests: stat.requests,
+        users: enrichedUsers,
+      };
+    });
 
     return res.status(200).json({
       success: true,
-      data: stats,
-      count: stats.length,
+      data: enrichedStats,
+      count: enrichedStats.length,
     });
   } catch (error) {
     return res.status(500).json({
