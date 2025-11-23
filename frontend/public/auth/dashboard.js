@@ -205,6 +205,33 @@ async function getResults(roundId) {
   return null;
 }
 
+// Initiate Spotify OAuth
+async function initiateSpotifyOAuth() {
+  const { ok, data } = await apiRequest('/api/spotify/auth');
+  if (ok && data.success) {
+    return data.data;
+  }
+  return null;
+}
+
+// Handle Spotify OAuth callback
+async function handleSpotifyOAuthCallback() {
+  const { ok, data } = await apiRequest('/api/spotify/callback');
+  if (ok && data.success) {
+    return data.data;
+  }
+  return null;
+}
+
+// get spotify track info
+async function getSpotifyTrackInfo(trackId) {
+  const { ok, data } = await apiRequest(`/api/spotify/tracks/${trackId}`);
+  if (ok && data.success) {
+    return data.data;
+  }
+  return null;
+}
+
 // Display rounds
 function displayRounds(rounds) {
   const container = document.getElementById('rounds-container');
@@ -267,6 +294,13 @@ window.viewResults = async function(roundId) {
     alert('Failed to load results');
     return;
   }
+
+  const spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
+  if (!spotifyTrackInfo) {
+    alert('Failed to load Spotify track info');
+    return;
+  }
+  console.log(spotifyTrackInfo);
 
   const modal = document.getElementById('results-modal');
   const container = document.getElementById('results-container');

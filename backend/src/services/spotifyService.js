@@ -1,4 +1,5 @@
 const axios = require("axios");
+const dotenv = require("dotenv");
 
 class SpotifyService {
   constructor() {
@@ -6,6 +7,8 @@ class SpotifyService {
     this.clientSecret = process.env.SPOTIFY_CLIENT_SECRET || null;
     this.baseURL = "https://api.spotify.com/v1";
     this.tokenURL = "https://accounts.spotify.com/api/token";
+    this.authURL = "https://accounts.spotify.com/authorize";
+    this.callbackURI = process.env.SPOTIFY_CALLBACK_URI || null;
     this.accessToken = null;
     this.tokenExpiresAt = null;
   }
@@ -15,12 +18,18 @@ class SpotifyService {
    */
   async getAccessToken() {
     // Return cached token if still valid
-    if (this.accessToken && this.tokenExpiresAt && Date.now() < this.tokenExpiresAt) {
+    if (
+      this.accessToken &&
+      this.tokenExpiresAt &&
+      Date.now() < this.tokenExpiresAt
+    ) {
       return this.accessToken;
     }
 
     if (!this.clientId || !this.clientSecret) {
-      throw new Error("Spotify credentials not configured. Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET");
+      throw new Error(
+        "Spotify credentials not configured. Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET"
+      );
     }
 
     try {
@@ -30,18 +39,24 @@ class SpotifyService {
         {
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
-            Authorization: `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString("base64")}`,
+            Authorization: `Basic ${Buffer.from(
+              `${this.clientId}:${this.clientSecret}`
+            ).toString("base64")}`,
           },
         }
       );
 
       this.accessToken = response.data.access_token;
-      // Set expiration to 55 minutes (tokens last 1 hour)
-      this.tokenExpiresAt = Date.now() + response.data.expires_in * 1000 - 5 * 60 * 1000;
+      // Set expiration to 2 hours 
+      this.tokenExpiresAt =
+        Date.now() + response.data.expires_in * 1000 * 60 * 60 * 1000;
 
       return this.accessToken;
     } catch (error) {
-      console.error("Error getting Spotify access token:", error.response?.data || error.message);
+      console.error(
+        "Error getting Spotify access token:",
+        error.response?.data || error.message
+      );
       throw new Error("Failed to authenticate with Spotify");
     }
   }
@@ -76,7 +91,10 @@ class SpotifyService {
         images: track.album.images,
       }));
     } catch (error) {
-      console.error("Error searching Spotify tracks:", error.response?.data || error.message);
+      console.error(
+        "Error searching Spotify tracks:",
+        error.response?.data || error.message
+      );
       throw new Error("Failed to search Spotify tracks");
     }
   }
@@ -107,7 +125,10 @@ class SpotifyService {
         images: track.album.images,
       };
     } catch (error) {
-      console.error("Error getting Spotify track:", error.response?.data || error.message);
+      console.error(
+        "Error getting Spotify track:",
+        error.response?.data || error.message
+      );
       throw new Error("Failed to get Spotify track");
     }
   }
@@ -140,8 +161,129 @@ class SpotifyService {
         images: track.album.images,
       }));
     } catch (error) {
-      console.error("Error getting Spotify tracks:", error.response?.data || error.message);
+      console.error(
+        "Error getting Spotify tracks:",
+        error.response?.data || error.message
+      );
       throw new Error("Failed to get Spotify tracks");
+    }
+  }
+
+  /**
+   * Generate OAuth authorization URL
+   */
+  getAuthorizationURL(
+    state = null,
+    scopes = ["user-read-private", "user-read-email"]
+  ) {
+    if (!this.clientId) {
+      throw new Error("Spotify client ID not configured");
+    }
+
+    if (!this.callbackURI) {
+      throw new Error(
+        "Spotify callback URI not configured. Set SPOTIFY_CALLBACK_URI"
+      );
+    }
+
+    const params = new URLSearchParams({
+      client_id: this.clientId,
+      response_type: "code",
+      redirect_uri: this.callbackURI,
+      scope: scopes.join(" "),
+    });
+
+    if (state) {
+      params.append("state", state);
+    }
+
+    return `${this.authURL}?${params.toString()}`;
+  }
+
+  /**
+   * Exchange authorization code for access token (OAuth flow)
+   */
+  async exchangeCodeForToken(code) {
+    if (!this.clientId || !this.clientSecret) {
+      throw new Error("Spotify credentials not configured");
+    }
+
+    if (!this.callbackURI) {
+      throw new Error("Spotify callback URI not configured");
+    }
+
+    try {
+      const response = await axios.post(
+        this.tokenURL,
+        new URLSearchParams({
+          grant_type: "authorization_code",
+          code: code,
+          redirect_uri: this.callbackURI,
+        }),
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: `Basic ${Buffer.from(
+              `${this.clientId}:${this.clientSecret}`
+            ).toString("base64")}`,
+          },
+        }
+      );
+
+      return {
+        access_token: response.data.access_token,
+        refresh_token: response.data.refresh_token,
+        expires_in: response.data.expires_in,
+        token_type: response.data.token_type,
+        scope: response.data.scope,
+      };
+    } catch (error) {
+      console.error(
+        "Error exchanging code for token:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to exchange authorization code for token");
+    }
+  }
+
+  /**
+   * Refresh access token using refresh token
+   */
+  async refreshAccessToken(refreshToken) {
+    if (!this.clientId || !this.clientSecret) {
+      throw new Error("Spotify credentials not configured");
+    }
+
+    try {
+      const response = await axios.post(
+        this.tokenURL,
+        new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+        }),
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: `Basic ${Buffer.from(
+              `${this.clientId}:${this.clientSecret}`
+            ).toString("base64")}`,
+          },
+        }
+      );
+
+      return {
+        access_token: response.data.access_token,
+        expires_in: response.data.expires_in,
+        token_type: response.data.token_type,
+        scope: response.data.scope,
+        refresh_token: response.data.refresh_token || refreshToken, // Spotify may or may not return a new refresh token
+      };
+    } catch (error) {
+      console.error(
+        "Error refreshing access token:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to refresh access token");
     }
   }
 }
