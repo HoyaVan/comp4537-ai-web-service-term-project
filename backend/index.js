@@ -12,6 +12,7 @@ const aiRoutes = require("./src/routes/aiRoutes");
 const votingRoutes = require("./src/routes/votingRoutes");
 const spotifyRoutes = require("./src/routes/spotifyRoutes");
 const adminRoutes = require("./src/routes/adminRoutes");
+const jukeboxRoutes = require("./src/routes/jukeboxRoutes");
 
 // Import middleware
 const { apiTrackingMiddleware } = require("./src/middleware/apiTrackingMiddleware");
@@ -89,6 +90,9 @@ app.use("/api/spotify", spotifyRoutes);
 // Admin routes (for API statistics and user management)
 app.use("/api/admin", adminRoutes);
 
+// Jukebox routes (for automated playlist management)
+app.use("/api/jukebox", jukeboxRoutes);
+
 // Start server
 app.listen(PORT, () => {
   console.log(`\n🚀 Server is running on port ${PORT}\n`);
@@ -129,6 +133,16 @@ app.listen(PORT, () => {
   console.log("   GET    /api/admin/stats/users                 - Get user consumption (admin)");
   console.log("   GET    /api/admin/stats/logs                  - Get API call logs (admin)");
   console.log("   POST   /api/admin/users/:userId/reset-api-count - Reset user API count (admin)");
+  
+  console.log("\n🎧 Jukebox (/api/jukebox):");
+  console.log("   POST   /api/jukebox/start                     - Start jukebox mode (protected)");
+  console.log("   GET    /api/jukebox/status                    - Get jukebox status (protected)");
+  console.log("   POST   /api/jukebox/stop                      - Stop jukebox (protected)");
+  console.log("   POST   /api/jukebox/skip                      - Skip current song (protected)");
+  console.log("   POST   /api/jukebox/pause                     - Pause jukebox (protected)");
+  console.log("   POST   /api/jukebox/resume                    - Resume jukebox (protected)");
+  console.log("   GET    /api/jukebox/:ownerId/voting-round     - Get voting round (public)");
+  console.log("   GET    /api/jukebox/:ownerId/now-playing      - Get now playing (public)");
   
   console.log("\n🏥 Health:");
   console.log("   GET    /health                  - Health check (public)");

@@ -225,11 +225,42 @@ async function handleSpotifyOAuthCallback() {
 
 // get spotify track info
 async function getSpotifyTrackInfo(trackId) {
+  // Don't make API call if trackId is null or empty
+  if (!trackId || trackId === 'null' || trackId === 'undefined') {
+    return null;
+  }
+  
   const { ok, data } = await apiRequest(`/api/spotify/tracks/${trackId}`);
   if (ok && data.success) {
     return data.data;
   }
   return null;
+}
+
+// Get countdown info for round
+async function getRoundCountdown(roundId) {
+  console.log('[Dashboard] Calling countdown API for round:', roundId);
+  try {
+    const { ok, data } = await apiRequest(`/api/voting/rounds/${roundId}/countdown`);
+    console.log('[Dashboard] Countdown API response:', { ok, data });
+    if (ok && data.success) {
+      console.log('[Dashboard] Countdown data:', data.data);
+      return data.data;
+    } else {
+      console.warn('[Dashboard] Countdown API returned error:', data);
+    }
+  } catch (error) {
+    console.error('[Dashboard] Error fetching countdown:', error);
+  }
+  return null;
+}
+
+// Format time remaining as MM:SS
+function formatTimeRemaining(seconds) {
+  if (seconds <= 0) return '00:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
 // Display rounds
@@ -242,11 +273,18 @@ function displayRounds(rounds) {
     return;
   }
 
+  // Log which rounds are jukebox voting rounds
+  const jukeboxRounds = rounds.filter(r => r._isJukeboxVotingRound);
+  console.log('[Dashboard] Total rounds:', rounds.length);
+  console.log('[Dashboard] Jukebox voting rounds:', jukeboxRounds.map(r => r.id));
+  console.log('[Dashboard] All round IDs:', rounds.map(r => r.id));
+
   container.innerHTML = rounds.map(round => `
-    <div class="round-card">
+    <div class="round-card ${round._isJukeboxVotingRound ? 'jukebox-round' : ''}">
       <div class="round-header">
         <h3>Round ${round.currentRoundNumber}</h3>
         <span class="round-status ${round.status}">${round.status}</span>
+        ${round._isJukeboxVotingRound ? '<span class="jukebox-badge" title="Active jukebox voting round - countdown timer available">🎵 Jukebox</span>' : ''}
       </div>
       <div class="round-info">
         ${round.genre ? `<p><strong>Genre:</strong> ${round.genre}</p>` : ''}
@@ -289,25 +327,90 @@ window.showQRCode = async function(roundId) {
 
 // View results
 window.viewResults = async function(roundId) {
+  console.log('[Dashboard] viewResults called for round:', roundId);
+  
+  // First, check if this round is marked as the jukebox voting round
+  const rounds = await loadRounds();
+  const currentRound = rounds.find(r => r.id === roundId);
+  if (currentRound && currentRound._isJukeboxVotingRound) {
+    console.log('[Dashboard] This round is marked as the jukebox voting round');
+  } else {
+    console.log('[Dashboard] This round is NOT marked as the jukebox voting round');
+    console.log('[Dashboard] Round data:', currentRound);
+  }
+  
   const results = await getResults(roundId);
   if (!results) {
     alert('Failed to load results');
     return;
   }
 
-  const spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
-  if (!spotifyTrackInfo) {
-    alert('Failed to load Spotify track info');
-    return;
+  // Try to get Spotify track info only if spotifyId exists
+  let spotifyTrackInfo = null;
+  if (results.winner && results.winner.spotifyId) {
+    try {
+      spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
+      console.log('Spotify track info:', spotifyTrackInfo);
+    } catch (error) {
+      console.warn('Failed to load Spotify track info:', error);
+      // Continue without Spotify info - don't block showing results
+    }
   }
-  console.log(spotifyTrackInfo);
 
+  // Get countdown info
+  console.log('[Dashboard] Fetching countdown for round:', roundId);
+  const countdownData = await getRoundCountdown(roundId);
+  console.log('[Dashboard] Countdown data received:', countdownData);
+  
   const modal = document.getElementById('results-modal');
   const container = document.getElementById('results-container');
+  
+  // Build countdown HTML if available
+  let countdownHTML = '';
+  if (countdownData) {
+    console.log('[Dashboard] Countdown data exists:', {
+      isJukeboxRound: countdownData.isJukeboxRound,
+      timeRemainingSeconds: countdownData.timeRemainingSeconds,
+      nowPlaying: countdownData.nowPlaying
+    });
+    
+    if (countdownData.isJukeboxRound && countdownData.timeRemainingSeconds !== null) {
+      const timeStr = formatTimeRemaining(countdownData.timeRemainingSeconds);
+      const warningClass = countdownData.timeRemainingSeconds < 30 ? 'countdown-warning' : '';
+      countdownHTML = `
+        <div class="countdown-section" style="margin: 16px 0; padding: 12px; background: #f5f5f5; border-radius: 8px;">
+          <p style="margin: 0 0 8px 0; font-weight: bold;">⏱️ Voting ends in:</p>
+          <p class="countdown-timer ${warningClass}" id="results-countdown-timer" style="font-size: 24px; font-weight: bold; margin: 0; color: #007bff;">${timeStr}</p>
+          ${countdownData.nowPlaying ? `
+            <p style="margin: 8px 0 0 0; font-size: 0.9em; color: #666;">
+              Currently playing: "${countdownData.nowPlaying.title}" by ${countdownData.nowPlaying.artist}
+            </p>
+          ` : ''}
+        </div>
+      `;
+      console.log('[Dashboard] Countdown HTML generated');
+    } else {
+      console.log('[Dashboard] Countdown not shown - isJukeboxRound:', countdownData.isJukeboxRound, 'timeRemainingSeconds:', countdownData.timeRemainingSeconds);
+    }
+  } else {
+    console.log('[Dashboard] No countdown data returned - round may not be part of a jukebox');
+    // Show helpful message if round has a winner but jukebox isn't started
+    if (results.winner) {
+      countdownHTML = `
+        <div class="countdown-section" style="margin: 16px 0; padding: 12px; background: #fef3c7; border-radius: 8px; border: 1px solid #fcd34d;">
+          <p style="margin: 0; font-size: 0.9em; color: #92400e;">
+            💡 <strong>Tip:</strong> Start the jukebox to enable countdown timers and automated playlist management. 
+            Click "🎧 Start Jukebox" on the round card to begin.
+          </p>
+        </div>
+      `;
+    }
+  }
   
   container.innerHTML = `
     <p><strong>Round ${results.roundNumber}</strong></p>
     <p><strong>Total Votes:</strong> ${results.totalVotes}</p>
+    ${countdownHTML}
     <div class="results-list">
       ${results.songs.map((song, index) => `
         <div class="result-item ${index === 0 ? 'winner' : ''}">
@@ -321,7 +424,7 @@ window.viewResults = async function(roundId) {
       <div class="winner-section">
         <h4>Winner</h4>
         <p>"${results.winner.title}" by ${results.winner.artist}</p>
-        ${results.winner.spotifyId ? `
+        ${results.winner.spotifyId && spotifyTrackInfo ? `
           <div style="margin: 16px 0;">
             <iframe 
               src="https://open.spotify.com/embed/track/${results.winner.spotifyId}" 
@@ -336,12 +439,65 @@ window.viewResults = async function(roundId) {
           <a href="https://open.spotify.com/track/${results.winner.spotifyId}" target="_blank" class="btn btn-small" style="margin-top: 8px;">
             Open in Spotify
           </a>
-        ` : ''}
+        ` : results.winner.spotifyId ? `
+          <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
+            Spotify track ID available but preview not accessible. 
+            <a href="https://open.spotify.com/track/${results.winner.spotifyId}" target="_blank">Try opening in Spotify</a>
+          </p>
+        ` : `
+          <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
+            No Spotify track ID available for this song.
+          </p>
+        `}
       </div>
     ` : ''}
   `;
   
   modal.style.display = 'block';
+  
+  // Start countdown timer if available
+  if (countdownData && countdownData.isJukeboxRound) {
+    const timerEl = document.getElementById('results-countdown-timer');
+    if (timerEl) {
+      let currentSeconds = countdownData.timeRemainingSeconds;
+      
+      const updateTimer = () => {
+        if (currentSeconds <= 0) {
+          timerEl.textContent = '00:00';
+          timerEl.className = 'countdown-timer countdown-warning';
+          return;
+        }
+        
+        timerEl.textContent = formatTimeRemaining(currentSeconds);
+        if (currentSeconds < 30) {
+          timerEl.className = 'countdown-timer countdown-warning';
+        } else {
+          timerEl.className = 'countdown-timer';
+        }
+        currentSeconds--;
+      };
+      
+      // Update immediately
+      updateTimer();
+      
+      // Update every second
+      const interval = setInterval(() => {
+        updateTimer();
+        if (currentSeconds <= 0) {
+          clearInterval(interval);
+          // Refresh countdown from server
+          getRoundCountdown(roundId).then(data => {
+            if (data && data.isJukeboxRound) {
+              currentSeconds = data.timeRemainingSeconds;
+            }
+          });
+        }
+      }, 1000);
+      
+      // Store interval ID to clear on modal close
+      modal._countdownInterval = interval;
+    }
+  }
 };
 
 // Pause round
@@ -363,6 +519,36 @@ window.resumeRound = async function(roundId) {
     await loadAndDisplayRounds();
   } else {
     alert('Failed to resume round: ' + (data.message || 'Unknown error'));
+  }
+};
+
+// Start jukebox
+window.startJukebox = async function(roundId) {
+  if (!confirm('Start jukebox mode? This will begin automated playlist management. The current round winner will start playing, and a new voting round will be generated automatically.')) {
+    return;
+  }
+
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Starting...';
+
+  try {
+    const { ok, data } = await apiRequest('/api/jukebox/start', {
+      method: 'POST',
+      body: JSON.stringify({ roundId }),
+    });
+
+    if (ok && data.success) {
+      alert('Jukebox started successfully! The countdown timer will now appear on voting rounds.');
+      await loadAndDisplayRounds();
+    } else {
+      alert('Failed to start jukebox: ' + (data.message || 'Unknown error'));
+    }
+  } catch (error) {
+    alert('Error starting jukebox: ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🎧 Start Jukebox';
   }
 };
 
@@ -504,9 +690,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       const { ok, data } = await createRound(roundData);
 
       if (ok && data.success) {
-        createMessage.textContent = 'Voting round created successfully!';
+        // Use the message from the server, which includes the song name if available
+        createMessage.textContent = data.message || 'Voting round created successfully!';
         createMessage.className = 'msg ok';
         createForm.reset();
+        
+        // Log the created round info
+        console.log('[Dashboard] Round created successfully:', {
+          roundId: data.data?.round?.id,
+          jukeboxInfo: data.data?.jukebox,
+          debug: data.data?._debug,
+        });
+        
+        // If there's a debug warning about round ID mismatch, log it
+        if (data.data?._debug) {
+          console.warn('[Dashboard] Round ID mismatch detected:', data.data._debug);
+          console.warn('[Dashboard] You should use voting round ID:', data.data._debug.votingRoundId);
+        }
+        
         await loadAndDisplayRounds();
       } else {
         createMessage.textContent = 'Failed to create round: ' + (data.message || 'Unknown error');
@@ -533,6 +734,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   if (closeResults) {
     closeResults.addEventListener('click', () => {
+      // Clear countdown timer if it exists
+      if (resultsModal._countdownInterval) {
+        clearInterval(resultsModal._countdownInterval);
+        resultsModal._countdownInterval = null;
+      }
       resultsModal.style.display = 'none';
     });
   }
@@ -543,6 +749,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       qrModal.style.display = 'none';
     }
     if (e.target === resultsModal) {
+      // Clear countdown timer if it exists
+      if (resultsModal._countdownInterval) {
+        clearInterval(resultsModal._countdownInterval);
+        resultsModal._countdownInterval = null;
+      }
       resultsModal.style.display = 'none';
     }
   });

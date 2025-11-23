@@ -71,6 +71,57 @@ async function initSignup() {
         const message = typeof data === 'string' ? data : (data.message || 'Account created.');
         setMessage('Success: ' + message, true);
         form.reset();
+        
+        // After successful signup, automatically log in the user and redirect to dashboard
+        // Backend returns { success: true, data: { user: {...}, token: "..." } }
+        const token = data?.data?.token || data?.token;
+        if (token) {
+          try {
+            localStorage.setItem('token', token);
+            // Redirect to dashboard after successful signup
+            setTimeout(() => {
+              window.location.href = '/dashboard.html';
+            }, 1000);
+          } catch (err) {
+            console.warn('Failed to store token:', err);
+            // If token storage fails, redirect anyway (user can login manually if needed)
+            setTimeout(() => {
+              window.location.href = '/dashboard.html';
+            }, 1500);
+          }
+        } else {
+          // If no token in response, try auto-login with the credentials
+          try {
+            const loginRes = await fetch(window.getBackendUrl() + '/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              mode: 'cors',
+              credentials: 'omit',
+              body: JSON.stringify({
+                email: email.trim(),
+                password: password
+              })
+            });
+            const loginData = await loginRes.json();
+            if (loginRes.ok && loginData.data?.token) {
+              localStorage.setItem('token', loginData.data.token);
+              setTimeout(() => {
+                window.location.href = '/dashboard.html';
+              }, 500);
+            } else {
+              // If auto-login fails, redirect to login page
+              setTimeout(() => {
+                window.location.href = '/login.html?signup=success';
+              }, 1500);
+            }
+          } catch (loginErr) {
+            console.warn('Auto-login after signup failed:', loginErr);
+            // Redirect to login page
+            setTimeout(() => {
+              window.location.href = '/login.html?signup=success';
+            }, 1500);
+          }
+        }
       }
     } catch (err) {
       setMessage('Network error: ' + err, false);

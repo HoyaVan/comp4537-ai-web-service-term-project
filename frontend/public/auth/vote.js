@@ -3,6 +3,7 @@ const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$
 let currentRoundId = null;
 let participantToken = null;
 let selectedSongId = null;
+let countdownInterval = null;
 
 // Get round ID from URL
 function getRoundIdFromURL() {
@@ -44,6 +45,120 @@ async function loadRound(roundId) {
     return { ok: response.ok, data };
   } catch (error) {
     return { ok: false, error: error.message };
+  }
+}
+
+// Get countdown info for round
+async function getRoundCountdown(roundId) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/voting/rounds/${roundId}/countdown`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      mode: 'cors',
+      credentials: 'include',
+    });
+
+    const data = await response.json();
+    return { ok: response.ok, data };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+}
+
+// Format time remaining as MM:SS
+function formatTimeRemaining(seconds) {
+  if (seconds <= 0) return '00:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+// Update countdown display
+function updateCountdownDisplay(countdownData) {
+  const container = document.getElementById('countdown-container');
+  const timerEl = document.getElementById('countdown-timer');
+  
+  if (!container || !timerEl) {
+    console.warn('Countdown container or timer element not found');
+    return;
+  }
+
+  if (countdownData && countdownData.isJukeboxRound && countdownData.timeRemainingSeconds !== null) {
+    const seconds = countdownData.timeRemainingSeconds;
+    
+    // Show countdown even if time is 0 (will show 00:00)
+    timerEl.textContent = formatTimeRemaining(Math.max(0, seconds));
+    container.style.display = 'block';
+    
+    // Add warning class if less than 30 seconds
+    if (seconds < 30 && seconds > 0) {
+      timerEl.className = 'countdown-timer countdown-warning';
+    } else {
+      timerEl.className = 'countdown-timer';
+    }
+    
+    console.log('Countdown updated:', seconds, 'seconds');
+  } else {
+    // Hide countdown - round is not part of an active jukebox
+    container.style.display = 'none';
+    console.log('Hiding countdown - round is not part of an active jukebox. Data:', countdownData);
+  }
+}
+
+// Start countdown timer
+async function startCountdownTimer(roundId) {
+  // Clear existing interval
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+  }
+
+  // Update immediately
+  const { ok, data } = await getRoundCountdown(roundId);
+  console.log('Countdown response:', { ok, data });
+  
+  if (ok && data.success) {
+    const countdownData = data.data;
+    if (countdownData && countdownData.isJukeboxRound && countdownData.timeRemainingSeconds !== null) {
+      console.log('Displaying countdown:', countdownData);
+      updateCountdownDisplay(countdownData);
+    } else {
+      console.log('No countdown data or not a jukebox round:', countdownData);
+      updateCountdownDisplay(null);
+    }
+  } else {
+    console.log('Failed to get countdown:', data);
+    updateCountdownDisplay(null);
+  }
+
+  // Update every second
+  countdownInterval = setInterval(async () => {
+    const { ok, data } = await getRoundCountdown(roundId);
+    if (ok && data.success) {
+      const countdownData = data.data;
+      if (countdownData && countdownData.isJukeboxRound && countdownData.timeRemainingSeconds !== null) {
+        updateCountdownDisplay(countdownData);
+        
+        // Stop timer if time is up
+        if (countdownData.timeRemainingSeconds <= 0) {
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+        }
+      } else {
+        updateCountdownDisplay(null);
+      }
+    } else {
+      updateCountdownDisplay(null);
+    }
+  }, 1000);
+}
+
+// Stop countdown timer
+function stopCountdownTimer() {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
   }
 }
 
@@ -324,6 +439,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (data.success && data.data) {
     displayRound(data.data);
     
+    // Start countdown timer
+    startCountdownTimer(currentRoundId);
+    
     // Auto-refresh results every 5 seconds
     setInterval(() => {
       reloadRound();
@@ -331,4 +449,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     showError('Invalid round data received from server.');
   }
+  
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    stopCountdownTimer();
+  });
 });

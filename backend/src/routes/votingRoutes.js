@@ -15,6 +15,7 @@ router.get("/rounds/:roundId/qr", authenticateToken, votingController.getQRCode)
 router.get("/rounds/:roundId", votingController.getRound);
 router.post("/rounds/:roundId/vote", votingController.submitVote);
 router.get("/rounds/:roundId/public-results", votingController.getResults);
+router.get("/rounds/:roundId/countdown", votingController.getRoundCountdown);
 
 // Spotify routes (owner only for search, public for track info)
 router.get("/spotify/search", authenticateToken, votingController.searchSpotifyTracks);

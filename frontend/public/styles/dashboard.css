@@ -223,6 +223,21 @@ h2 { margin: 32px 0 16px; font-size: 20px; border-bottom: 2px solid #e2e8f0; pad
   color: #92400e;
 }
 
+.jukebox-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #3b82f6;
+  color: white;
+  margin-left: 8px;
+}
+
+.round-card.jukebox-round {
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 .round-info {
   margin: 12px 0;
   font-size: 14px;
@@ -419,6 +434,39 @@ h2 { margin: 32px 0 16px; font-size: 20px; border-bottom: 2px solid #e2e8f0; pad
   margin: 8px 0;
   font-size: 16px;
   font-weight: 600;
+}
+
+/* Countdown Timer */
+.countdown-section {
+  margin: 16px 0;
+  padding: 12px;
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  border-radius: 8px;
+  border: 1px solid #7dd3fc;
+  text-align: center;
+}
+
+.countdown-timer {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0284c7;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+}
+
+.countdown-timer.countdown-warning {
+  color: #dc2626;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* Message styles */
