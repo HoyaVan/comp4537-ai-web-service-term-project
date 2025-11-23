@@ -43,7 +43,7 @@ async function apiRequest(url, options = {}) {
   return { ok: response.ok, status: response.status, data };
 }
 
-// Load user info
+// Load user info and return user object
 async function loadUserInfo() {
   const { ok, data } = await apiRequest('/api/auth/profile');
   if (ok && data.success) {
@@ -53,7 +53,10 @@ async function loadUserInfo() {
     
     // API consumption is only shown to admin users in the admin panel
     // Regular users don't see this information
+    
+    return user; // Return user object for role checking
   }
+  return null;
 }
 
 // Create new voting round
@@ -387,11 +390,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Load user info
-  await loadUserInfo();
+  const user = await loadUserInfo();
 
-  // Initialize header with Admin link (if headerUtils.js is available)
+  // Initialize header with Admin link only for admin users
   if (typeof initLoggedInHeader === 'function') {
-    await initLoggedInHeader([{ href: '/admin.html', text: 'Admin' }]);
+    const additionalLinks = [];
+    
+    // Only add Admin link if user is an admin
+    if (user && user.role === 'admin') {
+      additionalLinks.push({ href: '/admin.html', text: 'Admin' });
+    }
+    
+    await initLoggedInHeader(additionalLinks);
   }
 
   // Load rounds
