@@ -1,13 +1,11 @@
 const BACKEND_URL = window.BACKEND_URL;
 console.log("BACKEND_URL: ", BACKEND_URL);
-const BACKEND_URL = window.BACKEND_URL;
-console.log("BACKEND_URL: ", BACKEND_URL);
 
 // Check if user is authenticated
 function isAuthenticated() {
   try {
     const token = localStorage.getItem("token");
-    const token = localStorage.getItem("token");
+
     return !!token;
   } catch (_) {
     return false;
@@ -17,7 +15,6 @@ function isAuthenticated() {
 // Get token from localStorage
 function getToken() {
   try {
-    return localStorage.getItem("token");
     return localStorage.getItem("token");
   } catch (_) {
     return null;
@@ -230,18 +227,13 @@ async function spotifytTrackTest() {
 async function apiRequest(url, options = {}) {
   const token = getToken();
 
-
   const headers = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
     "Content-Type": "application/json",
     Accept: "application/json",
     ...(options.headers || {}),
   };
 
-
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
     headers["Authorization"] = `Bearer ${token}`;
   }
 
@@ -250,12 +242,9 @@ async function apiRequest(url, options = {}) {
     headers,
     mode: "cors",
     credentials: "include",
-    mode: "cors",
-    credentials: "include",
   });
 
   const data = await response.json();
-
 
   return { ok: response.ok, status: response.status, data };
 }
@@ -263,12 +252,11 @@ async function apiRequest(url, options = {}) {
 // Load user info
 async function loadUserInfo() {
   const { ok, data } = await apiRequest("/api/auth/profile");
-  const { ok, data } = await apiRequest("/api/auth/profile");
   if (ok && data.success) {
     const user = data.data;
-    const userEmail = document.getElementById('user-email');
-    if (userEmail) userEmail.textContent = user.email || 'User';
-    
+    const userEmail = document.getElementById("user-email");
+    if (userEmail) userEmail.textContent = user.email || "User";
+
     // Display API consumption
     displayApiConsumption(user.apiConsumption);
   }
@@ -276,12 +264,13 @@ async function loadUserInfo() {
 
 // Display API consumption
 function displayApiConsumption(consumption) {
-  const container = document.getElementById('api-consumption');
+  const container = document.getElementById("api-consumption");
   if (!container || !consumption) return;
-  
+
   const callsUsed = consumption.callsUsed || 0;
-  const isUnlimited = consumption.hasUnlimitedCalls || consumption.callsLimit === 'unlimited';
-  
+  const isUnlimited =
+    consumption.hasUnlimitedCalls || consumption.callsLimit === "unlimited";
+
   container.innerHTML = `
     <div class="api-stats">
       <div class="api-stat-item">
@@ -290,14 +279,20 @@ function displayApiConsumption(consumption) {
       </div>
       <div class="api-stat-item">
         <span class="api-stat-label">Limit:</span>
-        <span class="api-stat-value api-stat-unlimited">${isUnlimited ? 'Unlimited' : (consumption.callsLimit || 'N/A')}</span>
+        <span class="api-stat-value api-stat-unlimited">${
+          isUnlimited ? "Unlimited" : consumption.callsLimit || "N/A"
+        }</span>
       </div>
-      ${!isUnlimited && consumption.callsRemaining !== undefined ? `
+      ${
+        !isUnlimited && consumption.callsRemaining !== undefined
+          ? `
         <div class="api-stat-item">
           <span class="api-stat-label">Remaining:</span>
           <span class="api-stat-value">${consumption.callsRemaining}</span>
         </div>
-      ` : ''}
+      `
+          : ""
+      }
     </div>
   `;
 }
@@ -305,11 +300,6 @@ function displayApiConsumption(consumption) {
 // Create new voting round
 async function createRound(roundData) {
   // Parse artists string into array
-  const artists = roundData.artists
-    ? roundData.artists
-        .split(",")
-        .map((a) => a.trim())
-        .filter((a) => a)
   const artists = roundData.artists
     ? roundData.artists
         .split(",")
@@ -327,8 +317,6 @@ async function createRound(roundData) {
 
   const { ok, data } = await apiRequest("/api/voting/rounds", {
     method: "POST",
-  const { ok, data } = await apiRequest("/api/voting/rounds", {
-    method: "POST",
     body: JSON.stringify(payload),
   });
 
@@ -337,7 +325,6 @@ async function createRound(roundData) {
 
 // Load all rounds
 async function loadRounds() {
-  const { ok, data } = await apiRequest("/api/voting/rounds");
   const { ok, data } = await apiRequest("/api/voting/rounds");
   if (ok && data.success) {
     return data.data || [];
@@ -359,14 +346,10 @@ function generateQRCode(url, containerId) {
   const container = document.getElementById(containerId);
   container.innerHTML = "<p>Generating QR code...</p>";
 
-  container.innerHTML = "<p>Generating QR code...</p>";
-
   // Function to try generating QR code
   const tryGenerateQR = () => {
     // Check if QRCode library is available (try multiple possible names)
     const QRCodeLib = window.QRCode || window.qrcode;
-
-    if (QRCodeLib && typeof QRCodeLib.toDataURL === "function") {
 
     if (QRCodeLib && typeof QRCodeLib.toDataURL === "function") {
       try {
@@ -383,21 +366,7 @@ function generateQRCode(url, containerId) {
             }
           }
         );
-        QRCodeLib.toDataURL(
-          url,
-          { width: 256, margin: 2 },
-          (error, dataUrl) => {
-            if (error) {
-              console.error("QR Code generation error:", error);
-              // Fallback to online QR code generator
-              useFallbackQR();
-            } else {
-              container.innerHTML = `<img src="${dataUrl}" alt="QR Code" style="max-width: 100%; height: auto;" />`;
-            }
-          }
-        );
       } catch (error) {
-        console.error("QR Code error:", error);
         console.error("QR Code error:", error);
         useFallbackQR();
       }
@@ -414,7 +383,6 @@ function generateQRCode(url, containerId) {
     }
   };
 
-
   // Fallback function using online QR code API
   const useFallbackQR = () => {
     container.innerHTML = `
@@ -424,14 +392,10 @@ function generateQRCode(url, containerId) {
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(
           url
         )}" alt="QR Code" style="max-width: 100%; height: auto; border: 1px solid #ddd; padding: 10px; background: white;" />
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(
-          url
-        )}" alt="QR Code" style="max-width: 100%; height: auto; border: 1px solid #ddd; padding: 10px; background: white;" />
         <p style="margin-top: 10px; font-size: 0.9em; color: #666;">Scan this QR code with your phone to access the voting page</p>
       </div>
     `;
   };
-
 
   // Start trying to generate QR code
   tryGenerateQR();
@@ -439,12 +403,6 @@ function generateQRCode(url, containerId) {
 
 // Generate next round
 async function generateNextRound(roundId) {
-  const { ok, data } = await apiRequest(
-    `/api/voting/rounds/${roundId}/next-round`,
-    {
-      method: "POST",
-    }
-  );
   const { ok, data } = await apiRequest(
     `/api/voting/rounds/${roundId}/next-round`,
     {
@@ -463,19 +421,14 @@ async function updateRoundStatus(roundId, status) {
       body: JSON.stringify({ status }),
     }
   );
-  const { ok, data } = await apiRequest(
-    `/api/voting/rounds/${roundId}/status`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    }
-  );
   return { ok, data };
 }
 
 // Get results
 async function getResults(roundId) {
-  const { ok, data } = await apiRequest(`/api/voting/rounds/${roundId}/results`);
+  const { ok, data } = await apiRequest(
+    `/api/voting/rounds/${roundId}/results`
+  );
   if (ok && data.success) {
     return data.data;
   }
@@ -484,7 +437,7 @@ async function getResults(roundId) {
 
 // Initiate Spotify OAuth
 async function initiateSpotifyOAuth() {
-  const { ok, data } = await apiRequest('/api/spotify/auth');
+  const { ok, data } = await apiRequest("/api/spotify/auth");
   if (ok && data.success) {
     return data.data;
   }
@@ -493,7 +446,7 @@ async function initiateSpotifyOAuth() {
 
 // Handle Spotify OAuth callback
 async function handleSpotifyOAuthCallback() {
-  const { ok, data } = await apiRequest('/api/spotify/callback');
+  const { ok, data } = await apiRequest("/api/spotify/callback");
   if (ok && data.success) {
     return data.data;
   }
@@ -503,10 +456,10 @@ async function handleSpotifyOAuthCallback() {
 // get spotify track info
 async function getSpotifyTrackInfo(trackId) {
   // Don't make API call if trackId is null or empty
-  if (!trackId || trackId === 'null' || trackId === 'undefined') {
+  if (!trackId || trackId === "null" || trackId === "undefined") {
     return null;
   }
-  
+
   const { ok, data } = await apiRequest(`/api/spotify/tracks/${trackId}`);
   if (ok && data.success) {
     return data.data;
@@ -517,53 +470,53 @@ async function getSpotifyTrackInfo(trackId) {
 // Get countdown info for round
 async function getRoundCountdown(roundId) {
   try {
-    const { ok, data } = await apiRequest(`/api/voting/rounds/${roundId}/countdown`);
+    const { ok, data } = await apiRequest(
+      `/api/voting/rounds/${roundId}/countdown`
+    );
     if (ok && data.success) {
       return data.data;
     }
   } catch (error) {
-    console.error('Error fetching countdown:', error);
+    console.error("Error fetching countdown:", error);
   }
   return null;
 }
 
 // Format time remaining as MM:SS
 function formatTimeRemaining(seconds) {
-  if (seconds <= 0) return '00:00';
+  if (seconds <= 0) return "00:00";
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
-  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
 // Display rounds
 function displayRounds(rounds) {
-  const container = document.getElementById("rounds-container");
   const container = document.getElementById("rounds-container");
   if (!container) return;
 
   if (rounds.length === 0) {
     container.innerHTML =
       '<p class="no-rounds">No voting rounds yet. Create one above!</p>';
-    container.innerHTML =
-      '<p class="no-rounds">No voting rounds yet. Create one above!</p>';
     return;
   }
 
-  container.innerHTML = rounds.map(round => `
-    <div class="round-card ${round._isJukeboxVotingRound ? 'jukebox-round' : ''}">
+  container.innerHTML = rounds
+    .map(
+      (round) => `
+    <div class="round-card ${
+      round._isJukeboxVotingRound ? "jukebox-round" : ""
+    }">
       <div class="round-header">
         <h3>Round ${round.currentRoundNumber}</h3>
         <span class="round-status ${round.status}">${round.status}</span>
-        ${round._isJukeboxVotingRound ? '<span class="jukebox-badge" title="Active jukebox voting round - countdown timer available">🎵 Jukebox</span>' : ''}
-      </div>
-      <div class="round-info">
-        ${round.genre ? `<p><strong>Genre:</strong> ${round.genre}</p>` : ""}
-        ${round.bpm ? `<p><strong>BPM:</strong> ${round.bpm}</p>` : ""}
         ${
-          round.artists && round.artists.length > 0
-            ? `<p><strong>Artists:</strong> ${round.artists.join(", ")}</p>`
+          round._isJukeboxVotingRound
+            ? '<span class="jukebox-badge" title="Active jukebox voting round - countdown timer available">🎵 Jukebox</span>'
             : ""
         }
+      </div>
+      <div class="round-info">
         ${round.genre ? `<p><strong>Genre:</strong> ${round.genre}</p>` : ""}
         ${round.bpm ? `<p><strong>BPM:</strong> ${round.bpm}</p>` : ""}
         ${
@@ -579,21 +532,7 @@ function displayRounds(rounds) {
           ? `<p class="winner"><strong>Winner:</strong> "${round.winner.title}" by ${round.winner.artist}</p>`
           : ""
       }
-      ${
-        round.winner
-          ? `<p class="winner"><strong>Winner:</strong> "${round.winner.title}" by ${round.winner.artist}</p>`
-          : ""
-      }
       <div class="round-actions">
-        <button class="btn btn-small" onclick="showQRCode('${
-          round.id
-        }')">Show QR Code</button>
-        <button class="btn btn-small" onclick="viewResults('${
-          round.id
-        }')">View Results</button>
-        ${
-          round.status === "active"
-            ? `
         <button class="btn btn-small" onclick="showQRCode('${
           round.id
         }')">Show QR Code</button>
@@ -607,16 +546,7 @@ function displayRounds(rounds) {
         `
             : round.status === "paused"
             ? `
-        `
-            : round.status === "paused"
-            ? `
           <button class="btn btn-small btn-success" onclick="resumeRound('${round.id}')">Resume</button>
-        `
-            : ""
-        }
-        <button class="btn btn-small" onclick="generateNext('${
-          round.id
-        }')">Generate Next Round</button>
         `
             : ""
         }
@@ -628,17 +558,12 @@ function displayRounds(rounds) {
   `
     )
     .join("");
-  `
-    )
-    .join("");
 }
 
 // Show QR code modal
 window.showQRCode = async function (roundId) {
-window.showQRCode = async function (roundId) {
   const qrData = await getQRCode(roundId);
   if (!qrData) {
-    alert("Failed to get QR code");
     alert("Failed to get QR code");
     return;
   }
@@ -647,23 +572,15 @@ window.showQRCode = async function (roundId) {
   const urlEl = document.getElementById("qr-url");
   const container = document.getElementById("qr-code-container");
 
-  const modal = document.getElementById("qr-modal");
-  const urlEl = document.getElementById("qr-url");
-  const container = document.getElementById("qr-code-container");
-
   if (urlEl) urlEl.textContent = qrData.votingUrl;
-  generateQRCode(qrData.votingUrl, "qr-code-container");
-  modal.style.display = "block";
   generateQRCode(qrData.votingUrl, "qr-code-container");
   modal.style.display = "block";
 };
 
 // View results
 window.viewResults = async function (roundId) {
-window.viewResults = async function (roundId) {
   const results = await getResults(roundId);
   if (!results) {
-    alert("Failed to load results");
     alert("Failed to load results");
     return;
   }
@@ -678,22 +595,31 @@ window.viewResults = async function (roundId) {
   }
 
   const countdownData = await getRoundCountdown(roundId);
-  const modal = document.getElementById('results-modal');
-  const container = document.getElementById('results-container');
-  
-  let countdownHTML = '';
-  if (countdownData && countdownData.isJukeboxRound && countdownData.timeRemainingSeconds !== null) {
+  const modal = document.getElementById("results-modal");
+  const container = document.getElementById("results-container");
+
+  let countdownHTML = "";
+  if (
+    countdownData &&
+    countdownData.isJukeboxRound &&
+    countdownData.timeRemainingSeconds !== null
+  ) {
     const timeStr = formatTimeRemaining(countdownData.timeRemainingSeconds);
-    const warningClass = countdownData.timeRemainingSeconds < 30 ? 'countdown-warning' : '';
+    const warningClass =
+      countdownData.timeRemainingSeconds < 30 ? "countdown-warning" : "";
     countdownHTML = `
       <div class="countdown-section" style="margin: 16px 0; padding: 12px; background: #f5f5f5; border-radius: 8px;">
         <p style="margin: 0 0 8px 0; font-weight: bold;">⏱️ Voting ends in:</p>
         <p class="countdown-timer ${warningClass}" id="results-countdown-timer" style="font-size: 24px; font-weight: bold; margin: 0; color: #007bff;">${timeStr}</p>
-        ${countdownData.nowPlaying ? `
+        ${
+          countdownData.nowPlaying
+            ? `
           <p style="margin: 8px 0 0 0; font-size: 0.9em; color: #666;">
             Currently playing: "${countdownData.nowPlaying.title}" by ${countdownData.nowPlaying.artist}
           </p>
-        ` : ''}
+        `
+            : ""
+        }
       </div>
     `;
   } else if (results.winner) {
@@ -705,16 +631,12 @@ window.viewResults = async function (roundId) {
       </div>
     `;
   }
-  
+
   container.innerHTML = `
     <p><strong>Round ${results.roundNumber}</strong></p>
     <p><strong>Total Votes:</strong> ${results.totalVotes}</p>
     ${countdownHTML}
     <div class="results-list">
-      ${results.songs
-        .map(
-          (song, index) => `
-        <div class="result-item ${index === 0 ? "winner" : ""}">
       ${results.songs
         .map(
           (song, index) => `
@@ -726,20 +648,16 @@ window.viewResults = async function (roundId) {
       `
         )
         .join("")}
-      `
-        )
-        .join("")}
     </div>
-    ${
-      results.winner
-        ? `
     ${
       results.winner
         ? `
       <div class="winner-section">
         <h4>Winner</h4>
         <p>"${results.winner.title}" by ${results.winner.artist}</p>
-        ${results.winner.spotifyId && spotifyTrackInfo ? `
+        ${
+          results.winner.spotifyId && spotifyTrackInfo
+            ? `
           <div style="margin: 16px 0;">
             <iframe 
               src="https://open.spotify.com/embed/track/${results.winner.spotifyId}" 
@@ -754,66 +672,67 @@ window.viewResults = async function (roundId) {
           <a href="https://open.spotify.com/track/${results.winner.spotifyId}" target="_blank" class="btn btn-small" style="margin-top: 8px;">
             Open in Spotify
           </a>
-        ` : results.winner.spotifyId ? `
+        `
+            : results.winner.spotifyId
+            ? `
           <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
             Spotify track ID available but preview not accessible. 
             <a href="https://open.spotify.com/track/${results.winner.spotifyId}" target="_blank">Try opening in Spotify</a>
           </p>
-        ` : `
+        `
+            : `
           <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
             No Spotify track ID available for this song.
           </p>
-        `}
+        `
+        }
       </div>
     `
         : ""
     }
-    `
-        : ""
-    }
   `;
-  
-  modal.style.display = 'block';
-  
+
+  modal.style.display = "block";
+
   // Start countdown timer if available
   if (countdownData && countdownData.isJukeboxRound) {
-    const timerEl = document.getElementById('results-countdown-timer');
+    const timerEl = document.getElementById("results-countdown-timer");
     if (timerEl) {
       let currentSeconds = countdownData.timeRemainingSeconds;
-      
+
       const updateTimer = () => {
         if (currentSeconds <= 0) {
-          timerEl.textContent = '00:00';
-          timerEl.className = 'countdown-timer countdown-warning';
+          timerEl.textContent = "00:00";
+          timerEl.className = "countdown-timer countdown-warning";
           return;
         }
-        
+
         timerEl.textContent = formatTimeRemaining(currentSeconds);
         if (currentSeconds < 30) {
-          timerEl.className = 'countdown-timer countdown-warning';
+          timerEl.className = "countdown-timer countdown-warning";
         } else {
-          timerEl.className = 'countdown-timer';
+          timerEl.className = "countdown-timer";
         }
         currentSeconds--;
       };
-      
+
       // Update immediately
       updateTimer();
-      
+
       // Update every second
       const interval = setInterval(() => {
         updateTimer();
         if (currentSeconds <= 0) {
           clearInterval(interval);
           // Refresh countdown from server
-          getRoundCountdown(roundId).then(data => {
+          getRoundCountdown(roundId).then((data) => {
             if (data && data.isJukeboxRound) {
               currentSeconds = data.timeRemainingSeconds;
             }
           });
         }
       }, 1000);
-      
+
       // Store interval ID to clear on modal close
       modal._countdownInterval = interval;
     }
@@ -824,13 +743,9 @@ window.viewResults = async function (roundId) {
 window.pauseRound = async function (roundId) {
   const { ok, data } = await updateRoundStatus(roundId, "paused");
 
-window.pauseRound = async function (roundId) {
-  const { ok, data } = await updateRoundStatus(roundId, "paused");
-
   if (ok && data.success) {
     await loadAndDisplayRounds();
   } else {
-    alert("Failed to pause round: " + (data.message || "Unknown error"));
     alert("Failed to pause round: " + (data.message || "Unknown error"));
   }
 };
@@ -839,43 +754,46 @@ window.pauseRound = async function (roundId) {
 window.resumeRound = async function (roundId) {
   const { ok, data } = await updateRoundStatus(roundId, "active");
 
-window.resumeRound = async function (roundId) {
-  const { ok, data } = await updateRoundStatus(roundId, "active");
-
   if (ok && data.success) {
     await loadAndDisplayRounds();
   } else {
-    alert('Failed to resume round: ' + (data.message || 'Unknown error'));
+    alert("Failed to resume round: " + (data.message || "Unknown error"));
   }
 };
 
 // Start jukebox
-window.startJukebox = async function(roundId) {
-  if (!confirm('Start jukebox mode? This will begin automated playlist management. The current round winner will start playing, and a new voting round will be generated automatically.')) {
+window.startJukebox = async function (roundId) {
+  if (
+    !confirm(
+      "Start jukebox mode? This will begin automated playlist management. The current round winner will start playing, and a new voting round will be generated automatically."
+    )
+  ) {
     return;
   }
 
   const btn = event.target;
   btn.disabled = true;
-  btn.textContent = 'Starting...';
+  btn.textContent = "Starting...";
 
   try {
-    const { ok, data } = await apiRequest('/api/jukebox/start', {
-      method: 'POST',
+    const { ok, data } = await apiRequest("/api/jukebox/start", {
+      method: "POST",
       body: JSON.stringify({ roundId }),
     });
 
     if (ok && data.success) {
-      alert('Jukebox started successfully! The countdown timer will now appear on voting rounds.');
+      alert(
+        "Jukebox started successfully! The countdown timer will now appear on voting rounds."
+      );
       await loadAndDisplayRounds();
     } else {
-      alert('Failed to start jukebox: ' + (data.message || 'Unknown error'));
+      alert("Failed to start jukebox: " + (data.message || "Unknown error"));
     }
   } catch (error) {
-    alert('Error starting jukebox: ' + error.message);
+    alert("Error starting jukebox: " + error.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = '🎧 Start Jukebox';
+    btn.textContent = "🎧 Start Jukebox";
   }
 };
 
@@ -886,45 +804,30 @@ window.generateNext = async function (roundId) {
       "Generate next round with AI? This will create 10 new songs based on voting patterns."
     )
   ) {
-window.generateNext = async function (roundId) {
-  if (
-    !confirm(
-      "Generate next round with AI? This will create 10 new songs based on voting patterns."
-    )
-  ) {
     return;
   }
 
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = "Generating...";
-  btn.textContent = "Generating...";
 
   const { ok, data } = await generateNextRound(roundId);
 
-
   if (ok && data.success) {
-    alert("Next round generated successfully!");
     alert("Next round generated successfully!");
     loadAndDisplayRounds();
   } else {
     alert(
       "Failed to generate next round: " + (data.message || "Unknown error")
     );
-    alert(
-      "Failed to generate next round: " + (data.message || "Unknown error")
-    );
   }
 
-
   btn.disabled = false;
-  btn.textContent = "Generate Next Round";
   btn.textContent = "Generate Next Round";
 };
 
 // Load and display rounds
 async function loadAndDisplayRounds() {
-  const container = document.getElementById("rounds-container");
   const container = document.getElementById("rounds-container");
   if (container) {
     container.innerHTML = '<p class="loading">Loading rounds...</p>';
@@ -939,17 +842,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const createForm = document.getElementById("create-round-form");
   const createMessage = document.getElementById("create-message");
   const createBtn = document.getElementById("create-btn");
-document.addEventListener("DOMContentLoaded", async () => {
-  const backend = document.getElementById("backend-url");
-  const createForm = document.getElementById("create-round-form");
-  const createMessage = document.getElementById("create-message");
-  const createBtn = document.getElementById("create-btn");
 
   if (backend) backend.textContent = window.getBackendUrl();
 
   // Check authentication
   if (!isAuthenticated()) {
-    window.location.href = "/index.html";
     window.location.href = "/index.html";
     return;
   }
@@ -958,8 +855,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadUserInfo();
 
   // Initialize header with Admin link (if headerUtils.js is available)
-  if (typeof initLoggedInHeader === "function") {
-    await initLoggedInHeader([{ href: "/admin.html", text: "Admin" }]);
   if (typeof initLoggedInHeader === "function") {
     await initLoggedInHeader([{ href: "/admin.html", text: "Admin" }]);
   }
@@ -971,17 +866,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const healthCheckBtn = document.getElementById("health-check-btn");
   const healthStatus = document.getElementById("health-status");
 
-  const healthCheckBtn = document.getElementById("health-check-btn");
-  const healthStatus = document.getElementById("health-status");
-
   if (healthCheckBtn && healthStatus) {
-    healthCheckBtn.addEventListener("click", async () => {
     healthCheckBtn.addEventListener("click", async () => {
       // Disable button during check
       healthCheckBtn.disabled = true;
-      healthCheckBtn.textContent = "Checking...";
-      healthStatus.classList.add("hidden");
-
       healthCheckBtn.textContent = "Checking...";
       healthStatus.classList.add("hidden");
 
@@ -998,29 +886,13 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
         );
 
-        const response = await fetch(
-          window.getBackendUrl() + "/api/ai/health",
-          {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-            },
-            mode: "cors",
-            credentials: "omit",
-          }
-        );
-
         const data = await response.json();
-
 
         // Remove hidden class to show status
         healthStatus.classList.remove("hidden");
 
-        healthStatus.classList.remove("hidden");
-
         if (response.ok && data.success && data.connected) {
           // AI is healthy
-          healthStatus.className = "health-status health-status-success";
           healthStatus.className = "health-status health-status-success";
           healthStatus.innerHTML = `
             <strong>✓ AI Service is Healthy</strong>
@@ -1028,9 +900,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           `;
         } else {
           // AI is not healthy
-          healthStatus.className = "health-status health-status-error";
-          const errorMsg =
-            data.error || "The AI agent is not reachable or not connected.";
           healthStatus.className = "health-status health-status-error";
           const errorMsg =
             data.error || "The AI agent is not reachable or not connected.";
@@ -1043,8 +912,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Network or other error
         healthStatus.className = "health-status health-status-error";
         healthStatus.classList.remove("hidden");
-        healthStatus.className = "health-status health-status-error";
-        healthStatus.classList.remove("hidden");
         healthStatus.innerHTML = `
           <strong>✗ Connection Error</strong>
           <p>Unable to reach the backend server. Please check your connection or try again later.</p>
@@ -1053,7 +920,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Re-enable button
         healthCheckBtn.disabled = false;
         healthCheckBtn.textContent = "Check AI Health";
-        healthCheckBtn.textContent = "Check AI Health";
       }
     });
   }
@@ -1061,23 +927,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Setup create form
   if (createForm) {
     createForm.addEventListener("submit", async (e) => {
-    createForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      createMessage.textContent = "";
-      createMessage.className = "msg";
       createMessage.textContent = "";
       createMessage.className = "msg";
       createBtn.disabled = true;
       createBtn.textContent = "Creating...";
-      createBtn.textContent = "Creating...";
 
       const formData = new FormData(createForm);
       const roundData = {
-        genre: formData.get("genre"),
-        bpm: formData.get("bpm"),
-        artists: formData.get("artists"),
-        mood: formData.get("mood"),
-        energy: formData.get("energy"),
         genre: formData.get("genre"),
         bpm: formData.get("bpm"),
         artists: formData.get("artists"),
@@ -1089,24 +946,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (ok && data.success) {
         // Use the message from the server, which includes the song name if available
-        createMessage.textContent = data.message || 'Voting round created successfully!';
-        createMessage.className = 'msg ok';
+        createMessage.textContent =
+          data.message || "Voting round created successfully!";
+        createMessage.className = "msg ok";
         createForm.reset();
-        
+
         // Log the created round info
-        
+
         await loadAndDisplayRounds();
       } else {
-        createMessage.textContent =
-          "Failed to create round: " + (data.message || "Unknown error");
-        createMessage.className = "msg err";
         createMessage.textContent =
           "Failed to create round: " + (data.message || "Unknown error");
         createMessage.className = "msg err";
       }
 
       createBtn.disabled = false;
-      createBtn.textContent = "Create Voting Round";
       createBtn.textContent = "Create Voting Round";
     });
   }
@@ -1118,20 +972,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const closeQR = document.querySelector(".close");
   const closeResults = document.querySelector(".close-results");
 
-  const qrModal = document.getElementById("qr-modal");
-  const resultsModal = document.getElementById("results-modal");
-
-  const closeQR = document.querySelector(".close");
-  const closeResults = document.querySelector(".close-results");
-
   if (closeQR) {
-    closeQR.addEventListener("click", () => {
-      qrModal.style.display = "none";
     closeQR.addEventListener("click", () => {
       qrModal.style.display = "none";
     });
   }
-
 
   if (closeResults) {
     closeResults.addEventListener("click", () => {
@@ -1146,9 +991,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Close modals when clicking outside
   window.addEventListener("click", (e) => {
-  window.addEventListener("click", (e) => {
     if (e.target === qrModal) {
-      qrModal.style.display = "none";
       qrModal.style.display = "none";
     }
     if (e.target === resultsModal) {
