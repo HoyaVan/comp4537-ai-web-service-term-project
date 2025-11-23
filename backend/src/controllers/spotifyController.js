@@ -97,17 +97,16 @@ async function handleOAuthCallback(req, res) {
 
     const tokenData = await spotifyService.exchangeCodeForToken(code);
 
-    spotifyService.setAccessToken(tokenData.access_token);
-    spotifyService.setRefreshToken(tokenData.refresh_token);
-    spotifyService.setExpiresIn(tokenData.expires_in);
-    spotifyService.setTokenType(tokenData.token_type);
-    spotifyService.setScope(tokenData.scope);
-    spotifyService.setState(state || null);
+    spotifyService.accessToken = tokenData.access_token;
+    spotifyService.refreshToken = tokenData.refresh_token;
+    spotifyService.expiresIn = tokenData.expires_in;
+    spotifyService.tokenType = tokenData.token_type;
+    spotifyService.scope = tokenData.scope;
+    spotifyService.state = state || null;
 
     console.log("Token data:", tokenData);
     
-  
-    
+
 
     return res.status(200).json({
       success: true,
@@ -130,9 +129,34 @@ async function handleOAuthCallback(req, res) {
   }
 }
 
+
+async function setSpotifyToken(req, res) {
+  try {
+    
+    return res.status(200).json({
+      success: true,
+      message: "Spotify token retrieved successfully",
+      data: {
+        access_token: spotifyService.accessToken,
+        refresh_token: spotifyService.refreshToken,
+        expires_in: spotifyService.expiresIn,
+        token_type: spotifyService.tokenType,
+        scope: spotifyService.scope,
+        state: spotifyService.state,
+      },
+    });
+  } catch (error) {
+    console.error("Error setting Spotify token:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Error setting Spotify token",
+    });
+  }
+}
 module.exports = {
   getSpotifyTrack,
   searchSpotifyTracks,
   initiateOAuth,
   handleOAuthCallback,
+  setSpotifyToken,
 };

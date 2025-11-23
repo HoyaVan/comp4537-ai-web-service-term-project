@@ -10,45 +10,9 @@ class SpotifyService {
     this.authURL = "https://accounts.spotify.com/authorize";
     this.callbackURI = process.env.SPOTIFY_CALLBACK_URI || null;
     this.accessToken = null;
-    this.tokenExpiresAt = null;
+    this.tokenExpiresIn = null;
   }
-  setAccessToken(accessToken) {
-    this.accessToken = accessToken;
-    this.tokenExpiresAt = Date.now() + this.expiresIn * 1000 * 60 * 60 * 1000;
-  }
-  setRefreshToken(refreshToken) {
-    this.refreshToken = refreshToken;
-  }
-  setExpiresIn(expiresIn) {
-    this.expiresIn = expiresIn;
-  }
-  setTokenType(tokenType) {
-    this.tokenType = tokenType;
-  }
-  setScope(scope) {
-    this.scope = scope;
-  }
-  setState(state) {
-    this.state = state;
-  }
-  getAccessToken() {
-    return this.accessToken;
-  }
-  getRefreshToken() {
-    return this.refreshToken;
-  }
-  getExpiresIn() {
-    return this.expiresIn;
-  }
-  getTokenType() {
-    return this.tokenType;
-  }
-  getScope() {
-    return this.scope;
-  }
-  getState() {
-    return this.state;
-  }
+
 
   /**
    * Get access token using client credentials flow
@@ -86,7 +50,7 @@ class SpotifyService {
       this.accessToken = response.data.access_token;
       // Set expiration to 2 hours 
       this.tokenExpiresAt =
-        Date.now() + response.data.expires_in * 1000 * 60 * 60 * 1000;
+        Date.now() + response.data.expires_in 
 
       return this.accessToken;
     } catch (error) {
@@ -103,7 +67,7 @@ class SpotifyService {
    */
   async searchTracks(query, limit = 10) {
     try {
-      const token = await this.getAccessToken();
+      const token = await this.accessToken;
 
       const response = await axios.get(`${this.baseURL}/search`, {
         params: {
@@ -141,7 +105,7 @@ class SpotifyService {
    */
   async getTrack(trackId) {
     try {
-      const token = await this.getAccessToken();
+      const token = await this.accessToken
 
       const response = await axios.get(`${this.baseURL}/tracks/${trackId}`, {
         headers: {
@@ -175,8 +139,7 @@ class SpotifyService {
    */
   async getTracks(trackIds) {
     try {
-      const token = await this.getAccessToken();
-
+      const token = await this.accessToken
       const response = await axios.get(`${this.baseURL}/tracks`, {
         params: {
           ids: trackIds.join(","),

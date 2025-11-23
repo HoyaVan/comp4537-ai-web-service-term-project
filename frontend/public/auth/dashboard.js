@@ -23,61 +23,61 @@ function getToken() {
 
 
 
-//Set spotify token in localStorage
-function setSpotifyToken(token) {
-  try {
-    localStorage.setItem("spotify_token", token);
-  } catch (_) {
-    return null;
-  }
-}
+// //Set spotify token in localStorage
+// function setSpotifyToken(token) {
+//   try {
+//     localStorage.setItem("spotify_token", token);
+//   } catch (_) {
+//     return null;
+//   }
+// }
 
-//get spotify token from localStorage
-function getSpotifyToken() {
-  try {
-    return localStorage.getItem("spotify_token");
-  } catch (_) {
-    return null;
-  }
-}
-// Initiate Spotify OAuth - redirects browser to Spotify
-function initiateSpotifyOAuth() {
-  window.location.href = BACKEND_URL + "/api/spotify/auth";
-}
+// //get spotify token from localStorage
+// function getSpotifyToken() {
+//   try {
+//     return localStorage.getItem("spotify_token");
+//   } catch (_) {
+//     return null;
+//   }
+// }
+// // Initiate Spotify OAuth - redirects browser to Spotify
+// function initiateSpotifyOAuth() {
+//   window.location.href = BACKEND_URL + "/api/spotify/auth";
+// }
 
-// Handle Spotify OAuth callback - exchange code for token
-async function handleSpotifyCallback(code) {
-  try {
-    const response = await fetch(
-      BACKEND_URL + "/api/spotify/callback?code=" + encodeURIComponent(code),
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        mode: "cors",
-        credentials: "include",
-      }
-    );
-    const data = await response.json();
-    if (response.ok && data.success && data.data.access_token) {
-      setSpotifyToken(data.data.access_token);
-      // Remove code from URL
-      const url = new URL(window.location.href);
-      url.searchParams.delete("code");
-      url.searchParams.delete("state");
-      window.history.replaceState({}, "", url.toString());
-      return data.data.access_token;
-    }
-    throw new Error(data.message || "Failed to get access token");
-  } catch (error) {
-    console.error("Error handling Spotify callback:", error);
-    throw error;
-  }
-}
+// // Handle Spotify OAuth callback - exchange code for token
+// async function handleSpotifyCallback(code) {
+//   try {
+//     const response = await fetch(
+//       BACKEND_URL + "/api/spotify/callback?code=" + encodeURIComponent(code),
+//       {
+//         method: "GET",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Accept: "application/json",
+//         },
+//         mode: "cors",
+//         credentials: "include",
+//       }
+//     );
+//     const data = await response.json();
+//     if (response.ok && data.success && data.data.access_token) {
+//       setSpotifyToken(data.data.access_token);
+//       // Remove code from URL
+//       const url = new URL(window.location.href);
+//       url.searchParams.delete("code");
+//       url.searchParams.delete("state");
+//       window.history.replaceState({}, "", url.toString());
+//       return data.data.access_token;
+//     }
+//     throw new Error(data.message || "Failed to get access token");
+//   } catch (error) {
+//     console.error("Error handling Spotify callback:", error);
+//     throw error;
+//   }
+// }
 
-// Setup Spotify authentication - checks for token or handles callback
+// // Setup Spotify authentication - checks for token or handles callback
 // async function spotifyApiRequest(url, options = {}) {
 //   const token = getSpotifyToken();
 //   const headers = {
@@ -117,10 +117,10 @@ async function handleSpotifyCallback(code) {
 //   };
 // }
 
-async function spotifytTrackTest() {
-  let data = await apiRequest("/api/spotify/tracks/2kmgtoTuRdUSvL4LJFOYUI");
-  return data;
-}
+// async function spotifytTrackTest() {
+//   let data = await apiRequest("/api/spotify/tracks/2kmgtoTuRdUSvL4LJFOYUI");
+//   return data;
+// }
 
 // console.log("spotifytTrackTest: ", await spotifytTrackTest());
 
@@ -219,6 +219,8 @@ async function spotifytTrackTest() {
 // }
 
 
+
+
 // Make authenticated API request
 async function apiRequest(url, options = {}) {
   const token = getToken();
@@ -256,6 +258,27 @@ async function loadUserInfo() {
     // Display API consumption
     displayApiConsumption(user.apiConsumption);
   }
+}
+
+async function loadSpotifyToken() {
+  const auth = await apiRequest("/api/spotify/auth");
+  console.log("auth: ", auth);
+  const callback = await apiRequest("/api/spotify/callback" + "?code=" + encodeURIComponent(auth.data.code));
+  console.log("callback: ", callback);
+
+  
+  const { ok, data } = await apiRequest("/api/spotify/token");
+  console.log("data: ", data);
+  if (ok && data.success) {
+    localStorage.setItem("spotify_token", data.data.access_token);
+    localStorage.setItem("spotify_refresh_token", data.data.refresh_token);
+    localStorage.setItem("spotify_expires_in", data.data.expires_in);
+    localStorage.setItem("spotify_token_type", data.data.token_type);
+    localStorage.setItem("spotify_scope", data.data.scope);
+    localStorage.setItem("spotify_state", data.data.state);
+    return data.data;
+  }
+  return null;
 }
 
 // Display API consumption
@@ -849,6 +872,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Load user info
   await loadUserInfo();
+  // await loadSpotifyToken();
 
   // Initialize header with Admin link (if headerUtils.js is available)
   if (typeof initLoggedInHeader === "function") {

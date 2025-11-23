@@ -6,5 +6,6 @@ router.get("/search", spotifyController.searchSpotifyTracks);
 router.get("/tracks/:trackId", spotifyController.getSpotifyTrack);
 router.get("/auth", spotifyController.initiateOAuth);
 router.get("/callback", spotifyController.handleOAuthCallback);
+router.get("/token", spotifyController.setSpotifyToken);
 
 module.exports = router;
