@@ -93,25 +93,37 @@ async function generateSongsWithAI(round, previousRoundData, previousVotes) {
       prompt += `Consider that users preferred songs similar to the winner and generate complementary recommendations.`;
     }
 
-    prompt += `\n\nReturn the response as a JSON array with exactly 10 objects. Each object must have:
-- title: (string) Song title
-- artist: (string) Artist name
+    prompt += `\n\nIMPORTANT: You must return ONLY a valid JSON array with exactly 10 objects. Do not include any markdown formatting, code blocks, or explanatory text. Just the raw JSON array.
+
+Each object in the array must have these exact fields:
+- title: (string) Song title - use real, popular song titles
+- artist: (string) Artist name - use real, popular artist names
 - spotifyId: (string) Spotify track ID if available, or null
 - spotifyUri: (string) Spotify URI (format: spotify:track:ID) if available, or null
 - genre: (string) Genre of the song
 - bpm: (number) Beats per minute
 
-Return ONLY the JSON array, no additional text or markdown formatting.`;
+Example format:
+[
+  {"title": "Song Title 1", "artist": "Artist Name 1", "spotifyId": null, "spotifyUri": null, "genre": "Pop", "bpm": 120},
+  {"title": "Song Title 2", "artist": "Artist Name 2", "spotifyId": null, "spotifyUri": null, "genre": "Pop", "bpm": 125}
+]
+
+Return ONLY the JSON array starting with [ and ending with ]. No other text.`;
 
     const response = await aiService.sendMessage({
       messages: [
+        {
+          role: "system",
+          content: "You are a music recommendation assistant. You must always respond with valid JSON arrays. Never include markdown code blocks or explanatory text - only raw JSON.",
+        },
         {
           role: "user",
           content: prompt,
         },
       ],
       temperature: 0.8,
-      max_tokens: 2000,
+      max_tokens: 2500, // Increased to ensure full response
     });
 
     // Parse AI response
@@ -120,7 +132,18 @@ Return ONLY the JSON array, no additional text or markdown formatting.`;
       aiResponseText = response.choices[0].message?.content || "";
     } else if (response.content) {
       aiResponseText = response.content;
+    } else {
+      // Log the full response structure if it doesn't match expected format
+      console.error("⚠️  AI response structure unexpected. Full response:", JSON.stringify(response, null, 2));
     }
+
+    // Check if we got any response text
+    if (!aiResponseText || aiResponseText.trim().length === 0) {
+      console.error("❌ AI returned empty response. Full response object:", JSON.stringify(response, null, 2));
+      return generateFallbackSongs(round);
+    }
+
+    console.log("✅ AI Response received (first 200 chars):", aiResponseText.substring(0, 200));
 
     // Try to extract JSON from response
     let songList = [];
@@ -132,18 +155,23 @@ Return ONLY the JSON array, no additional text or markdown formatting.`;
       const jsonMatch = aiResponseText.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         songList = JSON.parse(jsonMatch[0]);
+        console.log(`✅ Successfully parsed ${songList.length} songs from AI response`);
       } else {
+        // Try parsing the whole response
         songList = JSON.parse(aiResponseText);
+        console.log(`✅ Successfully parsed ${songList.length} songs from AI response (direct parse)`);
       }
     } catch (parseError) {
-      console.error("Failed to parse AI response:", parseError);
-      console.error("AI Response:", aiResponseText);
+      console.error("❌ Failed to parse AI response as JSON:", parseError.message);
+      console.error("📝 AI Response (first 500 chars):", aiResponseText.substring(0, 500));
+      console.error("📝 Full AI Response:", aiResponseText);
       // Fallback: generate placeholder songs
       songList = generateFallbackSongs(round);
     }
 
     // Ensure we have exactly 10 songs
     if (!Array.isArray(songList) || songList.length === 0) {
+      console.error("❌ Song list is not an array or is empty. Got:", typeof songList, songList);
       songList = generateFallbackSongs(round);
     }
 
@@ -161,7 +189,11 @@ Return ONLY the JSON array, no additional text or markdown formatting.`;
 
     return songList.slice(0, 10);
   } catch (error) {
-    console.error("Error generating songs with AI:", error);
+    console.error("❌ Error generating songs with AI:", error.message);
+    console.error("📋 Error stack:", error.stack);
+    if (error.response) {
+      console.error("📋 AI Service Error Response:", JSON.stringify(error.response.data, null, 2));
+    }
     // Fallback to default songs if AI fails
     return generateFallbackSongs(round);
   }
