@@ -25,21 +25,37 @@ async function getApiEndpointStats(req, res) {
     
     // Enrich endpoint stats with user details
     const enrichedStats = stats.map((stat) => {
-      const enrichedUsers = stat.users.map((user) => {
-        const userDetails = authService.getUserById(user.userId);
-        return {
-          userId: user.userId,
-          name: userDetails?.name || 'Unknown',
-          email: userDetails?.email || 'Unknown',
-          count: user.count,
+      // Only enrich users if the users array exists and has items
+      let enrichedUsers = [];
+      if (stat.users && Array.isArray(stat.users) && stat.users.length > 0) {
+        enrichedUsers = stat.users.map((user) => {
+          const userDetails = authService.getUserById(user.userId);
+          return {
+            userId: user.userId,
+            name: userDetails?.name || 'Unknown',
+            email: userDetails?.email || 'Unknown',
+            count: user.count,
+          };
+        });
+      }
+      
+      // Enrich last call info
+      let lastCallInfo = null;
+      if (stat.lastCall && stat.lastCall.userId && stat.lastCall.userId !== 'anonymous') {
+        const lastCallUser = authService.getUserById(stat.lastCall.userId);
+        lastCallInfo = {
+          userId: stat.lastCall.userId,
+          email: lastCallUser?.email || 'Unknown',
+          timestamp: stat.lastCall.timestamp,
         };
-      });
+      }
       
       return {
         method: stat.method,
         endpoint: stat.endpoint,
         requests: stat.requests,
         users: enrichedUsers,
+        lastCall: lastCallInfo,
       };
     });
 

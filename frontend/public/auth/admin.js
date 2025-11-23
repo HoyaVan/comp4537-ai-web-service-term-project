@@ -305,7 +305,10 @@ function displayEndpointStats(stats) {
       <th>Method</th>
       <th>Endpoint</th>
       <th>Total Requests</th>
-      <th>Users</th>
+      <th>Latest User</th>
+      <th>Last Call User Email</th>
+      <th>Last Call User ID</th>
+      <th>Latest Time</th>
     </tr>
   `;
   table.appendChild(thead);
@@ -314,26 +317,42 @@ function displayEndpointStats(stats) {
   stats.forEach(stat => {
     const row = document.createElement('tr');
     
-    // Format users list
-    let usersHtml = '<div class="users-list-inline">';
-    if (stat.users && stat.users.length > 0) {
-      stat.users.forEach((user, index) => {
-        if (index > 0) usersHtml += ', ';
-        usersHtml += `<span class="user-badge" title="${user.email}">${user.name || user.email || 'Unknown'}</span>`;
-        if (user.count > 1) {
-          usersHtml += ` <span class="user-count-badge">(${user.count})</span>`;
-        }
-      });
+    // Format latest user (from lastCall)
+    let latestUserHtml = '<div class="users-list-inline">';
+    if (stat.lastCall && stat.lastCall.userId && stat.lastCall.userId !== 'anonymous') {
+      const latestUser = stat.users?.find(u => u.userId === stat.lastCall.userId);
+      if (latestUser) {
+        const displayName = latestUser.name && latestUser.name !== 'Unknown' ? latestUser.name : (latestUser.email || 'Unknown');
+        latestUserHtml += `<span class="user-badge" title="${latestUser.email || latestUser.userId}">${displayName}</span>`;
+      } else {
+        // Fallback to email if user not found in users list
+        const displayName = stat.lastCall.email || stat.lastCall.userId || 'Unknown';
+        latestUserHtml += `<span class="user-badge" title="${stat.lastCall.email || stat.lastCall.userId}">${displayName}</span>`;
+      }
     } else {
-      usersHtml += '<span class="muted-text">Anonymous</span>';
+      latestUserHtml += '<span class="muted-text">N/A</span>';
     }
-    usersHtml += '</div>';
+    latestUserHtml += '</div>';
+    
+    const requestsCount = (stat.requests || 0).toLocaleString();
+    
+    // Format last call info
+    const lastCallEmail = stat.lastCall?.email || '<span class="muted-text">N/A</span>';
+    const lastCallUserId = stat.lastCall?.userId || '<span class="muted-text">N/A</span>';
+    let lastCallTime = '<span class="muted-text">N/A</span>';
+    if (stat.lastCall?.timestamp) {
+      const date = new Date(stat.lastCall.timestamp);
+      lastCallTime = date.toLocaleString();
+    }
     
     row.innerHTML = `
       <td class="method-cell">${stat.method || 'N/A'}</td>
       <td class="endpoint-cell">${stat.endpoint || 'N/A'}</td>
-      <td class="requests-cell">${(stat.requests || 0).toLocaleString()}</td>
-      <td class="users-cell">${usersHtml}</td>
+      <td class="requests-cell">${requestsCount}</td>
+      <td class="users-cell">${latestUserHtml}</td>
+      <td class="email-cell">${lastCallEmail}</td>
+      <td class="user-id-cell">${lastCallUserId}</td>
+      <td class="timestamp-cell">${lastCallTime}</td>
     `;
     tbody.appendChild(row);
   });

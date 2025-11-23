@@ -240,9 +240,31 @@ h1 {
   letter-spacing: 0.5px;
 }
 
+.stats-table th:nth-child(3) {
+  text-align: right; /* Align "Total Requests" header to right */
+}
+
+.stats-table th:nth-child(4),
+.stats-table th:nth-child(5),
+.stats-table th:nth-child(6),
+.stats-table th:nth-child(7) {
+  text-align: left; /* Align new columns to left */
+}
+
+/* Consumption table - align Total Requests header to right */
+.stats-table thead tr th:last-child {
+  text-align: right;
+}
+
 .stats-table td {
   padding: 12px 16px;
   border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+  word-wrap: break-word;
+}
+
+.stats-table td:last-child {
+  padding-right: 16px; /* Ensure consistent padding on right edge */
 }
 
 .stats-table tbody tr:hover {
@@ -270,6 +292,9 @@ h1 {
   font-weight: 600;
   color: var(--brand);
   text-align: right;
+  font-variant-numeric: tabular-nums; /* Ensures numbers align properly */
+  white-space: nowrap; /* Prevents wrapping */
+  padding-right: 16px; /* Consistent padding with other cells */
 }
 
 .name-cell {
@@ -285,6 +310,9 @@ h1 {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 13px;
   color: #475569;
+  text-align: left;
+  word-break: break-all; /* Prevent overflow */
+  max-width: 200px; /* Limit width for better alignment */
 }
 
 .users-cell {
@@ -323,4 +351,10 @@ h1 {
 .muted-text {
   color: var(--muted);
   font-style: italic;
+}
+
+.timestamp-cell {
+  font-size: 13px;
+  color: #475569;
+  white-space: nowrap;
 }

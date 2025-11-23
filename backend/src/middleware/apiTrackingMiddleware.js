@@ -15,6 +15,7 @@ const apiCallLogs = [];
 const userApiCounts = new Map(); // userId -> count
 const endpointStats = new Map(); // "METHOD /endpoint" -> count
 const endpointUserStats = new Map(); // "METHOD /endpoint" -> Map<userId, count>
+const endpointLastCall = new Map(); // "METHOD /endpoint" -> { userId, timestamp }
 
 /**
  * Get API call count for a user
@@ -72,6 +73,12 @@ const trackApiCall = (method, endpoint, userId, statusCode, responseTime) => {
     const currentCount = endpointStats.get(endpointKey) || 0;
     endpointStats.set(endpointKey, currentCount + 1);
     
+    // Track latest call for this endpoint
+    endpointLastCall.set(endpointKey, {
+      userId: userId || 'anonymous',
+      timestamp: timestamp,
+    });
+    
     // Track which users called this endpoint
     if (userId && userId !== 'anonymous') {
       if (!endpointUserStats.has(endpointKey)) {
@@ -109,11 +116,18 @@ const getEndpointStats = () => {
       });
     }
     
+    // Get latest call info
+    const lastCall = endpointLastCall.get(endpointKey) || null;
+    
     stats.push({
       method,
       endpoint,
       requests: count,
       users: users.sort((a, b) => b.count - a.count), // Sort by count descending
+      lastCall: lastCall ? {
+        userId: lastCall.userId,
+        timestamp: lastCall.timestamp,
+      } : null,
     });
   }
   const sortedStats = [...stats];
@@ -164,13 +178,22 @@ const resetUserApiCount = (userId) => {
 const apiTrackingMiddleware = (req, res, next) => {
   const startTime = Date.now();
   const method = req.method;
-  const endpoint = req.path || req.route?.path || req.url;
-  const userId = req.userId || req.user?.id || null;
   
   // Track response when it finishes
+  // Note: We capture userId and endpoint here (after auth middleware may have run) to get the actual user
   res.on('finish', () => {
     const responseTime = Date.now() - startTime;
     const statusCode = res.statusCode || 200;
+    
+    // Capture userId at response time (after authentication middleware has run)
+    const userId = req.userId || req.user?.id || null;
+    
+    // Capture endpoint - use route path if available (more accurate), otherwise use request path
+    // req.route?.path gives the route pattern (e.g., "/api/auth/profile")
+    // req.path gives the actual path (e.g., "/api/auth/profile")
+    // req.url gives full URL with query string
+    const endpoint = req.route?.path || req.path || req.url.split('?')[0];
+    
     trackApiCall(method, endpoint, userId, statusCode, responseTime);
   });
   
