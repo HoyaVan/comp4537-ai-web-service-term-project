@@ -12,6 +12,43 @@ class SpotifyService {
     this.accessToken = null;
     this.tokenExpiresAt = null;
   }
+  setAccessToken(accessToken) {
+    this.accessToken = accessToken;
+    this.tokenExpiresAt = Date.now() + this.expiresIn * 1000 * 60 * 60 * 1000;
+  }
+  setRefreshToken(refreshToken) {
+    this.refreshToken = refreshToken;
+  }
+  setExpiresIn(expiresIn) {
+    this.expiresIn = expiresIn;
+  }
+  setTokenType(tokenType) {
+    this.tokenType = tokenType;
+  }
+  setScope(scope) {
+    this.scope = scope;
+  }
+  setState(state) {
+    this.state = state;
+  }
+  getAccessToken() {
+    return this.accessToken;
+  }
+  getRefreshToken() {
+    return this.refreshToken;
+  }
+  getExpiresIn() {
+    return this.expiresIn;
+  }
+  getTokenType() {
+    return this.tokenType;
+  }
+  getScope() {
+    return this.scope;
+  }
+  getState() {
+    return this.state;
+  }
 
   /**
    * Get access token using client credentials flow

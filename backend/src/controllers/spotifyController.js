@@ -97,6 +97,16 @@ async function handleOAuthCallback(req, res) {
 
     const tokenData = await spotifyService.exchangeCodeForToken(code);
 
+    spotifyService.setAccessToken(tokenData.access_token);
+    spotifyService.setRefreshToken(tokenData.refresh_token);
+    spotifyService.setExpiresIn(tokenData.expires_in);
+    spotifyService.setTokenType(tokenData.token_type);
+    spotifyService.setScope(tokenData.scope);
+    spotifyService.setState(state || null);
+
+    console.log("Token data:", tokenData);
+    
+
     return res.status(200).json({
       success: true,
       message: "Spotify OAuth successful",
