@@ -25,14 +25,7 @@ const getUserApiCount = (userId) => {
   return userApiCounts.get(userId) || 0;
 };
 
-/**
- * Check if user has exceeded API calls (deprecated - unlimited calls now)
- * @param {string} userId - User ID
- * @returns {boolean} Always returns false (unlimited calls)
- */
-const hasExceededLimit = (userId) => {
-  return false; // Unlimited calls - always return false
-};
+
 
 /**
  * Increment API call count for a user
@@ -145,18 +138,6 @@ const getUserConsumptionStats = () => {
   return sortedStats;
 };
 
-/**
- * Get API call logs for a specific user
- * @param {string} userId - User ID
- * @param {number} limit - Maximum number of logs to return
- * @returns {Array} Array of API call logs
- */
-const getUserApiLogs = (userId, limit = 100) => {
-  return apiCallLogs
-    .filter(log => log.userId === userId)
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-    .slice(0, limit);
-};
 
 /**
  * Get all API call logs (admin only)
@@ -196,24 +177,13 @@ const apiTrackingMiddleware = (req, res, next) => {
   next();
 };
 
-/**
- * Middleware to check API call limit
- * Currently disabled - unlimited calls for all users
- * This middleware is kept for compatibility but does nothing
- */
-const checkApiLimitMiddleware = (req, res, next) => {
-  // Unlimited calls - always allow
-  next();
-};
+
 
 module.exports = {
   apiTrackingMiddleware,
-  checkApiLimitMiddleware,
   getUserApiCount,
-  hasExceededLimit,
   getEndpointStats,
   getUserConsumptionStats,
-  getUserApiLogs,
   getAllApiLogs,
   resetUserApiCount,
 };

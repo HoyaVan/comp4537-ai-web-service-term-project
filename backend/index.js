@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 const authRoutes = require("./src/routes/authRoutes");
 const aiRoutes = require("./src/routes/aiRoutes");
 const votingRoutes = require("./src/routes/votingRoutes");
-<<<<<<< HEAD
+
 const spotifyRoutes = require("./src/routes/spotifyRoutes");
 
 // Import controllers
@@ -18,12 +18,11 @@ const spotifyController = require("./src/controllers/spotifyController");
 
 // Import services
 const spotifyService = require("./src/services/spotifyService");
-=======
+
 const adminRoutes = require("./src/routes/adminRoutes");
 
 // Import middleware
 const { apiTrackingMiddleware } = require("./src/middleware/apiTrackingMiddleware");
->>>>>>> 2fcd9ca2ef23793cf2d025252393dff315c18a9d
 
 // Middleware
 // CORS configuration - must explicitly allow origins when credentials are included
@@ -92,19 +91,9 @@ app.use("/api/ai", aiRoutes);
 // Voting routes
 app.use("/api/voting", votingRoutes);
 
-<<<<<<< HEAD
 // Spotify routes
 app.use("/api/spotify", spotifyRoutes);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Auth endpoints available at http://localhost:${PORT}/api/auth`);
-  console.log(`AI endpoints available at http://localhost:${PORT}/api/ai`);
-  console.log(
-    `Voting endpoints available at http://localhost:${PORT}/api/voting`
-  );
-=======
 // Admin routes (for API statistics and user management)
 app.use("/api/admin", adminRoutes);
 
@@ -137,6 +126,12 @@ app.listen(PORT, () => {
   console.log("   GET    /api/voting/spotify/search             - Search Spotify (protected)");
   console.log("   GET    /api/voting/spotify/tracks/:trackId    - Get Spotify track (public)");
   
+  console.log("\n🎵 Spotify (/api/spotify):");
+  console.log("   GET    /api/spotify/search                    - Search Spotify tracks (public)");
+  console.log("   GET    /api/spotify/tracks/:trackId           - Get Spotify track (public)");
+  console.log("   GET    /api/spotify/auth                      - Initiate OAuth (public)");
+  console.log("   GET    /api/spotify/callback                 - OAuth callback (public)");
+  
   console.log("\n👑 Admin (/api/admin):");
   console.log("   GET    /api/admin/stats/endpoints             - Get endpoint stats (admin)");
   console.log("   GET    /api/admin/stats/users                 - Get user consumption (admin)");
@@ -148,7 +143,6 @@ app.listen(PORT, () => {
   console.log("   GET    /                        - Server status (public)");
   
   console.log(`\n✅ API Tracking: Enabled (Unlimited calls per user)\n`);
->>>>>>> 2fcd9ca2ef23793cf2d025252393dff315c18a9d
 });
 
 module.exports = app;
