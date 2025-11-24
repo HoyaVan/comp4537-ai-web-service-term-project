@@ -76,6 +76,16 @@
                     
                     if (result.success) {
                         setMessage(authMessages.successPrefix + result.message, true);
+                        // Set cookie for server-side authentication check
+                        // The token is already stored in localStorage by authService
+                        const token = window.authService.getToken();
+                        if (token) {
+                          // Set a cookie that server can read (non-httpOnly so JS can also access it)
+                          // Cookie expires in 7 days, matches backend token expiry
+                          const expiryDate = new Date();
+                          expiryDate.setTime(expiryDate.getTime() + (7 * 24 * 60 * 60 * 1000));
+                          document.cookie = `token=${token}; expires=${expiryDate.toUTCString()}; path=/; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`;
+                        }
                         setTimeout(() => {
                             window.location.replace('/dashboard');
                         }, 1000);

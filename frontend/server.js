@@ -51,9 +51,23 @@ const routes = {
 };
 
 // Helper function to check authentication via backend
-async function checkAuth(cookies) {
+async function checkAuth(cookies, authHeader) {
   try {
-    const token = parseCookies(cookies).token;
+    let token = null;
+    
+    // Check Authorization header first (Bearer token)
+    if (authHeader) {
+      const parts = authHeader.split(" ");
+      if (parts.length === 2 && parts[0] === "Bearer") {
+        token = parts[1];
+      }
+    }
+    
+    // Fallback to cookie for backward compatibility
+    if (!token) {
+      token = parseCookies(cookies).token;
+    }
+    
     if (!token) {
       return { authenticated: false, user: null };
     }
@@ -68,7 +82,7 @@ async function checkAuth(cookies) {
         path: "/api/auth/profile",
         method: "GET",
         headers: {
-          "Cookie": `token=${token}`,
+          "Authorization": `Bearer ${token}`,
           "Accept": "application/json"
         }
       };
@@ -96,14 +110,21 @@ async function checkAuth(cookies) {
         });
       });
 
-      req.on("error", () => {
-        resolve({ authenticated: false, user: null });
+      req.on("error", (err) => {
+        // If there's a network error (backend unreachable), we need to signal this
+        resolve({ authenticated: false, user: null, error: "backend_unreachable", errorDetails: err.message });
+      });
+
+      // Set a timeout to detect if backend doesn't respond
+      req.setTimeout(5000, () => {
+        req.destroy();
+        resolve({ authenticated: false, user: null, error: "backend_timeout" });
       });
 
       req.end();
     });
   } catch (error) {
-    return { authenticated: false, user: null };
+    return { authenticated: false, user: null, error: "check_failed", errorDetails: error.message };
   }
 }
 
@@ -176,6 +197,7 @@ async function handleRoute(req, res, routePath) {
   }
 
   const cookies = req.headers.cookie || "";
+  const authHeader = req.headers.authorization || "";
   
   // Handle public routes
   if (route.public) {
@@ -183,8 +205,26 @@ async function handleRoute(req, res, routePath) {
     return;
   }
 
-  // Check authentication
-  const authResult = await checkAuth(cookies);
+  // Check authentication - server must validate before serving protected pages
+  const authResult = await checkAuth(cookies, authHeader);
+  
+  // Check if there was an error contacting the backend
+  if (authResult.error && route.requiresAuth) {
+    // Backend is unreachable or timed out - don't allow access to protected pages
+    res.writeHead(503, { "Content-Type": "text/html" });
+    res.end(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Service Unavailable</title></head>
+      <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+        <h1>Service Temporarily Unavailable</h1>
+        <p>The authentication service is currently unavailable. Please try again later.</p>
+        <p><a href="/login">Return to Login</a></p>
+      </body>
+      </html>
+    `);
+    return;
+  }
   
   // Handle routes that require guest (redirect if authenticated)
   if (route.requiresGuest) {
@@ -201,7 +241,10 @@ async function handleRoute(req, res, routePath) {
 
   // Handle routes that require authentication
   if (route.requiresAuth) {
+    // Server-side authentication is REQUIRED - don't serve page without valid auth
     if (!authResult.authenticated) {
+      // Clear any invalid token query parameter and redirect to login
+      const cleanPath = routePath.replace(/\?.*$/, '');
       res.writeHead(302, {
         "Location": "/login"
       });
@@ -212,7 +255,7 @@ async function handleRoute(req, res, routePath) {
     // Check if route requires specific role
     if (route.requiresRole) {
       if (!authResult.user || authResult.user.role !== route.requiresRole) {
-        // Serve 404 page instead of redirecting
+        // Serve 404 page instead of redirecting (security through obscurity)
         serveStaticFile("404.html", res, 404);
         return;
       }
