@@ -187,11 +187,13 @@ async function initLoggedInHeader(additionalLinks = []) {
     }
   }
   
-  // Add Spotify OAuth button right after user email (profile)
-  const userEmailSpan = document.getElementById('user-email');
-  const logoutBtnAfter = document.getElementById('logout-btn');
-  if (userEmailSpan && !document.getElementById('spotify-oauth-btn')) {
-    // Check if Spotify button already exists
+  // Add Spotify OAuth button next to Profile button
+  if (headerNav && !document.getElementById('spotify-oauth-btn')) {
+    // Find the Profile link element
+    const profileLink = Array.from(headerNav.querySelectorAll('a.header-btn')).find(
+      link => link.href.includes('/profile.html') || link.textContent.trim() === 'Profile'
+    );
+    
     const spotifyBtn = document.createElement('button');
     spotifyBtn.id = 'spotify-oauth-btn';
     spotifyBtn.type = 'button';
@@ -202,11 +204,23 @@ async function initLoggedInHeader(additionalLinks = []) {
       window.location.href = backendUrl + '/api/spotify/auth';
     });
     
-    // Insert after user email, before logout button
-    if (logoutBtnAfter) {
-      headerNav.insertBefore(spotifyBtn, logoutBtnAfter);
+    // Insert right after Profile link if it exists, otherwise before user email
+    if (profileLink) {
+      // Insert after the Profile link
+      if (profileLink.nextSibling) {
+        headerNav.insertBefore(spotifyBtn, profileLink.nextSibling);
+      } else {
+        // If Profile is the last element before user email, insert after it
+        profileLink.after(spotifyBtn);
+      }
     } else {
-      headerNav.appendChild(spotifyBtn);
+      // If no Profile link, insert before user email
+      const userEmailSpan = document.getElementById('user-email');
+      if (userEmailSpan) {
+        headerNav.insertBefore(spotifyBtn, userEmailSpan);
+      } else {
+        headerNav.appendChild(spotifyBtn);
+      }
     }
   }
 }
