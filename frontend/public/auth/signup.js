@@ -1,6 +1,6 @@
 import { authMessages } from '/messages/auth.js';
 
-const SIGNUP_PATH = '/api/auth/signup';
+const SIGNUP_PATH = '/api/v1/auth/signup';
 
 async function submitSignup(payload) {
   const res = await fetch(window.getBackendUrl() + SIGNUP_PATH, {
@@ -94,7 +94,7 @@ async function initSignup() {
         } else {
           // If no token in response, try auto-login with the credentials
           try {
-            const loginRes = await fetch(window.getBackendUrl() + '/api/auth/login', {
+            const loginRes = await fetch(window.getBackendUrl() + '/api/v1/auth/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
               mode: 'cors',

@@ -1,6 +1,6 @@
 import { authMessages } from '/messages/auth.js';
 
-const LOGIN_PATH = '/api/auth/login';
+const LOGIN_PATH = '/api/v1/auth/login';
 
 async function submitLogin(payload) {
   const res = await fetch(window.getBackendUrl() + LOGIN_PATH, {

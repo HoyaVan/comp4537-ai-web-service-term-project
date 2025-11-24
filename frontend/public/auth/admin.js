@@ -78,7 +78,7 @@ function getToken() {
 // Verify token with backend and get user info
 async function verifyTokenAndGetUser(token) {
   try {
-    const res = await fetch(window.getBackendUrl() + '/api/auth/profile', {
+    const res = await fetch(window.getBackendUrl() + '/api/v1/auth/profile', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -105,7 +105,7 @@ async function fetchAllUsers() {
   }
 
   try {
-    const res = await fetch(window.getBackendUrl() + '/api/auth/users', {
+    const res = await fetch(window.getBackendUrl() + '/api/v1/auth/users', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -310,7 +310,7 @@ async function loadEndpointStats() {
   container.innerHTML = `<p class="loading">${adminMessages.loadingEndpointStats}</p>`;
   
   try {
-    const { ok, data } = await apiRequest('/api/admin/stats/endpoints');
+    const { ok, data } = await apiRequest('/api/v1/admin/stats/endpoints');
     if (ok && data.success) {
       displayEndpointStats(data.data || []);
     } else {
@@ -405,7 +405,7 @@ async function loadConsumptionStats() {
   container.innerHTML = `<p class="loading">${adminMessages.loadingConsumptionStats}</p>`;
   
   try {
-    const { ok, data } = await apiRequest('/api/admin/stats/users');
+    const { ok, data } = await apiRequest('/api/v1/admin/stats/users');
     if (ok && data.success) {
       displayConsumptionStats(data.data || []);
     } else {

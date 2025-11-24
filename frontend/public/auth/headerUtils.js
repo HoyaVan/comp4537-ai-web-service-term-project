@@ -35,7 +35,7 @@ function getToken() {
 // Verify token with backend and get user info
 async function verifyTokenAndGetUser(token) {
   try {
-    const res = await fetch(window.getBackendUrl() + '/api/auth/profile', {
+    const res = await fetch(window.getBackendUrl() + '/api/v1/auth/profile', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

@@ -32,7 +32,7 @@ function saveParticipantToken(token) {
 // Load round data
 async function loadRound(roundId) {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/voting/rounds/${roundId}`, {
+    const response = await fetch(`${BACKEND_URL}/api/v1/voting/rounds/${roundId}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -51,7 +51,7 @@ async function loadRound(roundId) {
 // Get countdown info for round
 async function getRoundCountdown(roundId) {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/voting/rounds/${roundId}/countdown`, {
+    const response = await fetch(`${BACKEND_URL}/api/v1/voting/rounds/${roundId}/countdown`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -158,7 +158,7 @@ async function submitVote(roundId, songId) {
   const token = getParticipantToken();
   
   try {
-    const response = await fetch(`${BACKEND_URL}/api/voting/rounds/${roundId}/vote`, {
+    const response = await fetch(`${BACKEND_URL}/api/v1/voting/rounds/${roundId}/vote`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
