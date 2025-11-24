@@ -749,7 +749,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Load rounds
   await loadAndDisplayRounds();
-  await loadSpotifyToken();
+  // await loadSpotifyToken();
 
   // Setup health check button
   const healthCheckBtn = document.getElementById("health-check-btn");
