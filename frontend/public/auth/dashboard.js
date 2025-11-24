@@ -437,11 +437,16 @@ window.viewResults = async function (roundId) {
     return;
   }
 
-  // const spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
-  // if (!spotifyTrackInfo) {
-  //   alert(dashboardMessages.failedToLoadSpotifyTrack);
-  //   return;
-  // }
+  // Try to fetch Spotify track info (optional - embed works without it)
+  let spotifyTrackInfo = null;
+  if (results.winner && results.winner.spotifyId) {
+    try {
+      spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
+    } catch (error) {
+      console.warn("Failed to fetch Spotify track info:", error);
+      // Continue anyway - embed will still work with just the track ID
+    }
+  }
 
   const countdownData = await getRoundCountdown(roundId);
   const modal = document.getElementById("results-modal");
@@ -505,7 +510,7 @@ window.viewResults = async function (roundId) {
         <h4>Winner</h4>
         <p>"${results.winner.title}" by ${results.winner.artist}</p>
         ${
-          results.winner.spotifyId && spotifyTrackInfo
+          results.winner.spotifyId
             ? `
           <div style="margin: 16px 0;">
             <iframe 
@@ -521,13 +526,6 @@ window.viewResults = async function (roundId) {
           <a href="https://open.spotify.com/track/${results.winner.spotifyId}" target="_blank" class="btn btn-small" style="margin-top: 8px;">
             Open in Spotify
           </a>
-        `
-            : results.winner.spotifyId
-            ? `
-          <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
-            Spotify track ID available but preview not accessible. 
-            <a href="https://open.spotify.com/track/${results.winner.spotifyId}" target="_blank">Try opening in Spotify</a>
-          </p>
         `
             : `
           <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
