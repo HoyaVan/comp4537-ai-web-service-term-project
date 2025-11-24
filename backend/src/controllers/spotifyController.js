@@ -8,6 +8,13 @@ async function getSpotifyTrack(req, res) {
   try {
     const { trackId } = req.params;
 
+    if (!trackId) {
+      return res.status(400).json({
+        success: false,
+        message: "Track ID is required",
+      });
+    }
+
     const track = await spotifyService.getTrack(trackId);
 
     return res.status(200).json({
@@ -15,8 +22,11 @@ async function getSpotifyTrack(req, res) {
       data: track,
     });
   } catch (error) {
-    console.error("Error getting Spotify track:", error);
-    return res.status(400).json({
+    console.error("Error in getSpotifyTrack controller:", error.message);
+    // Return more detailed error information
+    const statusCode = error.message.includes("authentication") ? 401 : 
+                      error.message.includes("not found") ? 404 : 400;
+    return res.status(statusCode).json({
       success: false,
       message: error.message || spotifyMessages.errorFetchingSpotifyTrack,
     });

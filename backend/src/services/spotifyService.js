@@ -29,30 +29,46 @@ class SpotifyService {
    */
   async getValidAccessToken() {
     // Check if OAuth token exists and is still valid
-    if (this.accessToken && this.expiresIn) {
-      const expiresAt = this.tokenExpiresAt || (Date.now() + this.expiresIn * 1000);
-      if (Date.now() < expiresAt) {
+    if (this.accessToken) {
+      // If we have tokenExpiresAt, use it; otherwise calculate from expiresIn
+      let expiresAt = this.tokenExpiresAt;
+      if (!expiresAt && this.expiresIn) {
+        expiresAt = Date.now() + (this.expiresIn * 1000);
+        this.tokenExpiresAt = expiresAt;
+      }
+      
+      // If we have expiration info and token is still valid, use it
+      if (expiresAt && Date.now() < expiresAt) {
+        console.log("Using OAuth access token (expires in", Math.round((expiresAt - Date.now()) / 1000), "seconds)");
         return this.accessToken;
       }
-      // Token expired, try to refresh if we have refresh token
+      
+      // Token expired or no expiration info, try to refresh if we have refresh token
       if (this.refreshToken) {
         try {
+          console.log("OAuth token expired, attempting refresh...");
           const refreshed = await this.refreshAccessToken(this.refreshToken);
           this.accessToken = refreshed.access_token;
           this.expiresIn = refreshed.expires_in;
-          this.tokenExpiresAt = Date.now() + refreshed.expires_in * 1000;
+          this.tokenExpiresAt = Date.now() + (refreshed.expires_in * 1000);
           if (refreshed.refresh_token) {
             this.refreshToken = refreshed.refresh_token;
           }
+          console.log("OAuth token refreshed successfully");
           return this.accessToken;
         } catch (error) {
           console.error("Failed to refresh OAuth token, falling back to client credentials:", error.message);
           // Fall through to client credentials flow
         }
+      } else if (!expiresAt) {
+        // No expiration info and no refresh token, but we have a token - try using it
+        console.log("Using OAuth token without expiration info");
+        return this.accessToken;
       }
     }
 
     // Fall back to client credentials flow
+    console.log("Using client credentials token");
     return await this.getClientCredentialsToken();
   }
 
@@ -153,6 +169,8 @@ class SpotifyService {
     try {
       const token = await this.getValidAccessToken();
 
+      console.log(`Fetching Spotify track: ${trackId}`);
+
       const response = await axios.get(`${this.baseURL}/tracks/${trackId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -172,11 +190,25 @@ class SpotifyService {
         images: track.album.images,
       };
     } catch (error) {
+      const errorDetails = error.response?.data || error.message;
+      const statusCode = error.response?.status;
       console.error(
-        "Error getting Spotify track:",
-        error.response?.data || error.message
+        `Error getting Spotify track (${trackId}):`,
+        `Status: ${statusCode}`,
+        `Error: ${JSON.stringify(errorDetails)}`
       );
-      throw new Error(spotifyMessages.failedToGetSpotifyTrack);
+      
+      // Provide more detailed error message
+      let errorMessage = spotifyMessages.failedToGetSpotifyTrack;
+      if (error.response?.data?.error) {
+        errorMessage = `Spotify API error: ${error.response.data.error.message || error.response.data.error}`;
+      } else if (error.response?.status === 401) {
+        errorMessage = "Spotify authentication failed. Please reconnect to Spotify.";
+      } else if (error.response?.status === 404) {
+        errorMessage = "Track not found on Spotify.";
+      }
+      
+      throw new Error(errorMessage);
     }
   }
 
