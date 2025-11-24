@@ -698,6 +698,40 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
+  // Handle Spotify OAuth callback redirect
+  const urlParams = new URLSearchParams(window.location.search);
+  const spotifyStatus = urlParams.get('spotify');
+  if (spotifyStatus) {
+    // Clean up URL by removing query parameters
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+    
+    if (spotifyStatus === 'connected') {
+      // Show success message
+      if (createMessage) {
+        createMessage.textContent = '✅ Successfully connected to Spotify!';
+        createMessage.className = 'msg ok';
+        createMessage.style.display = 'block';
+        // Hide after 5 seconds
+        setTimeout(() => {
+          createMessage.style.display = 'none';
+        }, 5000);
+      }
+    } else if (spotifyStatus === 'error') {
+      // Show error message
+      const errorMsg = urlParams.get('message') || 'Failed to connect to Spotify';
+      if (createMessage) {
+        createMessage.textContent = `❌ ${decodeURIComponent(errorMsg)}`;
+        createMessage.className = 'msg err';
+        createMessage.style.display = 'block';
+        // Hide after 7 seconds
+        setTimeout(() => {
+          createMessage.style.display = 'none';
+        }, 7000);
+      }
+    }
+  }
+
   // Load user info
   const user = await loadUserInfo();
 
