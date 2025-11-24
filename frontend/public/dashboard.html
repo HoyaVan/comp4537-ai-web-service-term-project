@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="/styles/header.css">
     <link rel="stylesheet" href="/styles/dashboard.css">
     <script src="/config.js"></script>
+    <script src="/js/authService.js"></script>
+    <script src="/js/app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" onload="window.QRCodeLoaded = true"></script>
     <link rel="shortcut icon" href="#">
 </head>
@@ -101,6 +103,10 @@
 
     <script src="/auth/headerUtils.js"></script>
     <script type="module" src="/auth/dashboard.js"></script>
+    <script>
+        // Mark as initialized to prevent double initialization
+        window.__dashboardInitialized = true;
+    </script>
 </body>
 
 </html>

@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Frontend for DJ Clownfish AI Voting App",
   "scripts": {
-    "dev": "npx http-server public -p 8080 -c-1",
-    "start": "npx http-server public -p 8080 -c-1"
+    "dev": "node server.js",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",

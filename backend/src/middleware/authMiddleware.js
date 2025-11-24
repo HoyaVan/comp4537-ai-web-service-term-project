@@ -3,11 +3,17 @@ const commonMessages = require("../messages/common");
 
 /**
  * Middleware to verify JWT token
+ * Checks both httpOnly cookie and Authorization header for backward compatibility
  */
 async function authenticateToken(req, res, next) {
-  // Get token from Authorization header
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+  // Try to get token from httpOnly cookie first
+  let token = req.cookies?.token;
+  
+  // Fallback to Authorization header for backward compatibility
+  if (!token) {
+    const authHeader = req.headers["authorization"];
+    token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+  }
 
   if (!token) {
     return res.status(401).json({

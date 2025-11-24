@@ -114,6 +114,7 @@ router.post("/signup", authController.signup);
  *               $ref: '#/components/schemas/Error'
  */
 router.post("/login", authController.login);
+router.post("/logout", authController.logout);
 
 /**
  * @swagger

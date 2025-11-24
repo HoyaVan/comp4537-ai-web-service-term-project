@@ -2,24 +2,12 @@ import { dashboardMessages } from '/messages/dashboard.js';
 
 const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
-// Check if user is authenticated
-function isAuthenticated() {
-  try {
-    const token = localStorage.getItem("token");
-
-    return !!token;
-  } catch (_) {
-    return false;
+// Check if user is authenticated using authService
+async function isAuthenticated() {
+  if (window.authService) {
+    return await window.authService.isAuthenticated();
   }
-}
-
-// Get token from localStorage
-function getToken() {
-  try {
-    return localStorage.getItem("token");
-  } catch (_) {
-    return null;
-  }
+  return false;
 }
 
 // Display API limit warning
@@ -43,25 +31,37 @@ function showApiLimitWarning(message) {
   }, 5000);
 }
 
-// Make authenticated API request
+// Make authenticated API request using authService
 async function apiRequest(url, options = {}) {
-  const token = getToken();
+  // Use authService if available, otherwise fallback to direct fetch
+  if (window.authService) {
+    const response = await window.authService.apiRequest(url, options);
+    
+    // Check for API limit warning headers
+    const limitExceeded = response.headers.get('X-API-Limit-Exceeded');
+    const limitMessage = response.headers.get('X-API-Limit-Message');
+    
+    if (limitExceeded === 'true' && limitMessage) {
+      // Display warning but continue with the request
+      showApiLimitWarning(limitMessage);
+    }
 
+    const data = await response.json();
+    return { ok: response.ok, status: response.status, data };
+  }
+
+  // Fallback for direct fetch
   const headers = {
     "Content-Type": "application/json",
     Accept: "application/json",
     ...(options.headers || {}),
   };
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
   const response = await fetch(BACKEND_URL + url, {
     ...options,
     headers,
     mode: "cors",
-    credentials: "include",
+    credentials: "include", // Always include cookies
   });
 
   // Check for API limit warning headers
@@ -74,7 +74,6 @@ async function apiRequest(url, options = {}) {
   }
 
   const data = await response.json();
-
   return { ok: response.ok, status: response.status, data };
 }
 
@@ -313,11 +312,11 @@ async function getSpotifyTrackInfo(trackId) {
     return null;
   }
 
-  const { ok, data } = await apiRequest(`/api/v1/spotify/tracks/${trackId}`);
-  if (ok && data.success) {
-    return data.data;
-  }
-  return null;
+  // const { ok, data } = await apiRequest(`/api/spotify/tracks/${trackId}`);
+  // if (ok && data.success) {
+  //   return data.data;
+  // }
+  // return null;
 }
 
 // Get countdown info for round
@@ -437,10 +436,15 @@ window.viewResults = async function (roundId) {
     return;
   }
 
-  const spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
-  if (!spotifyTrackInfo) {
-    alert(dashboardMessages.failedToLoadSpotifyTrack);
-    return;
+  // Try to fetch Spotify track info (optional - embed works without it)
+  let spotifyTrackInfo = null;
+  if (results.winner && results.winner.spotifyId) {
+    try {
+      spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
+    } catch (error) {
+      console.warn("Failed to fetch Spotify track info:", error);
+      // Continue anyway - embed will still work with just the track ID
+    }
   }
 
   const countdownData = await getRoundCountdown(roundId);
@@ -505,7 +509,7 @@ window.viewResults = async function (roundId) {
         <h4>Winner</h4>
         <p>"${results.winner.title}" by ${results.winner.artist}</p>
         ${
-          results.winner.spotifyId && spotifyTrackInfo
+          results.winner.spotifyId
             ? `
           <div style="margin: 16px 0;">
             <iframe 
@@ -521,13 +525,6 @@ window.viewResults = async function (roundId) {
           <a href="https://open.spotify.com/track/${results.winner.spotifyId}" target="_blank" class="btn btn-small" style="margin-top: 8px;">
             Open in Spotify
           </a>
-        `
-            : results.winner.spotifyId
-            ? `
-          <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
-            Spotify track ID available but preview not accessible. 
-            <a href="https://open.spotify.com/track/${results.winner.spotifyId}" target="_blank">Try opening in Spotify</a>
-          </p>
         `
             : `
           <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
@@ -683,8 +680,8 @@ async function loadAndDisplayRounds() {
   displayRounds(rounds);
 }
 
-// Initialize
-document.addEventListener("DOMContentLoaded", async () => {
+// Initialize dashboard
+async function initDashboard() {
   const backend = document.getElementById("backend-url");
   const createForm = document.getElementById("create-round-form");
   const createMessage = document.getElementById("create-message");
@@ -693,9 +690,44 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (backend) backend.textContent = window.getBackendUrl();
 
   // Check authentication
-  if (!isAuthenticated()) {
-    window.location.href = "/index.html";
+  const auth = await isAuthenticated();
+  if (!auth) {
+    window.location.href = "/login";
     return;
+  }
+
+  // Handle Spotify OAuth callback redirect
+  const urlParams = new URLSearchParams(window.location.search);
+  const spotifyStatus = urlParams.get('spotify');
+  if (spotifyStatus) {
+    // Clean up URL by removing query parameters
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+    
+    if (spotifyStatus === 'connected') {
+      // Show success message
+      if (createMessage) {
+        createMessage.textContent = '✅ Successfully connected to Spotify!';
+        createMessage.className = 'msg ok';
+        createMessage.style.display = 'block';
+        // Hide after 5 seconds
+        setTimeout(() => {
+          createMessage.style.display = 'none';
+        }, 5000);
+      }
+    } else if (spotifyStatus === 'error') {
+      // Show error message
+      const errorMsg = urlParams.get('message') || 'Failed to connect to Spotify';
+      if (createMessage) {
+        createMessage.textContent = `❌ ${decodeURIComponent(errorMsg)}`;
+        createMessage.className = 'msg err';
+        createMessage.style.display = 'block';
+        // Hide after 7 seconds
+        setTimeout(() => {
+          createMessage.style.display = 'none';
+        }, 7000);
+      }
+    }
   }
 
   // Load user info
@@ -704,12 +736,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Initialize header with navigation links
   if (typeof initLoggedInHeader === 'function') {
     const additionalLinks = [
-      { href: '/profile.html', text: 'Profile' }
+      { href: '/profile', text: 'Profile' }
     ];
     
     // Only add Admin link if user is an admin
     if (user && user.role === 'admin') {
-      additionalLinks.push({ href: '/admin.html', text: 'Admin' });
+      additionalLinks.push({ href: '/admin', text: 'Admin' });
     }
     
     await initLoggedInHeader(additionalLinks);
@@ -717,6 +749,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Load rounds
   await loadAndDisplayRounds();
+  // await loadSpotifyToken();
 
   // Setup health check button
   const healthCheckBtn = document.getElementById("health-check-btn");
@@ -856,4 +889,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       resultsModal.style.display = "none";
     }
   });
-});
+}
+
+// Fallback: Initialize if DOM is already loaded and not called from router
+if (document.readyState === 'loading') {
+  document.addEventListener("DOMContentLoaded", initDashboard);
+} else if (!window.__dashboardInitialized) {
+  // Only auto-init if not using router
+  setTimeout(() => {
+    if (!window.__dashboardInitialized) {
+      initDashboard();
+    }
+  }, 100);
+}
