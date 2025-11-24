@@ -54,6 +54,10 @@ async function login(req, res) {
     // Login user
     const result = await authService.login(email, password);
 
+    console.log('[authController] Login successful for:', email);
+    console.log('[authController] Token generated:', result.token ? 'Yes' : 'No');
+    console.log('[authController] User ID:', result.user?.id);
+
     return res.status(200).json({
       success: true,
       message: authMessages.loginSuccessful,
@@ -63,6 +67,7 @@ async function login(req, res) {
       },
     });
   } catch (error) {
+    console.log('[authController] Login failed:', error.message);
     return res.status(401).json({
       success: false,
       message: error.message || authMessages.invalidCredentials,
@@ -78,6 +83,7 @@ async function getProfile(req, res) {
   try {
     // User is attached to req by authMiddleware
     const user = req.user;
+    console.log('[authController] getProfile called for user:', user?.email);
     
     const responseData = { ...user };
     
@@ -99,11 +105,13 @@ async function getProfile(req, res) {
       endpointBreakdown: endpointStats, // Per-endpoint breakdown
     };
 
+    console.log('[authController] Profile response prepared for:', user?.email);
     return res.status(200).json({
       success: true,
       data: responseData,
     });
   } catch (error) {
+    console.error('[authController] Error fetching profile:', error);
     return res.status(500).json({
       success: false,
       message: authMessages.errorFetchingProfile,

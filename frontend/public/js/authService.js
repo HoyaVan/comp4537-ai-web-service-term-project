@@ -6,6 +6,22 @@ class AuthService {
   constructor() {
     this.currentUser = null;
     this.backendUrl = window.getBackendUrl();
+    // Ensure we can read from localStorage immediately
+    this._token = null;
+    this._loadTokenFromStorage();
+  }
+
+  /**
+   * Load token from localStorage
+   * @private
+   */
+  _loadTokenFromStorage() {
+    try {
+      this._token = localStorage.getItem('token');
+    } catch (err) {
+      console.error('Failed to read token from localStorage:', err);
+      this._token = null;
+    }
   }
 
   /**
@@ -13,7 +29,15 @@ class AuthService {
    * @returns {string|null}
    */
   getToken() {
-    return localStorage.getItem('token');
+    // Always read fresh from localStorage to ensure we have the latest value
+    try {
+      const token = localStorage.getItem('token');
+      this._token = token;
+      return token;
+    } catch (err) {
+      console.error('Failed to read token from localStorage:', err);
+      return this._token;
+    }
   }
 
   /**
@@ -21,10 +45,20 @@ class AuthService {
    * @param {string} token
    */
   setToken(token) {
-    if (token) {
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
+    try {
+      if (token) {
+        localStorage.setItem('token', token);
+        this._token = token;
+        console.log('[authService] Token stored successfully');
+      } else {
+        localStorage.removeItem('token');
+        this._token = null;
+        console.log('[authService] Token cleared');
+      }
+    } catch (err) {
+      console.error('[authService] Failed to store token:', err);
+      // Still update internal state even if localStorage fails
+      this._token = token || null;
     }
   }
 
@@ -36,17 +70,21 @@ class AuthService {
     // If we're in the process of logging out, return false immediately
     const isLoggingOut = window.__isLoggingOut || sessionStorage.getItem('__isLoggingOut') === 'true';
     if (isLoggingOut) {
+      console.log('[authService] Logging out, skipping auth check');
       this.currentUser = null;
       return false;
     }
     
     const token = this.getToken();
+    console.log('[authService] isAuthenticated check - token present:', !!token);
     if (!token) {
+      console.log('[authService] No token found');
       this.currentUser = null;
       return false;
     }
 
     try {
+      console.log('[authService] Verifying token with backend...');
       const response = await fetch(`${this.backendUrl}/api/v1/auth/profile`, {
         method: 'GET',
         headers: {
@@ -57,30 +95,41 @@ class AuthService {
         mode: 'cors',
       });
 
+      console.log('[authService] Profile response status:', response.status);
+
       if (response.ok) {
         // Check if response is JSON before parsing
-      const contentType = response.headers.get('content-type');
-      let data;
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        throw new Error(`Expected JSON but got ${contentType || 'unknown type'}: ${text.substring(0, 100)}`);
-      }
+        const contentType = response.headers.get('content-type');
+        let data;
+        if (contentType && contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          const text = await response.text();
+          throw new Error(`Expected JSON but got ${contentType || 'unknown type'}: ${text.substring(0, 100)}`);
+        }
         if (data.success && data.data) {
           this.currentUser = data.data;
+          console.log('[authService] Authentication verified, user:', data.data.email);
           return true;
+        } else {
+          console.log('[authService] Profile response not successful:', data);
         }
       }
       
       // If request failed, token might be invalid - clear it
       if (response.status === 401 || response.status === 403) {
+        console.log('[authService] Token invalid (401/403), clearing token');
         this.setToken(null);
+      } else {
+        console.log('[authService] Profile check failed with status:', response.status);
       }
       
       this.currentUser = null;
       return false;
     } catch (error) {
+      console.error('[authService] Error checking authentication:', error);
+      // Don't clear token on network errors - might be temporary
+      // Only clear token if it's definitely invalid
       this.currentUser = null;
       return false;
     }
@@ -127,8 +176,17 @@ class AuthService {
 
       if (response.ok && data.success) {
         const token = data.data?.token;
+        console.log('[authService] Login response - token present:', !!token);
         if (token) {
           this.setToken(token);
+          // Verify it was stored
+          const storedToken = this.getToken();
+          console.log('[authService] Token stored and verified:', !!storedToken);
+          if (!storedToken) {
+            console.error('[authService] Token storage verification failed!');
+          }
+        } else {
+          console.error('[authService] No token in login response:', data);
         }
         this.currentUser = data.data.user;
         return {

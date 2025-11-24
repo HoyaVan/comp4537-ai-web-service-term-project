@@ -21,9 +21,10 @@ async function isAuthenticated() {
 export async function requireAuth(redirectPath = '/login') {
   // Wait for authService to be available
   if (!window.authService) {
+    console.log('[authGuard] Waiting for authService...');
     await new Promise(resolve => setTimeout(resolve, 100));
     if (!window.authService) {
-      console.error('authService not available');
+      console.error('[authGuard] authService not available after waiting');
       window.location.replace(redirectPath);
       return false;
     }
@@ -31,20 +32,23 @@ export async function requireAuth(redirectPath = '/login') {
 
   // Check if token exists
   const token = window.authService.getToken();
+  console.log('[authGuard] Token check:', token ? 'Token found' : 'No token');
   if (!token) {
-    console.log('No token found, redirecting to login');
+    console.log('[authGuard] No token found, redirecting to login');
     window.location.replace(redirectPath);
     return false;
   }
 
   // Verify authentication with backend
+  console.log('[authGuard] Verifying authentication with backend...');
   const auth = await isAuthenticated();
   if (!auth) {
-    console.log('Not authenticated, redirecting to login');
+    console.log('[authGuard] Not authenticated, redirecting to login');
     window.location.replace(redirectPath);
     return false;
   }
 
+  console.log('[authGuard] Authentication successful');
   return true;
 }
 

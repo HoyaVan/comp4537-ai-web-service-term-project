@@ -60,15 +60,25 @@ async function initLogin() {
         
         // Verify token was stored
         const token = window.authService.getToken();
+        console.log('[login] Token after login:', token ? 'Token stored' : 'No token');
         if (!token) {
-          console.error('Token not stored after login');
+          console.error('[login] Token not stored after login');
           setMessage(msg, 'Login successful but token not saved. Please try again.', false);
           btn.disabled = false;
           btn.textContent = authMessages.login;
           return;
         }
         
+        // Double-check token is in localStorage
+        const localStorageToken = localStorage.getItem('token');
+        console.log('[login] Token in localStorage:', localStorageToken ? 'Found' : 'Not found');
+        if (!localStorageToken) {
+          console.error('[login] Token not in localStorage, storing now...');
+          window.authService.setToken(token);
+        }
+        
         // Redirect to dashboard
+        console.log('[login] Redirecting to dashboard...');
         setTimeout(() => {
           window.location.href = '/dashboard';
         }, 500);

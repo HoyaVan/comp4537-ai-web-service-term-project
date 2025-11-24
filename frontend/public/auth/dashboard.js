@@ -646,11 +646,51 @@ async function initDashboard() {
     return;
   }
 
-  // Require authentication - will redirect if not authenticated
-  const isAuth = await requireAuth();
-  if (!isAuth) {
+  // Wait for authService to be ready
+  console.log('[Dashboard] Waiting for authService...');
+  if (!window.authService) {
+    // Wait up to 2 seconds for authService
+    for (let i = 0; i < 40; i++) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      if (window.authService) {
+        console.log('[Dashboard] authService ready');
+        break;
+      }
+    }
+  }
+
+  if (!window.authService) {
+    console.error('[Dashboard] authService not available');
+    window.location.replace('/login');
     return;
   }
+
+  // Check token directly before requiring auth
+  const token = window.authService.getToken();
+  console.log('[Dashboard] Token check before requireAuth:', token ? 'Token found' : 'No token');
+  if (!token) {
+    // Also check localStorage directly
+    const localStorageToken = localStorage.getItem('token');
+    console.log('[Dashboard] Direct localStorage check:', localStorageToken ? 'Token found' : 'No token');
+    if (localStorageToken && window.authService) {
+      // Token exists in localStorage but not in authService - sync it
+      console.log('[Dashboard] Syncing token from localStorage to authService');
+      window.authService.setToken(localStorageToken);
+    } else {
+      console.log('[Dashboard] No token found, redirecting to login');
+      window.location.replace('/login');
+      return;
+    }
+  }
+
+  // Require authentication - will redirect if not authenticated
+  console.log('[Dashboard] Calling requireAuth...');
+  const isAuth = await requireAuth();
+  if (!isAuth) {
+    console.log('[Dashboard] requireAuth returned false');
+    return;
+  }
+  console.log('[Dashboard] Authentication successful, continuing initialization');
 
   // Handle Spotify OAuth callback redirect
   const urlParams = new URLSearchParams(window.location.search);
