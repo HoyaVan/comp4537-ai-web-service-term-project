@@ -233,8 +233,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Initialize header with Dashboard link
-  await initLoggedInHeader([{ href: '/dashboard.html', text: 'Dashboard' }]);
+  // Initialize header with navigation links
+  await initLoggedInHeader([
+    { href: '/dashboard.html', text: 'Dashboard' },
+    { href: '/profile.html', text: 'Profile' }
+  ]);
 
   // Setup refresh button (refresh all)
   if (refreshBtn) {
@@ -392,7 +395,7 @@ function displayConsumptionStats(stats) {
   }
   
   const table = document.createElement('table');
-  table.className = 'stats-table';
+  table.className = 'stats-table consumption-table';
   
   const thead = document.createElement('thead');
   thead.innerHTML = `

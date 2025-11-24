@@ -1,5 +1,5 @@
 const authService = require("../services/authService");
-const { getUserApiCount } = require("../middleware/apiTrackingMiddleware");
+const { getUserApiCount, getUserEndpointStats } = require("../middleware/apiTrackingMiddleware");
 
 /**
  * Sign up controller
@@ -65,24 +65,25 @@ async function login(req, res) {
 
 /**
  * Get current user profile
- * API consumption stats are only included for admin users
+ * API consumption stats are included for all authenticated users
  */
 async function getProfile(req, res) {
   try {
     // User is attached to req by authMiddleware
     const user = req.user;
     
-    // Only include API consumption for admin users
     const responseData = { ...user };
     
-    if (user.role === 'admin') {
-      const apiCallsUsed = getUserApiCount(user.id);
-      responseData.apiConsumption = {
-        callsUsed: apiCallsUsed,
-        callsLimit: 'unlimited',
-        hasUnlimitedCalls: true,
-      };
-    }
+    // Include API consumption for all users
+    const apiCallsUsed = getUserApiCount(user.id);
+    const endpointStats = getUserEndpointStats(user.id);
+    
+    responseData.apiConsumption = {
+      callsUsed: apiCallsUsed,
+      callsLimit: 'unlimited',
+      hasUnlimitedCalls: true,
+      endpointBreakdown: endpointStats, // Per-endpoint breakdown
+    };
 
     return res.status(200).json({
       success: true,

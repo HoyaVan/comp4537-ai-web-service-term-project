@@ -152,6 +152,31 @@ const getUserConsumptionStats = () => {
   return sortedStats;
 };
 
+/**
+ * Get per-endpoint API consumption for a specific user
+ * @param {string} userId - User ID
+ * @returns {Array} Array of endpoint stats for the user
+ */
+const getUserEndpointStats = (userId) => {
+  const userEndpointStats = [];
+  
+  for (const [endpointKey, userStats] of endpointUserStats) {
+    const userCount = userStats.get(userId);
+    if (userCount && userCount > 0) {
+      const [method, endpoint] = endpointKey.split(' ', 2);
+      userEndpointStats.push({
+        method,
+        endpoint,
+        requests: userCount,
+      });
+    }
+  }
+  
+  // Sort by request count descending
+  userEndpointStats.sort((a, b) => b.requests - a.requests);
+  return userEndpointStats;
+};
+
 
 /**
  * Get all API call logs (admin only)
@@ -207,6 +232,7 @@ module.exports = {
   getUserApiCount,
   getEndpointStats,
   getUserConsumptionStats,
+  getUserEndpointStats,
   getAllApiLogs,
   resetUserApiCount,
 };

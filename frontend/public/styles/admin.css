@@ -240,7 +240,8 @@ h1 {
   letter-spacing: 0.5px;
 }
 
-.stats-table th:nth-child(3) {
+/* Endpoint stats table - Total Requests is 3rd column */
+.stats-table:not(.consumption-table) th:nth-child(3) {
   text-align: right; /* Align "Total Requests" header to right */
 }
 
@@ -313,6 +314,14 @@ h1 {
   text-align: left;
   word-break: break-all; /* Prevent overflow */
   max-width: 200px; /* Limit width for better alignment */
+}
+
+/* Consumption table - User ID is 3rd column, align header with cell */
+.consumption-table th:nth-child(3) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 0; /* Remove letter spacing for monospace alignment */
+  text-align: left; /* Match cell alignment */
 }
 
 .users-cell {

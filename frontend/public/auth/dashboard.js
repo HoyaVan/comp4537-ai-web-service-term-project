@@ -51,9 +51,6 @@ async function loadUserInfo() {
     const userEmail = document.getElementById('user-email');
     if (userEmail) userEmail.textContent = user.email || 'User';
     
-    // API consumption is only shown to admin users in the admin panel
-    // Regular users don't see this information
-    
     return user; // Return user object for role checking
   }
   return null;
@@ -392,9 +389,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load user info
   const user = await loadUserInfo();
 
-  // Initialize header with Admin link only for admin users
+  // Initialize header with navigation links
   if (typeof initLoggedInHeader === 'function') {
-    const additionalLinks = [];
+    const additionalLinks = [
+      { href: '/profile.html', text: 'Profile' }
+    ];
     
     // Only add Admin link if user is an admin
     if (user && user.role === 'admin') {
