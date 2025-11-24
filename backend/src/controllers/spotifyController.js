@@ -1,5 +1,6 @@
 const spotifyService = require("../services/spotifyService");
 const spotifyMessages = require("../messages/spotify");
+const authService = require("../services/authService");
 
 /**
  * Get Spotify track info
@@ -64,14 +65,27 @@ async function searchSpotifyTracks(req, res) {
 
 /**
  * Initiate Spotify OAuth flow - redirect to Spotify authorization
+ * Requires authentication - user must be logged in
  */
 async function initiateOAuth(req, res) {
   try {
-    const { state, scopes } = req.query;
+    // Get user ID from authenticated request
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required to connect Spotify",
+      });
+    }
+
+    const { scopes } = req.query;
     const scopesArray = scopes ? scopes.split(",") : undefined;
 
+    // Include user ID in state parameter so we can identify the user in callback
+    const state = userId;
+
     const authURL = spotifyService.getAuthorizationURL(
-      state || null,
+      state,
       scopesArray
     );
 
@@ -111,20 +125,28 @@ async function handleOAuthCallback(req, res) {
       return res.redirect(`${redirectBase}?spotify=error&message=${errorMessage}`);
     }
 
+    // Extract user ID from state parameter
+    const userId = state;
+    if (!userId) {
+      const errorMessage = encodeURIComponent("User ID not found in OAuth state");
+      return res.redirect(`${redirectBase}?spotify=error&message=${errorMessage}`);
+    }
+
     // Exchange authorization code for access token
     const tokenData = await spotifyService.exchangeCodeForToken(code);
 
-    // Store tokens in service (in-memory for now)
-    spotifyService.accessToken = tokenData.access_token;
-    spotifyService.refreshToken = tokenData.refresh_token;
-    spotifyService.expiresIn = tokenData.expires_in;
-    spotifyService.tokenType = tokenData.token_type;
-    spotifyService.scope = tokenData.scope;
-    spotifyService.state = state || null;
     // Calculate expiration time
-    spotifyService.tokenExpiresAt = Date.now() + (tokenData.expires_in * 1000);
+    const expiresAt = Date.now() + (tokenData.expires_in * 1000);
 
-    console.log("Spotify OAuth successful - tokens stored");
+    // Store tokens in database for this specific user
+    await authService.updateUserSpotifyTokens(
+      userId,
+      tokenData.access_token,
+      tokenData.refresh_token,
+      expiresAt
+    );
+
+    console.log(`Spotify OAuth successful - tokens stored for user ${userId}`);
 
     // Redirect to frontend with success indicator
     return res.redirect(`${redirectBase}?spotify=connected`);
@@ -139,26 +161,54 @@ async function handleOAuthCallback(req, res) {
 }
 
 
-async function setSpotifyToken(req, res) {
+/**
+ * Get current user's Spotify token information
+ * Requires authentication
+ */
+async function getSpotifyToken(req, res) {
   try {
-    
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    // Get user's Spotify tokens from database
+    const tokens = await authService.getUserSpotifyTokens(userId);
+
+    if (!tokens) {
+      return res.status(200).json({
+        success: true,
+        message: "User not connected to Spotify",
+        data: {
+          connected: false,
+        },
+      });
+    }
+
+    // Check if token is expired
+    const isExpired = tokens.expiresAt && Date.now() >= tokens.expiresAt;
+    const expiresIn = tokens.expiresAt ? Math.max(0, Math.floor((tokens.expiresAt - Date.now()) / 1000)) : null;
+
     return res.status(200).json({
       success: true,
       message: "Spotify token retrieved successfully",
       data: {
-        access_token: spotifyService.accessToken,
-        refresh_token: spotifyService.refreshToken,
-        expires_in: spotifyService.expiresIn,
-        token_type: spotifyService.tokenType,
-        scope: spotifyService.scope,
-        state: spotifyService.state,
+        connected: true,
+        access_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken,
+        expires_in: expiresIn,
+        expires_at: tokens.expiresAt,
+        is_expired: isExpired,
       },
     });
   } catch (error) {
-    console.error("Error setting Spotify token:", error);
+    console.error("Error getting Spotify token:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Error setting Spotify token",
+      message: error.message || "Error getting Spotify token",
     });
   }
 }
@@ -167,5 +217,5 @@ module.exports = {
   searchSpotifyTracks,
   initiateOAuth,
   handleOAuthCallback,
-  setSpotifyToken,
+  getSpotifyToken,
 };

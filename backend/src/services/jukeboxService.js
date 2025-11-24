@@ -480,11 +480,13 @@ async function getOrCreateJukeboxPlaylist(ownerId, roundCriteria = null) {
           accessToken = refreshed.access_token;
           
           // Update tokens in database
+          // Use new refresh token if Spotify provided one, otherwise keep existing
+          const newRefreshToken = refreshed.refresh_token || tokens.refreshToken;
           const newExpiresAt = Date.now() + (refreshed.expires_in * 1000);
           await authService.updateUserSpotifyTokens(
             ownerId,
             refreshed.access_token,
-            tokens.refreshToken, // Keep existing refresh token
+            newRefreshToken,
             newExpiresAt
           );
         } catch (error) {
@@ -575,11 +577,13 @@ async function addWinnerToQueue(ownerId, winnerSong) {
         try {
           const refreshed = await spotifyService.refreshAccessToken(tokens.refreshToken);
           accessToken = refreshed.access_token;
+          // Use new refresh token if Spotify provided one, otherwise keep existing
+          const newRefreshToken = refreshed.refresh_token || tokens.refreshToken;
           const newExpiresAt = Date.now() + (refreshed.expires_in * 1000);
           await authService.updateUserSpotifyTokens(
             ownerId,
             refreshed.access_token,
-            tokens.refreshToken,
+            newRefreshToken,
             newExpiresAt
           );
         } catch (error) {
@@ -661,11 +665,13 @@ async function addWinnerToPlaylist(ownerId, winnerSong, roundCriteria = null) {
         try {
           const refreshed = await spotifyService.refreshAccessToken(tokens.refreshToken);
           accessToken = refreshed.access_token;
+          // Use new refresh token if Spotify provided one, otherwise keep existing
+          const newRefreshToken = refreshed.refresh_token || tokens.refreshToken;
           const newExpiresAt = Date.now() + (refreshed.expires_in * 1000);
           await authService.updateUserSpotifyTokens(
             ownerId,
             refreshed.access_token,
-            tokens.refreshToken,
+            newRefreshToken,
             newExpiresAt
           );
         } catch (error) {

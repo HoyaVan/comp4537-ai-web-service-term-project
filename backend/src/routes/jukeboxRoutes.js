@@ -182,7 +182,7 @@ router.post("/resume", authenticateToken, jukeboxController.resumeJukebox);
 
 /**
  * @swagger
- * /api/v1/jukebox/{ownerId}/voting-round:
+ * /api/v1/jukebox/owners/{ownerId}/voting-round:
  *   get:
  *     summary: Get voting round for jukebox (public endpoint)
  *     tags: [Jukebox]
@@ -220,11 +220,11 @@ router.post("/resume", authenticateToken, jukeboxController.resumeJukebox);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/:ownerId/voting-round", jukeboxController.getJukeboxVotingRound);
+router.get("/owners/:ownerId/voting-round", jukeboxController.getJukeboxVotingRound);
 
 /**
  * @swagger
- * /api/v1/jukebox/{ownerId}/now-playing:
+ * /api/v1/jukebox/owners/{ownerId}/now-playing:
  *   get:
  *     summary: Get currently playing song (public endpoint)
  *     tags: [Jukebox]
@@ -272,6 +272,6 @@ router.get("/:ownerId/voting-round", jukeboxController.getJukeboxVotingRound);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/:ownerId/now-playing", jukeboxController.getJukeboxNowPlaying);
+router.get("/owners/:ownerId/now-playing", jukeboxController.getJukeboxNowPlaying);
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const spotifyController = require("../controllers/spotifyController");
+const { authenticateToken } = require("../middleware/authMiddleware");
 
 /**
  * @swagger
@@ -85,10 +86,12 @@ router.get("/tracks/:trackId", spotifyController.getSpotifyTrack);
 
 /**
  * @swagger
- * /api/v1/spotify/auth:
+ * /api/v1/spotify/oauth/authorize:
  *   get:
  *     summary: Initiate Spotify OAuth flow
  *     tags: [Spotify]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: state
@@ -103,11 +106,11 @@ router.get("/tracks/:trackId", spotifyController.getSpotifyTrack);
  *       302:
  *         description: Redirects to Spotify authorization page
  */
-router.get("/auth", spotifyController.initiateOAuth);
+router.get("/oauth/authorize", authenticateToken, spotifyController.initiateOAuth);
 
 /**
  * @swagger
- * /api/v1/spotify/callback:
+ * /api/v1/spotify/oauth/callback:
  *   get:
  *     summary: Handle Spotify OAuth callback
  *     tags: [Spotify]
@@ -151,14 +154,16 @@ router.get("/auth", spotifyController.initiateOAuth);
  *                     scope:
  *                       type: string
  */
-router.get("/callback", spotifyController.handleOAuthCallback);
+router.get("/oauth/callback", spotifyController.handleOAuthCallback);
 
 /**
  * @swagger
- * /api/v1/spotify/token:
+ * /api/v1/spotify/me/token:
  *   get:
- *     summary: Get current Spotify token information
+ *     summary: Get current user's Spotify token information
  *     tags: [Spotify]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Token information retrieved successfully
@@ -185,6 +190,6 @@ router.get("/callback", spotifyController.handleOAuthCallback);
  *                     scope:
  *                       type: string
  */
-router.get("/token", spotifyController.setSpotifyToken);
+router.get("/me/token", authenticateToken, spotifyController.getSpotifyToken);
 
 module.exports = router;
