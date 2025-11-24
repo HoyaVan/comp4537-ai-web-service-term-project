@@ -205,16 +205,15 @@ const trackApiCall = (method, endpoint, userId, statusCode, responseTime, userRo
     });
     
     // Track which users called this endpoint (for per-user endpoint stats)
-    // Count unique endpoints per user, not total requests
+    // Count total requests per endpoint per user
     if (userId && userId !== 'anonymous') {
       if (!endpointUserStats.has(endpointKey)) {
         endpointUserStats.set(endpointKey, new Map());
       }
       const userStats = endpointUserStats.get(endpointKey);
-      // Only count once per endpoint per user (unique endpoint count)
-      if (!userStats.has(userId)) {
-        userStats.set(userId, 1);
-      }
+      // Increment count for each request to this endpoint by this user
+      const currentUserCount = userStats.get(userId) || 0;
+      userStats.set(userId, currentUserCount + 1);
     }
   }
   
@@ -288,7 +287,7 @@ const getUserConsumptionStats = async () => {
 
 /**
  * Get per-endpoint API consumption for a specific user
- * Returns unique endpoints the user has called (counts each endpoint once, not per request)
+ * Returns total number of requests per endpoint for the user
  * @param {string} userId - User ID
  * @returns {Array} Array of endpoint stats for the user
  */
@@ -313,7 +312,7 @@ const getUserEndpointStats = (userId) => {
         userEndpointStats.push({
           method,
           endpoint,
-          requests: userCount, // This is now 1 per unique endpoint (not total requests)
+          requests: userCount, // Total number of requests to this endpoint by this user
         });
       }
     }
