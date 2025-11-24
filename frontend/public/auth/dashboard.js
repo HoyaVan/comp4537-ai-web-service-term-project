@@ -312,11 +312,11 @@ async function getSpotifyTrackInfo(trackId) {
     return null;
   }
 
-  const { ok, data } = await apiRequest(`/api/spotify/tracks/${trackId}`);
-  if (ok && data.success) {
-    return data.data;
-  }
-  return null;
+  // const { ok, data } = await apiRequest(`/api/spotify/tracks/${trackId}`);
+  // if (ok && data.success) {
+  //   return data.data;
+  // }
+  // return null;
 }
 
 // Get countdown info for round
@@ -436,10 +436,15 @@ window.viewResults = async function (roundId) {
     return;
   }
 
-  const spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
-  if (!spotifyTrackInfo) {
-    alert(dashboardMessages.failedToLoadSpotifyTrack);
-    return;
+  // Try to fetch Spotify track info (optional - embed works without it)
+  let spotifyTrackInfo = null;
+  if (results.winner && results.winner.spotifyId) {
+    try {
+      spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
+    } catch (error) {
+      console.warn("Failed to fetch Spotify track info:", error);
+      // Continue anyway - embed will still work with just the track ID
+    }
   }
 
   const countdownData = await getRoundCountdown(roundId);
@@ -504,7 +509,7 @@ window.viewResults = async function (roundId) {
         <h4>Winner</h4>
         <p>"${results.winner.title}" by ${results.winner.artist}</p>
         ${
-          results.winner.spotifyId && spotifyTrackInfo
+          results.winner.spotifyId
             ? `
           <div style="margin: 16px 0;">
             <iframe 
@@ -520,13 +525,6 @@ window.viewResults = async function (roundId) {
           <a href="https://open.spotify.com/track/${results.winner.spotifyId}" target="_blank" class="btn btn-small" style="margin-top: 8px;">
             Open in Spotify
           </a>
-        `
-            : results.winner.spotifyId
-            ? `
-          <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
-            Spotify track ID available but preview not accessible. 
-            <a href="https://open.spotify.com/track/${results.winner.spotifyId}" target="_blank">Try opening in Spotify</a>
-          </p>
         `
             : `
           <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
@@ -698,6 +696,40 @@ async function initDashboard() {
     return;
   }
 
+  // Handle Spotify OAuth callback redirect
+  const urlParams = new URLSearchParams(window.location.search);
+  const spotifyStatus = urlParams.get('spotify');
+  if (spotifyStatus) {
+    // Clean up URL by removing query parameters
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+    
+    if (spotifyStatus === 'connected') {
+      // Show success message
+      if (createMessage) {
+        createMessage.textContent = '✅ Successfully connected to Spotify!';
+        createMessage.className = 'msg ok';
+        createMessage.style.display = 'block';
+        // Hide after 5 seconds
+        setTimeout(() => {
+          createMessage.style.display = 'none';
+        }, 5000);
+      }
+    } else if (spotifyStatus === 'error') {
+      // Show error message
+      const errorMsg = urlParams.get('message') || 'Failed to connect to Spotify';
+      if (createMessage) {
+        createMessage.textContent = `❌ ${decodeURIComponent(errorMsg)}`;
+        createMessage.className = 'msg err';
+        createMessage.style.display = 'block';
+        // Hide after 7 seconds
+        setTimeout(() => {
+          createMessage.style.display = 'none';
+        }, 7000);
+      }
+    }
+  }
+
   // Load user info
   const user = await loadUserInfo();
 
@@ -717,6 +749,7 @@ async function initDashboard() {
 
   // Load rounds
   await loadAndDisplayRounds();
+  // await loadSpotifyToken();
 
   // Setup health check button
   const healthCheckBtn = document.getElementById("health-check-btn");

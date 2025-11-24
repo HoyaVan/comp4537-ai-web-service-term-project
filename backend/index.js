@@ -25,22 +25,29 @@ const allowedOrigins = [
   "http://localhost:8080",
   "http://127.0.0.1:8080",
   "https://dj-clownfish-ui-da6vv.ondigitalocean.app",
+  "https://dj-clownfish-frontend-st7pu.ondigitalocean.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean); // Remove any undefined values
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
+      // When credentials are included, we MUST return a specific origin, never '*'
+      // Requests without origin are typically from non-browser clients (Postman, curl, etc.)
+      if (!origin) {
+        // For non-browser requests, return a default origin (not true!)
+        return callback(null, "https://dj-clownfish-frontend-st7pu.ondigitalocean.app");
+      }
 
       // Check if origin is in allowed list
       if (allowedOrigins.includes(origin)) {
-        callback(null, true);
+        // IMPORTANT: Return the origin string, not true, when credentials are included
+        callback(null, origin);
       } else {
         // For development, allow any localhost origin
         if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
-          callback(null, true);
+          // Return the actual origin string
+          callback(null, origin);
         } else {
           callback(new Error("Not allowed by CORS"));
         }

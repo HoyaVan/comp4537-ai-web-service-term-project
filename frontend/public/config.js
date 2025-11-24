@@ -3,8 +3,9 @@
 // Auto-detect backend URL based on environment
 const hostname = window.location.hostname;
 if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    window.BACKEND_URL =
-      "https://bosomed-nitrosylsulfuric-merissa.ngrok-free.dev";
+  window.BACKEND_URL =
+    // "https://bosomed-nitrosylsulfuric-merissa.ngrok-free.dev";
+  "https://dj-clownfish-uxa88.ondigitalocean.app";
 } else {
     // Production backend URL
     window.BACKEND_URL = 'https://dj-clownfish-uxa88.ondigitalocean.app';
