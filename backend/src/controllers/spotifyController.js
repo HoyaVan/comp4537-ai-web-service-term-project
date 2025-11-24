@@ -373,5 +373,6 @@ module.exports = {
   initiateOAuth,
   handleOAuthCallback,
   getSpotifyToken,
+  getCurrentlyPlaying,
   addTrackToQueue,
 };

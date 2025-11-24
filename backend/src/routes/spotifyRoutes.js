@@ -195,6 +195,51 @@ router.get("/me/token", authenticateToken, spotifyController.getSpotifyToken);
 
 /**
  * @swagger
+ * /api/v1/spotify/me/playing:
+ *   get:
+ *     summary: Get user's currently playing track on Spotify
+ *     tags: [Spotify]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current playback state retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     connected:
+ *                       type: boolean
+ *                     playing:
+ *                       type: boolean
+ *                     track:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         artist:
+ *                           type: string
+ *                         album:
+ *                           type: string
+ *                         uri:
+ *                           type: string
+ *                     message:
+ *                       type: string
+ *       401:
+ *         description: Authentication required or Spotify authentication failed
+ */
+router.get("/me/playing", authenticateToken, spotifyController.getCurrentlyPlaying);
+
+/**
+ * @swagger
  * /api/v1/spotify/me/queue:
  *   post:
  *     summary: Add a track to the user's Spotify playback queue

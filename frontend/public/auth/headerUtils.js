@@ -275,7 +275,7 @@ async function initLoggedInHeader(additionalLinks = []) {
             return;
           }
           
-          const response = await fetch(BACKEND_URL + "/api/v1/spotify/auth?format=json", {
+          const response = await fetch(getBackendUrl() + "/api/v1/spotify/auth?format=json", {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Accept': 'application/json'
@@ -321,6 +321,93 @@ async function initLoggedInHeader(additionalLinks = []) {
       }
     }
   }, 100);
+
+  // Initialize "Now Playing" display for Spotify
+  initNowPlaying();
+}
+
+// Get BACKEND_URL from config or window (will be set by config.js)
+const getBackendUrl = () => {
+  return (window.BACKEND_URL || window.getBackendUrl?.() || 'http://localhost:3000').replace(/\/$/, '');
+};
+
+/**
+ * Initialize and update "Now Playing" display from Spotify
+ */
+let nowPlayingInterval = null;
+
+async function initNowPlaying() {
+  // Clear any existing interval
+  if (nowPlayingInterval) {
+    clearInterval(nowPlayingInterval);
+  }
+
+  const container = document.getElementById("now-playing-container");
+  const trackDisplay = document.getElementById("now-playing-track");
+  
+  if (!container || !trackDisplay) {
+    return;
+  }
+
+  // Function to update now playing
+  async function updateNowPlaying() {
+    try {
+      if (!window.authService) {
+        return;
+      }
+
+      const token = window.authService.getToken();
+      if (!token) {
+        container.style.display = "none";
+        return;
+      }
+
+      const response = await fetch(getBackendUrl() + "/api/v1/spotify/me/playing", {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        mode: 'cors',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        container.style.display = "none";
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        if (data.data.connected && data.data.playing && data.data.track) {
+          // Show container and update track info
+          container.style.display = "flex";
+          const track = data.data.track;
+          trackDisplay.textContent = `"${track.name}" by ${track.artist}`;
+          trackDisplay.title = `${track.name} by ${track.artist} - ${track.album}`;
+        } else if (data.data.connected) {
+          // Connected but not playing
+          container.style.display = "flex";
+          trackDisplay.textContent = "Not playing";
+          trackDisplay.title = "Spotify connected but nothing is playing";
+        } else {
+          // Not connected
+          container.style.display = "none";
+        }
+      } else {
+        container.style.display = "none";
+      }
+    } catch (error) {
+      console.error("Error updating now playing:", error);
+      container.style.display = "none";
+    }
+  }
+
+  // Update immediately
+  await updateNowPlaying();
+
+  // Update every 5 seconds
+  nowPlayingInterval = setInterval(updateNowPlaying, 5000);
 }
 
 // Make functions available globally for module access IMMEDIATELY

@@ -11,6 +11,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
 }
 
 .logo {
@@ -78,5 +79,46 @@
     color: var(--muted);
     font-size: 14px;
     margin-right: 8px;
+}
+
+.now-playing-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin: 0 16px;
+    flex: 1;
+    max-width: 400px;
+    min-width: 200px;
+}
+
+.now-playing-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.now-playing-track {
+    font-size: 13px;
+    color: #0f172a;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.now-playing-track:hover {
+    color: var(--brand);
+    cursor: default;
+}
+
+@media (max-width: 768px) {
+    .now-playing-container {
+        display: none; /* Hide on mobile to save space */
+    }
 }
 
