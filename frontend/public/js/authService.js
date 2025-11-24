@@ -41,7 +41,7 @@ class AuthService {
   }
 
   /**
-   * Set token in localStorage
+   * Set token in localStorage and cookie
    * @param {string} token
    */
   setToken(token) {
@@ -49,15 +49,22 @@ class AuthService {
       if (token) {
         localStorage.setItem('token', token);
         this._token = token;
-        console.log('[authService] Token stored successfully');
+        // Also set cookie so server can see it
+        // Use secure cookie if on HTTPS, otherwise regular cookie
+        const isSecure = window.location.protocol === 'https:';
+        const cookieOptions = `token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+        document.cookie = cookieOptions;
+        console.log('[authService] Token stored successfully (localStorage + cookie)');
       } else {
         localStorage.removeItem('token');
         this._token = null;
-        console.log('[authService] Token cleared');
+        // Clear cookie
+        document.cookie = 'token=; path=/; max-age=0; SameSite=Lax';
+        console.log('[authService] Token cleared (localStorage + cookie)');
       }
     } catch (err) {
       console.error('[authService] Failed to store token:', err);
-      // Still update internal state even if localStorage fails
+      // Still update internal state even if storage fails
       this._token = token || null;
     }
   }

@@ -68,12 +68,22 @@ async function checkAuth(cookies, authHeader) {
     
     // Fallback to cookie for backward compatibility
     if (!token) {
-      token = parseCookies(cookies).token;
+      const cookieObj = parseCookies(cookies);
+      token = cookieObj.token;
+      if (token) {
+        console.log('[server] Token found in cookie');
+      } else {
+        console.log('[server] No token in cookie or Authorization header');
+      }
+    } else {
+      console.log('[server] Token found in Authorization header');
     }
     
     if (!token) {
       return { authenticated: false, user: null };
     }
+    
+    console.log('[server] Validating token with backend...');
 
     // Validate BACKEND_URL before using it
     if (!BACKEND_URL) {
@@ -124,15 +134,18 @@ async function checkAuth(cookies, authHeader) {
             try {
               const result = JSON.parse(data);
               if (result.success && result.data) {
+                console.log('[server] Authentication successful for user:', result.data.email);
                 resolve({ authenticated: true, user: result.data });
               } else {
+                console.log('[server] Authentication failed - invalid response:', result);
                 resolve({ authenticated: false, user: null });
               }
             } catch (e) {
-              console.error("Error parsing auth response:", e);
+              console.error("[server] Error parsing auth response:", e);
               resolve({ authenticated: false, user: null });
             }
           } else {
+            console.log('[server] Authentication failed - status code:', res.statusCode);
             resolve({ authenticated: false, user: null });
           }
         });
