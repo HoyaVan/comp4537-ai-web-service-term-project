@@ -17,11 +17,13 @@ const adminRoutes = require("./src/routes/adminRoutes");
 const jukeboxRoutes = require("./src/routes/jukeboxRoutes");
 
 // Import middleware
-const { apiTrackingMiddleware } = require("./src/middleware/apiTrackingMiddleware");
+const {
+  apiTrackingMiddleware,
+} = require("./src/middleware/apiTrackingMiddleware");
 
 // Swagger documentation
-const swaggerUi = require('swagger-ui-express');
-const swaggerSpec = require('./src/config/swagger');
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./src/config/swagger");
 
 // Middleware
 // CORS configuration - must explicitly allow origins when credentials are included
@@ -40,7 +42,10 @@ app.use(
       // Requests without origin are typically from non-browser clients (Postman, curl, etc.)
       if (!origin) {
         // For non-browser requests, return a default origin (not true!)
-        return callback(null, "https://dj-clownfish-frontend-st7pu.ondigitalocean.app");
+        return callback(
+          null,
+          "https://dj-clownfish-frontend-st7pu.ondigitalocean.app"
+        );
       }
 
       // Check if origin is in allowed list
@@ -72,7 +77,7 @@ app.use(cookieParser());
 // Apply to all routes except health check
 app.use((req, res, next) => {
   // Skip tracking for health check and root endpoint
-  if (req.path === '/health' || req.path === '/') {
+  if (req.path === "/health" || req.path === "/") {
     return next();
   }
   apiTrackingMiddleware(req, res, next);
@@ -147,69 +152,139 @@ app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/jukebox", jukeboxRoutes);
 
 // Swagger API Documentation
-app.use('/doc', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'DJ Clownfish API Documentation'
-}));
+app.use(
+  "/doc",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customCss: ".swagger-ui .topbar { display: none }",
+    customSiteTitle: "DJ Clownfish API Documentation",
+  })
+);
 
 // Start server
 app.listen(PORT, async () => {
   // Test database connection
   await db.testConnection();
-  
+
   console.log(`\n🚀 Server is running on port ${PORT}\n`);
   console.log("📋 Available Endpoints:\n");
-  
+
   console.log("🔐 Authentication (/api/v1/auth):");
-  console.log("   POST   /api/v1/auth/signup          - Register new user (public)");
+  console.log(
+    "   POST   /api/v1/auth/signup          - Register new user (public)"
+  );
   console.log("   POST   /api/v1/auth/login           - Login user (public)");
-  console.log("   GET    /api/v1/auth/profile         - Get user profile (protected)");
-  console.log("   GET    /api/v1/auth/users            - Get all users (protected)");
-  
+  console.log(
+    "   GET    /api/v1/auth/profile         - Get user profile (protected)"
+  );
+  console.log(
+    "   GET    /api/v1/auth/users            - Get all users (protected)"
+  );
+
   console.log("\n🤖 AI Agent (/api/v1/ai):");
-  console.log("   GET    /api/v1/ai/health            - Check AI agent health (public)");
-  console.log("   POST   /api/v1/ai/chat              - Send message to AI (API key)");
-  console.log("   POST   /api/v1/ai/call              - Call AI agent endpoint (API key)");
-  
+  console.log(
+    "   GET    /api/v1/ai/health            - Check AI agent health (public)"
+  );
+  console.log(
+    "   POST   /api/v1/ai/chat              - Send message to AI (API key)"
+  );
+  console.log(
+    "   POST   /api/v1/ai/call              - Call AI agent endpoint (API key)"
+  );
+
   console.log("\n🗳️  Voting (/api/v1/voting):");
-  console.log("   POST   /api/v1/voting/rounds                    - Create round (protected)");
-  console.log("   GET    /api/v1/voting/rounds                     - Get my rounds (protected)");
-  console.log("   GET    /api/v1/voting/rounds/:roundId            - Get round details (public)");
-  console.log("   POST   /api/v1/voting/rounds/:roundId/vote       - Submit vote (public)");
-  console.log("   GET    /api/v1/voting/rounds/:roundId/results    - Get results (protected)");
-  console.log("   GET    /api/v1/voting/rounds/:roundId/public-results - Get public results (public)");
-  console.log("   POST   /api/v1/voting/rounds/:roundId/next-round - Generate next round (protected)");
-  console.log("   PATCH  /api/v1/voting/rounds/:roundId/status    - Update round status (protected)");
-  console.log("   GET    /api/v1/voting/rounds/:roundId/qr        - Get QR code (protected)");
-  console.log("   GET    /api/v1/voting/spotify/search             - Search Spotify (protected)");
-  console.log("   GET    /api/v1/voting/spotify/tracks/:trackId    - Get Spotify track (public)");
-  
+  console.log(
+    "   POST   /api/v1/voting/rounds                    - Create round (protected)"
+  );
+  console.log(
+    "   GET    /api/v1/voting/rounds                     - Get my rounds (protected)"
+  );
+  console.log(
+    "   GET    /api/v1/voting/rounds/:roundId            - Get round details (public)"
+  );
+  console.log(
+    "   POST   /api/v1/voting/rounds/:roundId/vote       - Submit vote (public)"
+  );
+  console.log(
+    "   GET    /api/v1/voting/rounds/:roundId/results    - Get results (protected)"
+  );
+  console.log(
+    "   GET    /api/v1/voting/rounds/:roundId/public-results - Get public results (public)"
+  );
+  console.log(
+    "   POST   /api/v1/voting/rounds/:roundId/next-round - Generate next round (protected)"
+  );
+  console.log(
+    "   PATCH  /api/v1/voting/rounds/:roundId/status    - Update round status (protected)"
+  );
+  console.log(
+    "   GET    /api/v1/voting/rounds/:roundId/qr        - Get QR code (protected)"
+  );
+  console.log(
+    "   GET    /api/v1/voting/spotify/search             - Search Spotify (protected)"
+  );
+  console.log(
+    "   GET    /api/v1/voting/spotify/tracks/:trackId    - Get Spotify track (public)"
+  );
+
   console.log("\n🎵 Spotify (/api/v1/spotify):");
-  console.log("   GET    /api/v1/spotify/search                    - Search Spotify tracks (public)");
-  console.log("   GET    /api/v1/spotify/tracks/:trackId           - Get Spotify track (public)");
-  console.log("   GET    /api/v1/spotify/auth                      - Initiate OAuth (public)");
-  console.log("   GET    /api/v1/spotify/callback                 - OAuth callback (public)");
-  
+  console.log(
+    "   GET    /api/v1/spotify/search                    - Search Spotify tracks (public)"
+  );
+  console.log(
+    "   GET    /api/v1/spotify/tracks/:trackId           - Get Spotify track (public)"
+  );
+  console.log(
+    "   GET    /api/v1/spotify/auth                      - Initiate OAuth (public)"
+  );
+  console.log(
+    "   GET    /api/v1/spotify/callback                 - OAuth callback (public)"
+  );
+
   console.log("\n👑 Admin (/api/v1/admin):");
-  console.log("   GET    /api/v1/admin/stats/endpoints             - Get endpoint stats (admin)");
-  console.log("   GET    /api/v1/admin/stats/users                 - Get user consumption (admin)");
-  console.log("   GET    /api/v1/admin/stats/logs                  - Get API call logs (admin)");
-  console.log("   POST   /api/v1/admin/users/:userId/reset-api-count - Reset user API count (admin)");
-  
+  console.log(
+    "   GET    /api/v1/admin/stats/endpoints             - Get endpoint stats (admin)"
+  );
+  console.log(
+    "   GET    /api/v1/admin/stats/users                 - Get user consumption (admin)"
+  );
+  console.log(
+    "   GET    /api/v1/admin/stats/logs                  - Get API call logs (admin)"
+  );
+  console.log(
+    "   POST   /api/v1/admin/users/:userId/reset-api-count - Reset user API count (admin)"
+  );
+
   console.log("\n🎧 Jukebox (/api/v1/jukebox):");
-  console.log("   POST   /api/v1/jukebox/start                     - Start jukebox mode (protected)");
-  console.log("   GET    /api/v1/jukebox/status                    - Get jukebox status (protected)");
-  console.log("   POST   /api/v1/jukebox/stop                      - Stop jukebox (protected)");
-  console.log("   POST   /api/v1/jukebox/skip                      - Skip current song (protected)");
-  console.log("   POST   /api/v1/jukebox/pause                     - Pause jukebox (protected)");
-  console.log("   POST   /api/v1/jukebox/resume                    - Resume jukebox (protected)");
-  console.log("   GET    /api/v1/jukebox/:ownerId/voting-round     - Get voting round (public)");
-  console.log("   GET    /api/v1/jukebox/:ownerId/now-playing      - Get now playing (public)");
-  
+  console.log(
+    "   POST   /api/v1/jukebox/start                     - Start jukebox mode (protected)"
+  );
+  console.log(
+    "   GET    /api/v1/jukebox/status                    - Get jukebox status (protected)"
+  );
+  console.log(
+    "   POST   /api/v1/jukebox/stop                      - Stop jukebox (protected)"
+  );
+  console.log(
+    "   POST   /api/v1/jukebox/skip                      - Skip current song (protected)"
+  );
+  console.log(
+    "   POST   /api/v1/jukebox/pause                     - Pause jukebox (protected)"
+  );
+  console.log(
+    "   POST   /api/v1/jukebox/resume                    - Resume jukebox (protected)"
+  );
+  console.log(
+    "   GET    /api/v1/jukebox/:ownerId/voting-round     - Get voting round (public)"
+  );
+  console.log(
+    "   GET    /api/v1/jukebox/:ownerId/now-playing      - Get now playing (public)"
+  );
+
   console.log("\n🏥 Health:");
   console.log("   GET    /health                  - Health check (public)");
   console.log("   GET    /                        - Server status (public)");
-  
+
   console.log(`\n✅ API Tracking: Enabled (Unlimited calls per user)\n`);
 });
 
