@@ -1,5 +1,6 @@
 const aiService = require("./aiService");
 const crypto = require("crypto");
+const votingMessages = require("../messages/voting");
 
 // In-memory storage (replace with database in production)
 const votingRounds = [];
@@ -217,12 +218,12 @@ function getSongsByRound(roundId, roundNumber = null) {
 function submitVote(roundId, songId, participantToken = null) {
   const round = getRoundById(roundId);
   if (!round || round.status !== "active") {
-    throw new Error("Round not found or not active");
+    throw new Error(votingMessages.roundNotFoundOrNotActive);
   }
 
   const song = songs.find((s) => s.id === songId && s.roundId === roundId);
   if (!song) {
-    throw new Error("Song not found in this round");
+    throw new Error(votingMessages.songNotFoundInRound);
   }
 
   // Generate participant token if not provided
@@ -268,7 +269,7 @@ function submitVote(roundId, songId, participantToken = null) {
 function getVotingResults(roundId, roundNumber = null) {
   const round = getRoundById(roundId);
   if (!round) {
-    throw new Error("Round not found");
+    throw new Error(votingMessages.roundNotFound);
   }
 
   const roundSongs = getSongsByRound(roundId, roundNumber || round.currentRoundNumber);
@@ -303,7 +304,7 @@ function getVotingResults(roundId, roundNumber = null) {
 async function generateNextRound(roundId) {
   const round = getRoundById(roundId);
   if (!round) {
-    throw new Error("Round not found");
+    throw new Error(votingMessages.roundNotFound);
   }
 
   // Get previous round results
@@ -357,12 +358,12 @@ function getWinningSong(roundId, roundNumber = null) {
 function updateRoundStatus(roundId, status) {
   const round = getRoundById(roundId);
   if (!round) {
-    throw new Error("Round not found");
+    throw new Error(votingMessages.roundNotFound);
   }
 
   const validStatuses = ["active", "paused", "completed"];
   if (!validStatuses.includes(status)) {
-    throw new Error(`Invalid status. Must be one of: ${validStatuses.join(", ")}`);
+    throw new Error(votingMessages.invalidStatus(validStatuses));
   }
 
   round.status = status;

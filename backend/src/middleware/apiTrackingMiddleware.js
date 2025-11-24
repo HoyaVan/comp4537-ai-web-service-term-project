@@ -34,11 +34,15 @@ const getUserApiCount = (userId) => {
 /**
  * Check if user has exceeded free API calls limit
  * @param {string} userId - User ID
+ * @param {string} userRole - User role (optional)
  * @returns {boolean} True if user has exceeded limit
  */
-const hasExceededLimit = (userId) => {
+const hasExceededLimit = (userId, userRole = null) => {
   if (!userId || userId === 'anonymous') {
     return false; // Anonymous users don't have limits
+  }
+  if (userRole === 'admin') {
+    return false; // Admin users don't have limits
   }
   const count = getUserApiCount(userId);
   return count >= FREE_API_CALLS_LIMIT;
@@ -47,11 +51,15 @@ const hasExceededLimit = (userId) => {
 /**
  * Get remaining free API calls for a user
  * @param {string} userId - User ID
- * @returns {number} Remaining calls (0 if exceeded)
+ * @param {string} userRole - User role (optional)
+ * @returns {number|null} Remaining calls (null for unlimited, 0 if exceeded)
  */
-const getRemainingCalls = (userId) => {
+const getRemainingCalls = (userId, userRole = null) => {
   if (!userId || userId === 'anonymous') {
     return null; // Anonymous users don't have limits
+  }
+  if (userRole === 'admin') {
+    return null; // Admin users have unlimited calls
   }
   const count = getUserApiCount(userId);
   const remaining = Math.max(0, FREE_API_CALLS_LIMIT - count);
@@ -76,8 +84,9 @@ const incrementUserApiCount = (userId) => {
  * @param {string} userId - User ID (or 'anonymous' if not authenticated)
  * @param {number} statusCode - HTTP status code
  * @param {number} responseTime - Response time in milliseconds
+ * @param {string} userRole - User role (optional, to exclude admin users from counting)
  */
-const trackApiCall = (method, endpoint, userId, statusCode, responseTime) => {
+const trackApiCall = (method, endpoint, userId, statusCode, responseTime, userRole = null) => {
   const timestamp = new Date().toISOString();
   
   // Create log entry
@@ -95,12 +104,19 @@ const trackApiCall = (method, endpoint, userId, statusCode, responseTime) => {
   apiCallLogs.push(logEntry);
   
   // Check if this is an auth endpoint (should not count towards limit)
+  // Check both full path (/api/auth/profile) and route path (/profile)
   const isAuthEndpoint = endpoint.includes('/api/auth/login') || 
                          endpoint.includes('/api/auth/signup') || 
-                         endpoint.includes('/api/auth/profile');
+                         endpoint.includes('/api/auth/profile') ||
+                         endpoint === '/profile' ||
+                         endpoint === '/login' ||
+                         endpoint === '/signup';
   
-  // Update user API count (only for authenticated users, successful calls, and non-auth endpoints)
-  if (userId && userId !== 'anonymous' && statusCode >= 200 && statusCode < 300 && !isAuthEndpoint) {
+  // Check if user is admin (admins don't have API call limits)
+  const isAdmin = userRole === 'admin';
+  
+  // Update user API count (only for authenticated users, successful calls, non-auth endpoints, and non-admin users)
+  if (userId && userId !== 'anonymous' && statusCode >= 200 && statusCode < 300 && !isAuthEndpoint && !isAdmin) {
     incrementUserApiCount(userId);
   }
   
@@ -239,42 +255,63 @@ const resetUserApiCount = (userId) => {
  * Adds warning headers when user exceeds free API calls limit
  */
 const apiTrackingMiddleware = (req, res, next) => {
+  // Prevent double counting by checking if we've already tracked this request
+  if (req._apiTracked) {
+    return next();
+  }
+  req._apiTracked = true;
+  
   const startTime = Date.now();
   const method = req.method;
-  
-  // Check API limit before processing (for authenticated users)
-  // Note: We need to check after auth middleware runs, so we'll check in the finish handler
-  // But we can set up the warning header here if we have user info
-  const userId = req.userId || req.user?.id || null;
   
   // Track response when it finishes
   // Note: We capture userId and endpoint here (after auth middleware may have run) to get the actual user
   res.on('finish', () => {
+    // Prevent double counting if finish event fires multiple times
+    if (req._apiTrackedFinished) {
+      return;
+    }
+    req._apiTrackedFinished = true;
+    
     const responseTime = Date.now() - startTime;
     const statusCode = res.statusCode || 200;
     
-    // Capture userId at response time (after authentication middleware has run)
+    // Capture userId and user role at response time (after authentication middleware has run)
     const finalUserId = req.userId || req.user?.id || null;
+    const userRole = req.user?.role || null;
     
-    // Capture endpoint - use route path if available (more accurate), otherwise use request path
-    // req.route?.path gives the route pattern (e.g., "/api/auth/profile")
+    // Capture endpoint - use request path (full path including mount point)
     // req.path gives the actual path (e.g., "/api/auth/profile")
+    // req.route?.path gives only the route pattern (e.g., "/profile") without mount point
     // req.url gives full URL with query string
-    const endpoint = req.route?.path || req.path || req.url.split('?')[0];
+    // We use req.path to get the full path including the mount point
+    // Also check req.baseUrl + req.route?.path for more accurate route matching
+    let endpoint = req.path;
+    if (req.baseUrl && req.route?.path) {
+      // Combine baseUrl (mount point) with route path for accurate endpoint
+      endpoint = req.baseUrl + req.route.path;
+    } else if (!endpoint && req.url) {
+      endpoint = req.url.split('?')[0];
+    }
     
-    // Track the API call
-    trackApiCall(method, endpoint, finalUserId, statusCode, responseTime);
+    // Track the API call (pass userRole to exclude admin users from counting)
+    trackApiCall(method, endpoint, finalUserId, statusCode, responseTime, userRole);
     
     // Check if this is an auth endpoint (should not show warning)
+    // Check both full path (/api/auth/profile) and route path (/profile)
     const isAuthEndpoint = endpoint.includes('/api/auth/login') || 
                            endpoint.includes('/api/auth/signup') || 
-                           endpoint.includes('/api/auth/profile');
+                           endpoint.includes('/api/auth/profile') ||
+                           endpoint === '/profile' ||
+                           endpoint === '/login' ||
+                           endpoint === '/signup';
     
-    // Add warning header if user has exceeded limit (only for authenticated users, successful calls, and non-auth endpoints)
+    // Add warning header if user has exceeded limit (only for authenticated users, successful calls, non-auth endpoints, and non-admin users)
     if (finalUserId && finalUserId !== 'anonymous' && 
         statusCode >= 200 && statusCode < 300 &&
-        !isAuthEndpoint) {
-      const exceeded = hasExceededLimit(finalUserId);
+        !isAuthEndpoint &&
+        userRole !== 'admin') {
+      const exceeded = hasExceededLimit(finalUserId, userRole);
       if (exceeded) {
         res.setHeader('X-API-Limit-Exceeded', 'true');
         res.setHeader('X-API-Limit-Message', apiTrackingMessages.apiLimitExceededMessage(FREE_API_CALLS_LIMIT));

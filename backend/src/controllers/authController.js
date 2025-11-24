@@ -13,7 +13,7 @@ async function signup(req, res) {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required",
+        message: authMessages.emailPasswordRequired,
       });
     }
 
@@ -78,14 +78,18 @@ async function getProfile(req, res) {
     // Include API consumption for all users
     const apiCallsUsed = getUserApiCount(user.id);
     const endpointStats = getUserEndpointStats(user.id);
-    const remainingCalls = getRemainingCalls(user.id);
-    const exceeded = hasExceededLimit(user.id);
+    const remainingCalls = getRemainingCalls(user.id, user.role);
+    const exceeded = hasExceededLimit(user.id, user.role);
+    
+    // For admin users, show unlimited calls
+    const isAdmin = user.role === 'admin';
     
     responseData.apiConsumption = {
       callsUsed: apiCallsUsed,
-      callsLimit: FREE_API_CALLS_LIMIT,
+      callsLimit: isAdmin ? 'unlimited' : FREE_API_CALLS_LIMIT,
       remainingCalls: remainingCalls,
       hasExceededLimit: exceeded,
+      hasUnlimitedCalls: isAdmin,
       endpointBreakdown: endpointStats, // Per-endpoint breakdown
     };
 

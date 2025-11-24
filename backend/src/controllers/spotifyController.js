@@ -1,4 +1,5 @@
 const spotifyService = require("../services/spotifyService");
+const spotifyMessages = require("../messages/spotify");
 
 /**
  * Get Spotify track info
@@ -17,7 +18,7 @@ async function getSpotifyTrack(req, res) {
     console.error("Error getting Spotify track:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Error fetching Spotify track",
+      message: error.message || spotifyMessages.errorFetchingSpotifyTrack,
     });
   }
 }
@@ -32,7 +33,7 @@ async function searchSpotifyTracks(req, res) {
     if (!q) {
       return res.status(400).json({
         success: false,
-        message: "Search query (q) is required",
+        message: spotifyMessages.searchQueryRequired,
       });
     }
 
@@ -46,7 +47,7 @@ async function searchSpotifyTracks(req, res) {
     console.error("Error searching Spotify tracks:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Error searching Spotify tracks",
+      message: error.message || spotifyMessages.errorSearchingSpotifyTracks,
     });
   }
 }
@@ -69,7 +70,7 @@ async function initiateOAuth(req, res) {
     console.error("Error initiating OAuth:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Error initiating Spotify OAuth",
+      message: error.message || spotifyMessages.errorInitiatingSpotifyOAuth,
     });
   }
 }
@@ -84,14 +85,14 @@ async function handleOAuthCallback(req, res) {
     if (error) {
       return res.status(400).json({
         success: false,
-        message: `Spotify OAuth error: ${error}`,
+        message: spotifyMessages.spotifyOAuthError(error),
       });
     }
 
     if (!code) {
       return res.status(400).json({
         success: false,
-        message: "Authorization code is required",
+        message: spotifyMessages.authorizationCodeRequired,
       });
     }
 
@@ -99,7 +100,7 @@ async function handleOAuthCallback(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: "Spotify OAuth successful",
+      message: spotifyMessages.spotifyOAuthSuccessful,
       data: {
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
@@ -113,7 +114,7 @@ async function handleOAuthCallback(req, res) {
     console.error("Error handling OAuth callback:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Error handling Spotify OAuth callback",
+      message: error.message || spotifyMessages.errorHandlingSpotifyOAuthCallback,
     });
   }
 }

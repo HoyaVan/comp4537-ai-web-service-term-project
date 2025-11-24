@@ -1,5 +1,6 @@
 const votingService = require("../services/votingService");
 const spotifyService = require("../services/spotifyService");
+const votingMessages = require("../messages/voting");
 
 /**
  * Create a new voting round (owner only)
@@ -14,7 +15,7 @@ async function createRound(req, res) {
 
     return res.status(201).json({
       success: true,
-      message: "Voting round created successfully",
+      message: votingMessages.votingRoundCreatedSuccessfully,
       data: {
         round,
         songs,
@@ -24,7 +25,7 @@ async function createRound(req, res) {
     console.error("Error creating voting round:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Error creating voting round",
+      message: error.message || votingMessages.errorCreatingVotingRound,
     });
   }
 }
@@ -57,7 +58,7 @@ async function getMyRounds(req, res) {
     console.error("Error getting rounds:", error);
     return res.status(500).json({
       success: false,
-      message: error.message || "Error fetching rounds",
+      message: error.message || votingMessages.errorFetchingRounds,
     });
   }
 }
@@ -73,7 +74,7 @@ async function getRound(req, res) {
     if (!round) {
       return res.status(404).json({
         success: false,
-        message: "Round not found",
+        message: votingMessages.roundNotFound,
       });
     }
 
@@ -95,7 +96,7 @@ async function getRound(req, res) {
     console.error("Error getting round:", error);
     return res.status(500).json({
       success: false,
-      message: error.message || "Error fetching round",
+      message: error.message || votingMessages.errorFetchingRound,
     });
   }
 }
@@ -112,7 +113,7 @@ async function submitVote(req, res) {
     if (!songId) {
       return res.status(400).json({
         success: false,
-        message: "songId is required",
+        message: votingMessages.songIdRequired,
       });
     }
 
@@ -131,7 +132,7 @@ async function submitVote(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: result.updated ? "Vote updated" : "Vote submitted",
+      message: result.updated ? votingMessages.voteUpdated : votingMessages.voteSubmitted,
       data: {
         participantToken: result.participantToken,
         results,
@@ -141,7 +142,7 @@ async function submitVote(req, res) {
     console.error("Error submitting vote:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Error submitting vote",
+      message: error.message || votingMessages.errorSubmittingVote,
     });
   }
 }
@@ -158,7 +159,7 @@ async function getResults(req, res) {
     if (!round) {
       return res.status(404).json({
         success: false,
-        message: "Round not found",
+        message: votingMessages.roundNotFound,
       });
     }
 
@@ -174,7 +175,7 @@ async function getResults(req, res) {
     console.error("Error getting results:", error);
     return res.status(500).json({
       success: false,
-      message: error.message || "Error fetching results",
+      message: error.message || votingMessages.errorFetchingResults,
     });
   }
 }
@@ -191,14 +192,14 @@ async function generateNextRound(req, res) {
     if (!round) {
       return res.status(404).json({
         success: false,
-        message: "Round not found",
+        message: votingMessages.roundNotFound,
       });
     }
 
     if (round.ownerId !== ownerId) {
       return res.status(403).json({
         success: false,
-        message: "Only the round owner can generate the next round",
+        message: votingMessages.onlyOwnerCanGenerateNextRound,
       });
     }
 
@@ -206,7 +207,7 @@ async function generateNextRound(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: "Next round generated successfully",
+      message: votingMessages.nextRoundGeneratedSuccessfully,
       data: {
         round: updatedRound,
         songs: newSongs,
@@ -216,7 +217,7 @@ async function generateNextRound(req, res) {
     console.error("Error generating next round:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Error generating next round",
+      message: error.message || votingMessages.errorGeneratingNextRound,
     });
   }
 }
@@ -233,7 +234,7 @@ async function updateRoundStatus(req, res) {
     if (!status) {
       return res.status(400).json({
         success: false,
-        message: "Status is required",
+        message: votingMessages.statusRequired,
       });
     }
 
@@ -241,14 +242,14 @@ async function updateRoundStatus(req, res) {
     if (!round) {
       return res.status(404).json({
         success: false,
-        message: "Round not found",
+        message: votingMessages.roundNotFound,
       });
     }
 
     if (round.ownerId !== ownerId) {
       return res.status(403).json({
         success: false,
-        message: "Only the round owner can update the status",
+        message: votingMessages.onlyOwnerCanUpdateStatus,
       });
     }
 
@@ -256,14 +257,14 @@ async function updateRoundStatus(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: `Round status updated to ${status}`,
+      message: votingMessages.roundStatusUpdated(status),
       data: updatedRound,
     });
   } catch (error) {
     console.error("Error updating round status:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Error updating round status",
+      message: error.message || votingMessages.errorUpdatingRoundStatus,
     });
   }
 }
@@ -285,7 +286,7 @@ async function getSpotifyTrack(req, res) {
     console.error("Error getting Spotify track:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Error fetching Spotify track",
+      message: error.message || votingMessages.errorFetchingSpotifyTrack,
     });
   }
 }
@@ -300,7 +301,7 @@ async function searchSpotifyTracks(req, res) {
     if (!q) {
       return res.status(400).json({
         success: false,
-        message: "Search query (q) is required",
+        message: votingMessages.searchQueryRequired,
       });
     }
 
@@ -314,7 +315,7 @@ async function searchSpotifyTracks(req, res) {
     console.error("Error searching Spotify tracks:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Error searching Spotify tracks",
+      message: error.message || votingMessages.errorSearchingSpotifyTracks,
     });
   }
 }
@@ -331,14 +332,14 @@ async function getQRCode(req, res) {
     if (!round) {
       return res.status(404).json({
         success: false,
-        message: "Round not found",
+        message: votingMessages.roundNotFound,
       });
     }
 
     if (round.ownerId !== ownerId) {
       return res.status(403).json({
         success: false,
-        message: "Only the round owner can access QR code",
+        message: votingMessages.onlyOwnerCanAccessQrCode,
       });
     }
 
@@ -374,7 +375,7 @@ async function getQRCode(req, res) {
     console.error("Error getting QR code:", error);
     return res.status(500).json({
       success: false,
-      message: error.message || "Error generating QR code",
+      message: error.message || votingMessages.errorGeneratingQrCode,
     });
   }
 }

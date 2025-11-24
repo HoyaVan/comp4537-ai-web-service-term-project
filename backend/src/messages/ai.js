@@ -11,6 +11,9 @@ const aiMessages = {
   aiAgentRateLimitExceeded: "AI Agent rate limit exceeded. Please try again later.",
   aiAgentServerError: (status) => `AI Agent server error (${status}). The service may be temporarily unavailable.`,
   aiAgentRequestFailed: (status, message) => `AI Agent request failed: ${status} - ${message}`,
+  // Controller messages
+  endpointRequired: "Endpoint is required in the request body",
+  invalidHttpMethod: (validMethods) => `Invalid HTTP method. Must be one of: ${validMethods.join(", ")}`,
 };
 
 module.exports = aiMessages;

@@ -1,4 +1,5 @@
 const axios = require("axios");
+const aiMessages = require("../messages/ai");
 
 class AIService {
   constructor() {
@@ -83,7 +84,7 @@ class AIService {
 
       // Validate that messages array is not empty
       if (!messages || messages.length === 0) {
-        throw new Error("Messages array cannot be empty. Provide either 'message', 'prompt', or 'messages' array with at least one message.");
+        throw new Error(aiMessages.messagesArrayCannotBeEmpty);
       }
 
       // Validate message structure
@@ -97,7 +98,7 @@ class AIService {
       );
 
       if (!hasValidMessages) {
-        throw new Error("Each message must have 'role' and 'content' properties, and content must be a non-empty string.");
+        throw new Error(aiMessages.invalidMessageStructure);
       }
 
       // Build request body with messages array
@@ -140,16 +141,16 @@ class AIService {
         
         // Provide more helpful error messages based on status code
         if (status === 401) {
-          throw new Error("AI Agent authentication failed. Check your AI_AGENT_API_KEY.");
+          throw new Error(aiMessages.aiAgentAuthenticationFailed);
         } else if (status === 404) {
-          throw new Error("AI Agent endpoint not found. Check your AI_AGENT_URL.");
+          throw new Error(aiMessages.aiAgentEndpointNotFound);
         } else if (status === 429) {
-          throw new Error("AI Agent rate limit exceeded. Please try again later.");
+          throw new Error(aiMessages.aiAgentRateLimitExceeded);
         } else if (status >= 500) {
-          throw new Error(`AI Agent server error (${status}). The service may be temporarily unavailable.`);
+          throw new Error(aiMessages.aiAgentServerError(status));
         }
         
-        throw new Error(`AI Agent request failed: ${status} - ${message}`);
+        throw new Error(aiMessages.aiAgentRequestFailed(status, message));
       }
       throw error;
     }
@@ -180,16 +181,16 @@ class AIService {
         
         // Provide more helpful error messages based on status code
         if (status === 401) {
-          throw new Error("AI Agent authentication failed. Check your AI_AGENT_API_KEY.");
+          throw new Error(aiMessages.aiAgentAuthenticationFailed);
         } else if (status === 404) {
-          throw new Error(`AI Agent endpoint not found: ${endpoint}. Check your AI_AGENT_URL.`);
+          throw new Error(`${aiMessages.aiAgentEndpointNotFound}: ${endpoint}`);
         } else if (status === 429) {
-          throw new Error("AI Agent rate limit exceeded. Please try again later.");
+          throw new Error(aiMessages.aiAgentRateLimitExceeded);
         } else if (status >= 500) {
-          throw new Error(`AI Agent server error (${status}). The service may be temporarily unavailable.`);
+          throw new Error(aiMessages.aiAgentServerError(status));
         }
         
-        throw new Error(`AI Agent request failed: ${status} - ${message}`);
+        throw new Error(aiMessages.aiAgentRequestFailed(status, message));
       }
       throw error;
     }
@@ -211,12 +212,12 @@ class AIService {
         return { 
           connected: true, 
           status: response.status, 
-          message: "AI agent is reachable (returned docs page)" 
+          message: aiMessages.aiAgentReachable 
         };
       } catch (getError) {
         return {
           connected: false,
-          error: getError.message || "AI agent is not reachable",
+          error: getError.message || aiMessages.aiAgentNotReachable,
         };
       }
     }

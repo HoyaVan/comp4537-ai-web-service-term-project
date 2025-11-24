@@ -22,6 +22,10 @@ const votingMessages = {
   errorSearchingSpotifyTracks: "Error searching Spotify tracks",
   onlyOwnerCanAccessQrCode: "Only the round owner can access QR code",
   errorGeneratingQrCode: "Error generating QR code",
+  // Service-level messages
+  roundNotFoundOrNotActive: "Round not found or not active",
+  songNotFoundInRound: "Song not found in this round",
+  invalidStatus: (validStatuses) => `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
 };
 
 module.exports = votingMessages;
