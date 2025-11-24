@@ -78,7 +78,7 @@ async function isAuthenticated() {
 // Fetch all users from backend
 async function fetchAllUsers() {
   try {
-    const { ok, data } = await apiRequest('/api/auth/users');
+    const { ok, data } = await apiRequest('/api/v1/auth/users');
     if (!ok || !data.success) {
       throw new Error(data.message || adminMessages.failedToFetchUsers);
     }

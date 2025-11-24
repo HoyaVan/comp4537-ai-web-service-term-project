@@ -79,7 +79,7 @@ async function apiRequest(url, options = {}) {
 
 // Load user info and return user object
 async function loadUserInfo() {
-  const { ok, data } = await apiRequest("/api/v1/v1/auth/profile");
+  const { ok, data } = await apiRequest("/api/v1/auth/profile");
   if (ok && data.success) {
     const user = data.data;
     const userEmail = document.getElementById("user-email");
