@@ -77,7 +77,7 @@ async function apiRequest(url, options = {}) {
 
 // Load user info
 async function loadUserInfo() {
-  const { ok, data } = await apiRequest('/api/auth/profile');
+  const { ok, data } = await apiRequest('/api/v1/auth/profile');
   if (ok && data.success) {
     return data.data;
   }

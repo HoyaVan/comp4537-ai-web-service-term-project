@@ -79,7 +79,7 @@ async function apiRequest(url, options = {}) {
 
 // Load user info and return user object
 async function loadUserInfo() {
-  const { ok, data } = await apiRequest("/api/auth/profile");
+  const { ok, data } = await apiRequest("/api/v1/v1/auth/profile");
   if (ok && data.success) {
     const user = data.data;
     const userEmail = document.getElementById("user-email");
@@ -94,13 +94,13 @@ async function loadUserInfo() {
 }
 
 async function loadSpotifyToken() {
-  const auth = await apiRequest("/api/spotify/auth");
+  const auth = await apiRequest("/api/v1/spotify/auth");
   console.log("auth: ", auth);
-  const callback = await apiRequest("/api/spotify/callback" + "?code=" + encodeURIComponent(auth.data.code));
+  const callback = await apiRequest("/api/v1/spotify/callback" + "?code=" + encodeURIComponent(auth.data.code));
   console.log("callback: ", callback);
 
   
-  const { ok, data } = await apiRequest("/api/spotify/token");
+  const { ok, data } = await apiRequest("/api/v1/spotify/token");
   console.log("data: ", data);
   if (ok && data.success) {
     localStorage.setItem("spotify_token", data.data.access_token);
@@ -167,7 +167,7 @@ async function createRound(roundData) {
     energy: roundData.energy || null,
   };
 
-  const { ok, data } = await apiRequest("/api/voting/rounds", {
+  const { ok, data } = await apiRequest("/api/v1/voting/rounds", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -177,7 +177,7 @@ async function createRound(roundData) {
 
 // Load all rounds
 async function loadRounds() {
-  const { ok, data } = await apiRequest("/api/voting/rounds");
+  const { ok, data } = await apiRequest("/api/v1/voting/rounds");
   if (ok && data.success) {
     return data.data || [];
   }
@@ -186,7 +186,7 @@ async function loadRounds() {
 
 // Get QR code data
 async function getQRCode(roundId) {
-  const { ok, data } = await apiRequest(`/api/voting/rounds/${roundId}/qr`);
+  const { ok, data } = await apiRequest(`/api/v1/voting/rounds/${roundId}/qr`);
   if (ok && data.success) {
     return data.data;
   }
@@ -214,7 +214,7 @@ function generateQRCode(url, containerId) {
 // Generate next round
 async function generateNextRound(roundId) {
   const { ok, data } = await apiRequest(
-    `/api/voting/rounds/${roundId}/next-round`,
+    `/api/v1/voting/rounds/${roundId}/next-round`,
     {
       method: "POST",
     }
@@ -225,7 +225,7 @@ async function generateNextRound(roundId) {
 // Update round status
 async function updateRoundStatus(roundId, status) {
   const { ok, data } = await apiRequest(
-    `/api/voting/rounds/${roundId}/status`,
+    `/api/v1/voting/rounds/${roundId}/status`,
     {
       method: "PATCH",
       body: JSON.stringify({ status }),
@@ -237,7 +237,7 @@ async function updateRoundStatus(roundId, status) {
 // Get results
 async function getResults(roundId) {
   const { ok, data } = await apiRequest(
-    `/api/voting/rounds/${roundId}/results`
+    `/api/v1/voting/rounds/${roundId}/results`
   );
   if (ok && data.success) {
     return data.data;
@@ -247,7 +247,7 @@ async function getResults(roundId) {
 
 // Initiate Spotify OAuth
 async function initiateSpotifyOAuth() {
-  const { ok, data } = await apiRequest("/api/spotify/auth");
+  const { ok, data } = await apiRequest("/api/v1/spotify/auth");
   if (ok && data.success) {
     return data.data;
   }
@@ -256,7 +256,7 @@ async function initiateSpotifyOAuth() {
 
 // Handle Spotify OAuth callback
 async function handleSpotifyOAuthCallback() {
-  const { ok, data } = await apiRequest("/api/spotify/callback");
+  const { ok, data } = await apiRequest("/api/v1/spotify/callback");
   if (ok && data.success) {
     return data.data;
   }
@@ -281,7 +281,7 @@ async function getSpotifyTrackInfo(trackId) {
 async function getRoundCountdown(roundId) {
   try {
     const { ok, data } = await apiRequest(
-      `/api/voting/rounds/${roundId}/countdown`
+      `/api/v1/voting/rounds/${roundId}/countdown`
     );
     if (ok && data.success) {
       return data.data;
@@ -580,7 +580,7 @@ window.startJukebox = async function (roundId) {
   btn.textContent = "Starting...";
 
   try {
-    const { ok, data } = await apiRequest("/api/jukebox/start", {
+    const { ok, data } = await apiRequest("/api/v1/jukebox/start", {
       method: "POST",
       body: JSON.stringify({ roundId }),
     });
@@ -773,7 +773,7 @@ async function initDashboard() {
       
       try {
         const response = await fetch(
-          window.getBackendUrl() + "/api/ai/health",
+          window.getBackendUrl() + "/api/v1/ai/health",
           {
             method: "GET",
             headers: {
