@@ -88,9 +88,16 @@ async function checkAuth(cookies, authHeader) {
 
     const httpModule = backendUrl.protocol === "https:" ? https : http;
     
+    // Force IPv4 if localhost (to avoid IPv6 issues)
+    let hostname = backendUrl.hostname;
+    if (hostname === "localhost" || hostname === "::1") {
+      hostname = "127.0.0.1";
+      console.warn(`WARNING: localhost detected in BACKEND_URL, using 127.0.0.1 instead. BACKEND_URL should be the actual backend service URL in production.`);
+    }
+    
     return new Promise((resolve) => {
       const options = {
-        hostname: backendUrl.hostname,
+        hostname: hostname,
         port: backendUrl.port || (backendUrl.protocol === "https:" ? 443 : 80),
         path: "/api/auth/profile",
         method: "GET",
@@ -98,8 +105,11 @@ async function checkAuth(cookies, authHeader) {
           "Authorization": `Bearer ${token}`,
           "Accept": "application/json"
         },
-        timeout: 5000
+        timeout: 5000,
+        family: 4 // Force IPv4 to avoid IPv6 resolution issues
       };
+      
+      console.log(`Attempting auth check with backend: ${backendUrl.protocol}//${hostname}:${options.port}`);
 
       const req = httpModule.request(options, (res) => {
         let data = "";
@@ -241,19 +251,21 @@ async function handleRoute(req, res, routePath) {
       return;
     }
 
-    // Check authentication - server must validate before serving protected pages
-    let authResult;
-    try {
-      authResult = await checkAuth(cookies, authHeader);
-    } catch (error) {
-      console.error("Error checking authentication:", error);
-      // If auth check throws an error, treat as unauthenticated
-      authResult = { authenticated: false, user: null, error: "check_failed", errorDetails: error.message };
-    }
-    
-    // Check if there was an error contacting the backend
-    if (authResult.error && route.requiresAuth) {
-      // Backend is unreachable or timed out - don't allow access to protected pages
+  // Check authentication - server must validate before serving protected pages
+  let authResult;
+  try {
+    authResult = await checkAuth(cookies, authHeader);
+  } catch (error) {
+    console.error("Error checking authentication:", error);
+    // If auth check throws an error, treat as unauthenticated
+    authResult = { authenticated: false, user: null, error: "check_failed", errorDetails: error.message };
+  }
+  
+  // Check if there was an error contacting the backend
+  if (authResult.error && route.requiresAuth) {
+    // Backend is unreachable or timed out - don't allow access to protected pages
+    console.error(`Backend unavailable (${authResult.error}): Cannot serve protected route ${routePath}`);
+    if (!res.headersSent) {
       res.writeHead(503, { "Content-Type": "text/html" });
       res.end(`
         <!DOCTYPE html>
@@ -266,8 +278,9 @@ async function handleRoute(req, res, routePath) {
         </body>
         </html>
       `);
-      return;
     }
+    return;
+  }
     
     // Handle routes that require guest (redirect if authenticated)
     if (route.requiresGuest) {
