@@ -313,11 +313,11 @@ async function getSpotifyTrackInfo(trackId) {
     return null;
   }
 
-  const { ok, data } = await apiRequest(`/api/spotify/tracks/${trackId}`);
-  if (ok && data.success) {
-    return data.data;
-  }
-  return null;
+  // const { ok, data } = await apiRequest(`/api/spotify/tracks/${trackId}`);
+  // if (ok && data.success) {
+  //   return data.data;
+  // }
+  // return null;
 }
 
 // Get countdown info for round
@@ -749,6 +749,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Load rounds
   await loadAndDisplayRounds();
+  await loadSpotifyToken();
 
   // Setup health check button
   const healthCheckBtn = document.getElementById("health-check-btn");
