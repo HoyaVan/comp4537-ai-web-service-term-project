@@ -244,9 +244,30 @@ async function initLoggedInHeader(additionalLinks = []) {
       spotifyBtn.className = 'header-btn spotify-btn';
       spotifyBtn.textContent = '🎵 Connect Spotify';
       spotifyBtn.style.cursor = 'pointer';
-      spotifyBtn.addEventListener('click', function() {
+      spotifyBtn.addEventListener('click', async function() {
         const backendUrl = window.getBackendUrl ? window.getBackendUrl() : (window.BACKEND_URL || 'http://localhost:3000');
-        window.location.href = backendUrl + '/api/v1/spotify/oauth/authorize';
+        
+        // Make authenticated request to get the authorization URL
+        try {
+          // Use authService if available for authenticated requests
+          if (window.authService) {
+            const response = await window.authService.apiRequest('/api/v1/spotify/oauth/authorize?format=json');
+            const data = await response.json();
+            
+            if (data.success && data.data && data.data.authUrl) {
+              // Redirect to Spotify authorization page
+              window.location.href = data.data.authUrl;
+            } else {
+              alert('Failed to get Spotify authorization URL. Please try again.');
+            }
+          } else {
+            // Fallback: try direct redirect (may not work if auth cookie not set)
+            window.location.href = backendUrl + '/api/v1/spotify/oauth/authorize';
+          }
+        } catch (error) {
+          console.error('Error initiating Spotify OAuth:', error);
+          alert('Failed to connect to Spotify. Please make sure you are logged in.');
+        }
       });
       
       // Insert right after Profile link if it exists, otherwise before user email

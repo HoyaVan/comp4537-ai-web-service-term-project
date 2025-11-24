@@ -78,7 +78,7 @@ async function initiateOAuth(req, res) {
       });
     }
 
-    const { scopes } = req.query;
+    const { scopes, format } = req.query;
     const scopesArray = scopes ? scopes.split(",") : undefined;
 
     // Include user ID in state parameter so we can identify the user in callback
@@ -89,6 +89,17 @@ async function initiateOAuth(req, res) {
       scopesArray
     );
 
+    // If format=json is requested, return the URL as JSON (for frontend to handle redirect)
+    if (format === 'json') {
+      return res.status(200).json({
+        success: true,
+        data: {
+          authUrl: authURL,
+        },
+      });
+    }
+
+    // Otherwise, redirect directly (for direct browser access)
     return res.redirect(authURL);
   } catch (error) {
     console.error("Error initiating OAuth:", error);
