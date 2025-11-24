@@ -392,12 +392,18 @@ class AuthService {
       ...options,
     };
 
-    // Use relative URL for API routes to go through frontend proxy
-    // This allows the frontend server to handle routing and CORS properly
-    // Only use full backend URL if the URL doesn't start with /api/
-    const requestUrl = url.startsWith("/api/")
-      ? url
-      : `${this.backendUrl}${url}`;
+    // Always use backend URL for API requests
+    // If URL is already a full URL, use it as-is; otherwise prepend backend URL
+    let requestUrl;
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      // Already a full URL, use as-is
+      requestUrl = url;
+    } else {
+      // Relative URL - prepend backend URL
+      // Ensure URL starts with / if it doesn't already
+      const normalizedUrl = url.startsWith("/") ? url : `/${url}`;
+      requestUrl = `${this.backendUrl}${normalizedUrl}`;
+    }
 
     return fetch(requestUrl, defaultOptions);
   }
