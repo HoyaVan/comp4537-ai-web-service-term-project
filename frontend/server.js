@@ -212,10 +212,8 @@ async function handleRoute(req, res, routePath) {
     // Check if route requires specific role
     if (route.requiresRole) {
       if (!authResult.user || authResult.user.role !== route.requiresRole) {
-        res.writeHead(302, {
-          "Location": route.redirectIfUnauthorized || "/dashboard"
-        });
-        res.end();
+        // Serve 404 page instead of redirecting
+        serveStaticFile("404.html", res, 404);
         return;
       }
     }
