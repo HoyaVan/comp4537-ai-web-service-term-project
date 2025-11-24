@@ -413,11 +413,26 @@ class SpotifyService {
         images: response.data.images,
       };
     } catch (error) {
+      const errorDetails = error.response?.data || error.message;
+      const statusCode = error.response?.status;
+      
       console.error(
         "Error getting Spotify user profile:",
-        error.response?.data || error.message
+        `Status: ${statusCode}`,
+        `Error: ${JSON.stringify(errorDetails)}`
       );
-      throw new Error("Failed to get Spotify user profile");
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to get Spotify user profile";
+      if (statusCode === 401) {
+        errorMessage = "Spotify authentication failed. Please reconnect to Spotify.";
+      } else if (statusCode === 403) {
+        errorMessage = "Spotify access denied. Please check your app permissions in Spotify Developer Dashboard.";
+      } else if (errorDetails?.error?.message) {
+        errorMessage = `Spotify API error: ${errorDetails.error.message}`;
+      }
+      
+      throw new Error(errorMessage);
     }
   }
 

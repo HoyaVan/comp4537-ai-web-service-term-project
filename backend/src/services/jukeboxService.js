@@ -425,7 +425,7 @@ async function startJukebox(ownerId, initialRoundId) {
       
       // Add to queue (for Premium users with active device)
       addWinnerToQueue(ownerId, winnerSong).catch(error => {
-        // Silently fail - queue requires Premium and active device
+        console.error("Error in addWinnerToQueue promise:", error.message);
       });
     }
 
@@ -600,6 +600,12 @@ async function getOrCreateJukeboxPlaylist(ownerId, roundCriteria = null) {
     return playlist;
   } catch (error) {
     console.error("Error getting/creating Spotify playlist:", error.message);
+    // Log more details for debugging
+    if (error.message.includes("authentication failed")) {
+      console.error("   → User needs to reconnect their Spotify account");
+    } else if (error.message.includes("access denied")) {
+      console.error("   → Check Spotify app permissions in Developer Dashboard");
+    }
     return null; // Fail silently - don't break jukebox if playlist fails
   }
 }
@@ -613,14 +619,18 @@ async function getOrCreateJukeboxPlaylist(ownerId, roundCriteria = null) {
 async function addWinnerToQueue(ownerId, winnerSong) {
   try {
     if (!winnerSong.spotifyUri) {
+      console.warn(`⚠️ Cannot add to queue: No spotifyUri for "${winnerSong.title}" by ${winnerSong.artist}`);
       return false; // No Spotify URI, can't add to queue
     }
 
     // Get user's Spotify tokens
     const tokens = await authService.getUserSpotifyTokens(ownerId);
     if (!tokens || !tokens.accessToken) {
+      console.warn(`⚠️ Cannot add to queue: User ${ownerId} not connected to Spotify`);
       return false; // User not connected to Spotify
     }
+    
+    console.log(`🔄 Attempting to add "${winnerSong.title}" by ${winnerSong.artist} to Spotify queue...`);
 
     // Check if token is expired and refresh if needed
     let accessToken = tokens.accessToken;
@@ -650,11 +660,29 @@ async function addWinnerToQueue(ownerId, winnerSong) {
     // Add track to queue (non-blocking, fails silently if Premium not available or no active device)
     try {
       await spotifyService.addToQueue(accessToken, winnerSong.spotifyUri);
+      console.log(`✅ Successfully added "${winnerSong.title}" by ${winnerSong.artist} to Spotify queue`);
       return true;
     } catch (error) {
       // Expected errors: Premium required, no active device, etc.
-      // Log but don't throw - this is optional functionality
-      console.log(`Could not add to queue (non-critical): ${error.message}`);
+      // Log detailed error for debugging
+      const errorMessage = error.message || 'Unknown error';
+      const errorStatus = error.response?.status;
+      console.error(`❌ Could not add "${winnerSong.title}" by ${winnerSong.artist} to Spotify queue:`, {
+        message: errorMessage,
+        status: errorStatus,
+        spotifyUri: winnerSong.spotifyUri,
+        errorDetails: error.response?.data || error.stack
+      });
+      
+      // Provide helpful error messages
+      if (errorStatus === 404) {
+        console.error('   → No active Spotify device found. Please open Spotify app and start playing music.');
+      } else if (errorStatus === 403) {
+        console.error('   → Spotify Premium is required to add songs to queue.');
+      } else if (errorStatus === 401) {
+        console.error('   → Spotify authentication failed. Please reconnect to Spotify.');
+      }
+      
       return false;
     }
   } catch (error) {
@@ -887,7 +915,7 @@ async function advanceJukebox(ownerId) {
       
       // Add to queue (for Premium users with active device)
       addWinnerToQueue(jukebox.ownerId, winnerSong).catch(error => {
-        // Silently fail - queue requires Premium and active device
+        console.error("Error in addWinnerToQueue promise:", error.message);
       });
     }
 
