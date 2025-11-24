@@ -24,41 +24,41 @@ async function getApiEndpointStats(req, res) {
 
     const stats = getEndpointStats();
     
-    // Enrich endpoint stats with user details
-    const enrichedStats = stats.map((stat) => {
-      // Only enrich users if the users array exists and has items
-      let enrichedUsers = [];
-      if (stat.users && Array.isArray(stat.users) && stat.users.length > 0) {
-        enrichedUsers = stat.users.map((user) => {
-          const userDetails = authService.getUserById(user.userId);
-          return {
-            userId: user.userId,
-            name: userDetails?.name || 'Unknown',
-            email: userDetails?.email || 'Unknown',
-            count: user.count,
+      // Enrich endpoint stats with user details
+      const enrichedStats = await Promise.all(stats.map(async (stat) => {
+        // Only enrich users if the users array exists and has items
+        let enrichedUsers = [];
+        if (stat.users && Array.isArray(stat.users) && stat.users.length > 0) {
+          enrichedUsers = await Promise.all(stat.users.map(async (user) => {
+            const userDetails = await authService.getUserById(user.userId);
+            return {
+              userId: user.userId,
+              name: userDetails?.name || 'Unknown',
+              email: userDetails?.email || 'Unknown',
+              count: user.count,
+            };
+          }));
+        }
+        
+        // Enrich last call info
+        let lastCallInfo = null;
+        if (stat.lastCall && stat.lastCall.userId && stat.lastCall.userId !== 'anonymous') {
+          const lastCallUser = await authService.getUserById(stat.lastCall.userId);
+          lastCallInfo = {
+            userId: stat.lastCall.userId,
+            email: lastCallUser?.email || 'Unknown',
+            timestamp: stat.lastCall.timestamp,
           };
-        });
-      }
-      
-      // Enrich last call info
-      let lastCallInfo = null;
-      if (stat.lastCall && stat.lastCall.userId && stat.lastCall.userId !== 'anonymous') {
-        const lastCallUser = authService.getUserById(stat.lastCall.userId);
-        lastCallInfo = {
-          userId: stat.lastCall.userId,
-          email: lastCallUser?.email || 'Unknown',
-          timestamp: stat.lastCall.timestamp,
+        }
+        
+        return {
+          method: stat.method,
+          endpoint: stat.endpoint,
+          requests: stat.requests,
+          users: enrichedUsers,
+          lastCall: lastCallInfo,
         };
-      }
-      
-      return {
-        method: stat.method,
-        endpoint: stat.endpoint,
-        requests: stat.requests,
-        users: enrichedUsers,
-        lastCall: lastCallInfo,
-      };
-    });
+      }));
 
     return res.status(200).json({
       success: true,
@@ -89,18 +89,18 @@ async function getUserApiConsumptionStats(req, res) {
       });
     }
 
-    const consumptionStats = getUserConsumptionStats();
+    const consumptionStats = await getUserConsumptionStats();
     
     // Enrich with user details
-    const enrichedStats = consumptionStats.map((stat) => {
-      const userDetails = authService.getUserById(stat.userId);
+    const enrichedStats = await Promise.all(consumptionStats.map(async (stat) => {
+      const userDetails = await authService.getUserById(stat.userId);
       return {
         userId: stat.userId,
         name: userDetails?.name || 'Unknown',
         email: userDetails?.email || 'Unknown',
         totalRequests: stat.totalRequests,
       };
-    });
+    }));
 
     return res.status(200).json({
       success: true,
@@ -171,7 +171,7 @@ async function resetUserApiCallCount(req, res) {
     }
 
     // Check if user exists
-    const targetUser = authService.getUserById(userId);
+    const targetUser = await authService.getUserById(userId);
     if (!targetUser) {
       return res.status(404).json({
         success: false,
@@ -179,7 +179,7 @@ async function resetUserApiCallCount(req, res) {
       });
     }
 
-    resetUserApiCount(userId);
+    await resetUserApiCount(userId);
 
     return res.status(200).json({
       success: true,
