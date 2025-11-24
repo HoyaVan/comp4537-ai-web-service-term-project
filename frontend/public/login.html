@@ -54,99 +54,38 @@
         if (form) {
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                console.log('[LOGIN] Form submission started');
                 setMessage('');
                 const email = document.getElementById('email').value || '';
                 const password = document.getElementById('password').value || '';
 
-                console.log('[LOGIN] Validating input - email:', email ? email.substring(0, 3) + '***' : 'empty', 'password:', password ? '***' : 'empty');
-                
                 if (!email.trim()) {
-                    console.log('[LOGIN] Validation failed: email required');
                     return setMessage(authMessages.emailRequired);
                 }
                 if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-                    console.log('[LOGIN] Validation failed: invalid email format');
                     return setMessage(authMessages.emailInvalid);
                 }
                 if (!password) {
-                    console.log('[LOGIN] Validation failed: password required');
                     return setMessage(authMessages.passwordRequired);
                 }
 
-                console.log('[LOGIN] Input validation passed, calling authService.login()');
                 btn.disabled = true;
                 btn.textContent = authMessages.loggingIn;
                 
                 try {
-                    const loginStartTime = Date.now();
                     const result = await window.authService.login(email, password);
-                    const loginDuration = Date.now() - loginStartTime;
-                    
-                    console.log(`[LOGIN] authService.login() completed in ${loginDuration}ms`, {
-                        success: result.success,
-                        message: result.message,
-                        hasUser: !!result.user
-                    });
                     
                     if (result.success) {
-                        console.log('[LOGIN] Login successful, setting success message');
                         setMessage(authMessages.successPrefix + result.message, true);
-                        
-                        // Helper function to wait/delay using Promise
-                        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-                        
-                        console.log('[LOGIN] Waiting 200ms for httpOnly cookie to be processed by browser...');
-                        // Wait briefly for the httpOnly cookie to be processed by the browser
-                        await delay(200);
-                        console.log('[LOGIN] Cookie processing delay completed');
-                        
-                        // Verify authentication with one retry if needed
-                        try {
-                            console.log('[LOGIN] Verifying authentication status...');
-                            const authCheckStartTime = Date.now();
-                            let isAuth = await window.authService.isAuthenticated();
-                            const authCheckDuration = Date.now() - authCheckStartTime;
-                            
-                            console.log(`[LOGIN] Initial auth verification completed in ${authCheckDuration}ms - authenticated:`, isAuth);
-                            
-                            if (!isAuth) {
-                                console.log('[LOGIN] Authentication verification failed, retrying after 300ms delay...');
-                                // Retry once after a short delay
-                                await delay(300);
-                                const retryStartTime = Date.now();
-                                isAuth = await window.authService.isAuthenticated();
-                                const retryDuration = Date.now() - retryStartTime;
-                                console.log(`[LOGIN] Retry auth verification completed in ${retryDuration}ms - authenticated:`, isAuth);
-                            } else {
-                                console.log('[LOGIN] Authentication verified successfully');
-                            }
-                        } catch (authErr) {
-                            console.error('[LOGIN] Auth verification error:', authErr);
-                            console.warn('[LOGIN] Continuing with redirect despite auth verification error');
-                        }
-                        
-                        // Redirect to dashboard (server-side auth will handle verification)
-                        const currentUrl = window.location.href;
-                        const redirectUrl = '/dashboard';
-                        console.log(`[LOGIN] Initiating redirect to ${redirectUrl} from ${currentUrl}`);
-                        console.log('[LOGIN] Using window.location.replace() for redirect');
-                        window.location.replace(redirectUrl);
-                        console.log('[LOGIN] Redirect command executed, page should navigate now');
-                        return; // Exit early, don't re-enable button
+                        setTimeout(() => {
+                            window.location.replace('/dashboard');
+                        }, 1000);
+                        return;
                     } else {
-                        console.log('[LOGIN] Login failed:', result.message);
                         setMessage(authMessages.loginFailed + result.message, false);
                         btn.disabled = false;
                         btn.textContent = authMessages.login;
                     }
                 } catch (err) {
-                    console.error('[LOGIN] Exception during login process:', err);
-                    console.error('[LOGIN] Error details:', {
-                        message: err.message,
-                        stack: err.stack,
-                        name: err.name
-                    });
                     setMessage(authMessages.networkError + (err.message || err), false);
                     btn.disabled = false;
                     btn.textContent = authMessages.login;

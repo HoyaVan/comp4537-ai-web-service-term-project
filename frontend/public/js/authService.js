@@ -1,6 +1,6 @@
 /**
  * Centralized authentication service
- * Uses httpOnly cookies for authentication
+ * Uses JWT tokens stored in localStorage for authentication
  */
 class AuthService {
   constructor() {
@@ -9,61 +9,63 @@ class AuthService {
   }
 
   /**
+   * Get token from localStorage
+   * @returns {string|null}
+   */
+  getToken() {
+    return localStorage.getItem('token');
+  }
+
+  /**
+   * Set token in localStorage
+   * @param {string} token
+   */
+  setToken(token) {
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
+  }
+
+  /**
    * Check if user is authenticated
    * @returns {Promise<boolean>}
    */
   async isAuthenticated() {
-    const profileUrl = `${this.backendUrl}/api/auth/profile`;
-    console.log('[AUTH_SERVICE] Checking authentication status');
-    console.log('[AUTH_SERVICE] Profile URL:', profileUrl);
-    console.log('[AUTH_SERVICE] Request method: GET');
-    console.log('[AUTH_SERVICE] Credentials: include (cookies will be sent)');
-    
+    const token = this.getToken();
+    if (!token) {
+      this.currentUser = null;
+      return false;
+    }
+
     try {
-      const checkStartTime = Date.now();
-      const response = await fetch(profileUrl, {
+      const response = await fetch(`${this.backendUrl}/api/auth/profile`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        credentials: 'include', // Include cookies
         mode: 'cors',
       });
 
-      const checkDuration = Date.now() - checkStartTime;
-      console.log(`[AUTH_SERVICE] Profile check completed in ${checkDuration}ms`);
-      console.log('[AUTH_SERVICE] Response status:', response.status, response.statusText);
-
       if (response.ok) {
         const data = await response.json();
-        console.log('[AUTH_SERVICE] Profile response data:', {
-          success: data.success,
-          hasData: !!data.data,
-          userEmail: data.data?.email,
-          userRole: data.data?.role
-        });
-        
         if (data.success && data.data) {
-          console.log('[AUTH_SERVICE] Authentication verified - user is authenticated');
           this.currentUser = data.data;
           return true;
-        } else {
-          console.log('[AUTH_SERVICE] Authentication failed - response.success is false or no user data');
         }
-      } else {
-        console.log('[AUTH_SERVICE] Authentication failed - response not OK (status:', response.status, ')');
+      }
+      
+      // If request failed, token might be invalid - clear it
+      if (response.status === 401 || response.status === 403) {
+        this.setToken(null);
       }
       
       this.currentUser = null;
       return false;
     } catch (error) {
-      console.error('[AUTH_SERVICE] Auth check failed with error:', error);
-      console.error('[AUTH_SERVICE] Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
       this.currentUser = null;
       return false;
     }
@@ -84,22 +86,13 @@ class AuthService {
    * @returns {Promise<{success: boolean, message: string, user?: Object}>}
    */
   async login(email, password) {
-    const loginUrl = `${this.backendUrl}/api/auth/login`;
-    console.log('[AUTH_SERVICE] Login request initiated');
-    console.log('[AUTH_SERVICE] Request URL:', loginUrl);
-    console.log('[AUTH_SERVICE] Request method: POST');
-    console.log('[AUTH_SERVICE] Credentials: include (cookies will be sent)');
-    console.log('[AUTH_SERVICE] Mode: cors');
-    
     try {
-      const requestStartTime = Date.now();
-      const response = await fetch(loginUrl, {
+      const response = await fetch(`${this.backendUrl}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        credentials: 'include', // Include cookies
         mode: 'cors',
         body: JSON.stringify({
           email: email.trim(),
@@ -107,50 +100,26 @@ class AuthService {
         }),
       });
 
-      const requestDuration = Date.now() - requestStartTime;
-      console.log(`[AUTH_SERVICE] Fetch completed in ${requestDuration}ms`);
-      console.log('[AUTH_SERVICE] Response status:', response.status, response.statusText);
-      console.log('[AUTH_SERVICE] Response headers:', {
-        'content-type': response.headers.get('content-type'),
-        'set-cookie': response.headers.get('set-cookie') ? 'present' : 'missing'
-      });
-
       const data = await response.json();
-      console.log('[AUTH_SERVICE] Response data parsed:', {
-        success: data.success,
-        hasData: !!data.data,
-        hasUser: !!(data.data && data.data.user),
-        message: data.message
-      });
 
       if (response.ok && data.success) {
-        console.log('[AUTH_SERVICE] Login successful, storing user data');
+        const token = data.data?.token;
+        if (token) {
+          this.setToken(token);
+        }
         this.currentUser = data.data.user;
-        console.log('[AUTH_SERVICE] Current user stored:', {
-          id: this.currentUser?.id,
-          email: this.currentUser?.email,
-          role: this.currentUser?.role
-        });
         return {
           success: true,
           message: data.message || 'Login successful',
           user: data.data.user,
         };
       } else {
-        console.log('[AUTH_SERVICE] Login failed - response not OK or success=false');
-        console.log('[AUTH_SERVICE] Failure reason:', data.message || 'Unknown');
         return {
           success: false,
           message: data.message || 'Login failed',
         };
       }
     } catch (error) {
-      console.error('[AUTH_SERVICE] Network error during login:', error);
-      console.error('[AUTH_SERVICE] Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
       return {
         success: false,
         message: 'Network error: ' + error.message,
@@ -173,7 +142,6 @@ class AuthService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        credentials: 'include', // Include cookies
         mode: 'cors',
         body: JSON.stringify({
           name: name.trim(),
@@ -185,6 +153,10 @@ class AuthService {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        const token = data.data?.token;
+        if (token) {
+          this.setToken(token);
+        }
         this.currentUser = data.data.user;
         return {
           success: true,
@@ -211,16 +183,18 @@ class AuthService {
    */
   async logout() {
     try {
+      const token = this.getToken();
       const response = await fetch(`${this.backendUrl}/api/auth/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
-        credentials: 'include', // Include cookies
         mode: 'cors',
       });
 
+      this.setToken(null);
       this.currentUser = null;
 
       if (response.ok) {
@@ -235,6 +209,7 @@ class AuthService {
         };
       }
     } catch (error) {
+      this.setToken(null);
       this.currentUser = null;
       return {
         success: false,
@@ -250,13 +225,14 @@ class AuthService {
    * @returns {Promise<Response>}
    */
   async apiRequest(url, options = {}) {
+    const token = this.getToken();
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...(options.headers || {}),
       },
-      credentials: 'include', // Always include cookies
       mode: 'cors',
       ...options,
     };
