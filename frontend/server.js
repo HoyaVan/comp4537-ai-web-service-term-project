@@ -17,47 +17,47 @@ const routes = {
   "/": {
     page: "index.html",
     requiresGuest: true,
-    redirectIfAuth: "/dashboard"
+    redirectIfAuth: "/dashboard",
   },
   "/login": {
     page: "login.html",
     requiresGuest: true,
-    redirectIfAuth: "/dashboard"
+    redirectIfAuth: "/dashboard",
   },
   "/signup": {
     page: "signup.html",
     requiresGuest: true,
-    redirectIfAuth: "/dashboard"
+    redirectIfAuth: "/dashboard",
   },
-  
+
   // Protected routes (require authentication)
   "/dashboard": {
     page: "dashboard.html",
-    requiresAuth: true
+    requiresAuth: true,
   },
   "/profile": {
     page: "profile.html",
-    requiresAuth: true
+    requiresAuth: true,
   },
   "/admin": {
     page: "admin.html",
     requiresAuth: true,
     requiresRole: "admin",
-    redirectIfUnauthorized: "/dashboard"
+    redirectIfUnauthorized: "/dashboard",
   },
-  
+
   // Public voting route (no auth required)
   "/vote": {
     page: "vote.html",
-    public: true
-  }
+    public: true,
+  },
 };
 
 // Helper function to check authentication via backend
 async function checkAuth(cookies, authHeader) {
   try {
     let token = null;
-    
+
     // Check Authorization header first (Bearer token)
     if (authHeader) {
       const parts = authHeader.split(" ");
@@ -65,30 +65,35 @@ async function checkAuth(cookies, authHeader) {
         token = parts[1];
       }
     }
-    
+
     // Fallback to cookie for backward compatibility
     if (!token) {
       const cookieObj = parseCookies(cookies);
       token = cookieObj.token;
       if (token) {
-        console.log('[server] Token found in cookie');
+        console.log("[server] Token found in cookie");
       } else {
-        console.log('[server] No token in cookie or Authorization header');
+        console.log("[server] No token in cookie or Authorization header");
       }
     } else {
-      console.log('[server] Token found in Authorization header');
+      console.log("[server] Token found in Authorization header");
     }
-    
+
     if (!token) {
       return { authenticated: false, user: null };
     }
-    
-    console.log('[server] Validating token with backend...');
+
+    console.log("[server] Validating token with backend...");
 
     // Validate BACKEND_URL before using it
     if (!BACKEND_URL) {
       console.error("BACKEND_URL is not set");
-      return { authenticated: false, user: null, error: "backend_unreachable", errorDetails: "BACKEND_URL not configured" };
+      return {
+        authenticated: false,
+        user: null,
+        error: "backend_unreachable",
+        errorDetails: "BACKEND_URL not configured",
+      };
     }
 
     let backendUrl;
@@ -96,33 +101,52 @@ async function checkAuth(cookies, authHeader) {
       backendUrl = new URL(BACKEND_URL);
     } catch (urlError) {
       console.error("Invalid BACKEND_URL:", BACKEND_URL, urlError);
-      return { authenticated: false, user: null, error: "backend_unreachable", errorDetails: "Invalid BACKEND_URL configuration" };
+      return {
+        authenticated: false,
+        user: null,
+        error: "backend_unreachable",
+        errorDetails: "Invalid BACKEND_URL configuration",
+      };
     }
 
     const httpModule = backendUrl.protocol === "https:" ? https : http;
-    
+
     // Force IPv4 if localhost (to avoid IPv6 issues)
     let hostname = backendUrl.hostname;
     if (hostname === "localhost" || hostname === "::1") {
       hostname = "127.0.0.1";
-      console.warn(`WARNING: localhost detected in BACKEND_URL, using 127.0.0.1 instead. BACKEND_URL should be the actual backend service URL in production.`);
+      console.warn(
+        `WARNING: localhost detected in BACKEND_URL, using 127.0.0.1 instead. BACKEND_URL should be the actual backend service URL in production.`
+      );
     }
-    
+
     return new Promise((resolve) => {
+      // Check if using ngrok and add bypass header
+      const isNgrok =
+        BACKEND_URL.includes("ngrok-free.dev") ||
+        BACKEND_URL.includes("ngrok.io");
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      };
+      // Add ngrok bypass header if using ngrok
+      if (isNgrok) {
+        headers["ngrok-skip-browser-warning"] = "true";
+      }
+
       const options = {
         hostname: hostname,
         port: backendUrl.port || (backendUrl.protocol === "https:" ? 443 : 80),
         path: "/api/v1/auth/profile",
         method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/json"
-        },
+        headers: headers,
         timeout: 5000,
-        family: 4 // Force IPv4 to avoid IPv6 resolution issues
+        family: 4, // Force IPv4 to avoid IPv6 resolution issues
       };
-      
-      console.log(`Attempting auth check with backend: ${backendUrl.protocol}//${hostname}:${options.port}`);
+
+      console.log(
+        `Attempting auth check with backend: ${backendUrl.protocol}//${hostname}:${options.port}`
+      );
 
       const req = httpModule.request(options, (res) => {
         let data = "";
@@ -134,10 +158,16 @@ async function checkAuth(cookies, authHeader) {
             try {
               const result = JSON.parse(data);
               if (result.success && result.data) {
-                console.log('[server] Authentication successful for user:', result.data.email);
+                console.log(
+                  "[server] Authentication successful for user:",
+                  result.data.email
+                );
                 resolve({ authenticated: true, user: result.data });
               } else {
-                console.log('[server] Authentication failed - invalid response:', result);
+                console.log(
+                  "[server] Authentication failed - invalid response:",
+                  result
+                );
                 resolve({ authenticated: false, user: null });
               }
             } catch (e) {
@@ -145,7 +175,10 @@ async function checkAuth(cookies, authHeader) {
               resolve({ authenticated: false, user: null });
             }
           } else {
-            console.log('[server] Authentication failed - status code:', res.statusCode);
+            console.log(
+              "[server] Authentication failed - status code:",
+              res.statusCode
+            );
             resolve({ authenticated: false, user: null });
           }
         });
@@ -154,7 +187,12 @@ async function checkAuth(cookies, authHeader) {
       req.on("error", (err) => {
         console.error("Error contacting backend for auth check:", err.message);
         // If there's a network error (backend unreachable), we need to signal this
-        resolve({ authenticated: false, user: null, error: "backend_unreachable", errorDetails: err.message });
+        resolve({
+          authenticated: false,
+          user: null,
+          error: "backend_unreachable",
+          errorDetails: err.message,
+        });
       });
 
       // Set a timeout to detect if backend doesn't respond
@@ -168,7 +206,12 @@ async function checkAuth(cookies, authHeader) {
     });
   } catch (error) {
     console.error("Unexpected error in checkAuth:", error);
-    return { authenticated: false, user: null, error: "check_failed", errorDetails: error.message };
+    return {
+      authenticated: false,
+      user: null,
+      error: "check_failed",
+      errorDetails: error.message,
+    };
   }
 }
 
@@ -176,14 +219,14 @@ async function checkAuth(cookies, authHeader) {
 function parseCookies(cookieHeader) {
   const cookies = {};
   if (!cookieHeader) return cookies;
-  
+
   cookieHeader.split(";").forEach((cookie) => {
     const parts = cookie.trim().split("=");
     if (parts.length === 2) {
       cookies[parts[0].trim()] = parts[1].trim();
     }
   });
-  
+
   return cookies;
 }
 
@@ -203,7 +246,7 @@ function getMimeType(filePath) {
     ".woff": "font/woff",
     ".woff2": "font/woff2",
     ".ttf": "font/ttf",
-    ".eot": "application/vnd.ms-fontobject"
+    ".eot": "application/vnd.ms-fontobject",
   };
   return mimeTypes[ext] || "application/octet-stream";
 }
@@ -212,7 +255,7 @@ function getMimeType(filePath) {
 function serveStaticFile(filePath, res, statusCode = 200) {
   try {
     const fullPath = path.join(__dirname, "public", filePath);
-    
+
     fs.readFile(fullPath, (err, data) => {
       if (err) {
         console.error(`Error reading file ${filePath}:`, err.message);
@@ -227,7 +270,7 @@ function serveStaticFile(filePath, res, statusCode = 200) {
         }
         return;
       }
-      
+
       try {
         const mimeType = getMimeType(filePath);
         if (!res.headersSent) {
@@ -251,7 +294,7 @@ function serveStaticFile(filePath, res, statusCode = 200) {
 async function handleRoute(req, res, routePath) {
   try {
     const route = routes[routePath];
-    
+
     if (!route) {
       res.writeHead(404, { "Content-Type": "text/html" });
       res.end("Route not found");
@@ -260,30 +303,37 @@ async function handleRoute(req, res, routePath) {
 
     const cookies = req.headers.cookie || "";
     const authHeader = req.headers.authorization || "";
-    
+
     // Handle public routes
     if (route.public) {
       serveStaticFile(route.page, res);
       return;
     }
 
-  // Check authentication - server must validate before serving protected pages
-  let authResult;
-  try {
-    authResult = await checkAuth(cookies, authHeader);
-  } catch (error) {
-    console.error("Error checking authentication:", error);
-    // If auth check throws an error, treat as unauthenticated
-    authResult = { authenticated: false, user: null, error: "check_failed", errorDetails: error.message };
-  }
-  
-  // Check if there was an error contacting the backend
-  if (authResult.error && route.requiresAuth) {
-    // Backend is unreachable or timed out - don't allow access to protected pages
-    console.error(`Backend unavailable (${authResult.error}): Cannot serve protected route ${routePath}`);
-    if (!res.headersSent) {
-      res.writeHead(503, { "Content-Type": "text/html" });
-      res.end(`
+    // Check authentication - server must validate before serving protected pages
+    let authResult;
+    try {
+      authResult = await checkAuth(cookies, authHeader);
+    } catch (error) {
+      console.error("Error checking authentication:", error);
+      // If auth check throws an error, treat as unauthenticated
+      authResult = {
+        authenticated: false,
+        user: null,
+        error: "check_failed",
+        errorDetails: error.message,
+      };
+    }
+
+    // Check if there was an error contacting the backend
+    if (authResult.error && route.requiresAuth) {
+      // Backend is unreachable or timed out - don't allow access to protected pages
+      console.error(
+        `Backend unavailable (${authResult.error}): Cannot serve protected route ${routePath}`
+      );
+      if (!res.headersSent) {
+        res.writeHead(503, { "Content-Type": "text/html" });
+        res.end(`
         <!DOCTYPE html>
         <html>
         <head><title>Service Unavailable</title></head>
@@ -294,15 +344,15 @@ async function handleRoute(req, res, routePath) {
         </body>
         </html>
       `);
+      }
+      return;
     }
-    return;
-  }
-    
+
     // Handle routes that require guest (redirect if authenticated)
     if (route.requiresGuest) {
       if (authResult.authenticated) {
         res.writeHead(302, {
-          "Location": route.redirectIfAuth || "/dashboard"
+          Location: route.redirectIfAuth || "/dashboard",
         });
         res.end();
         return;
@@ -316,7 +366,7 @@ async function handleRoute(req, res, routePath) {
       // Server-side authentication is REQUIRED - don't serve page without valid auth
       if (!authResult.authenticated) {
         res.writeHead(302, {
-          "Location": "/login"
+          Location: "/login",
         });
         res.end();
         return;
@@ -364,7 +414,10 @@ const server = http.createServer(async (req, res) => {
     // Handle CORS
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Cookie, Authorization");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Cookie, Authorization"
+    );
     res.setHeader("Access-Control-Allow-Credentials", "true");
 
     // Handle CORS preflight
@@ -384,7 +437,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Handle static assets (js, css, images, etc.)
-    if (pathname.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|json)$/)) {
+    if (
+      pathname.match(
+        /\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|json)$/
+      )
+    ) {
       serveStaticFile(pathname, res);
       return;
     }
@@ -396,20 +453,33 @@ const server = http.createServer(async (req, res) => {
         res.end("Backend URL not configured");
         return;
       }
-      
+
       try {
-        const backendUrl = new URL(BACKEND_URL + pathname + (parsedUrl.search || ""));
+        const backendUrl = new URL(
+          BACKEND_URL + pathname + (parsedUrl.search || "")
+        );
         const httpModule = backendUrl.protocol === "https:" ? https : http;
-        
+
+        // Check if using ngrok and add bypass header
+        const isNgrok =
+          BACKEND_URL.includes("ngrok-free.dev") ||
+          BACKEND_URL.includes("ngrok.io");
+        const proxyHeaders = {
+          ...req.headers,
+          host: backendUrl.host,
+        };
+        // Add ngrok bypass header if using ngrok
+        if (isNgrok) {
+          proxyHeaders["ngrok-skip-browser-warning"] = "true";
+        }
+
         const options = {
           hostname: backendUrl.hostname,
-          port: backendUrl.port || (backendUrl.protocol === "https:" ? 443 : 80),
+          port:
+            backendUrl.port || (backendUrl.protocol === "https:" ? 443 : 80),
           path: backendUrl.pathname + (backendUrl.search || ""),
           method: req.method,
-          headers: {
-            ...req.headers,
-            host: backendUrl.host
-          }
+          headers: proxyHeaders,
         };
 
         const proxyReq = httpModule.request(options, (proxyRes) => {
@@ -440,7 +510,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET") {
       // Normalize path (remove trailing slash, except root)
       let routePath = pathname.replace(/\/$/, "") || "/";
-      
+
       // Check if route exists
       if (routes[routePath]) {
         await handleRoute(req, res, routePath);
@@ -474,20 +544,26 @@ const server = http.createServer(async (req, res) => {
 // Start server
 server.listen(PORT, () => {
   console.log(`\n🚀 Frontend server is running on port ${PORT}\n`);
-  console.log(`📡 Backend URL: ${BACKEND_URL || 'NOT SET - THIS WILL CAUSE ERRORS'}\n`);
+  console.log(
+    `📡 Backend URL: ${BACKEND_URL || "NOT SET - THIS WILL CAUSE ERRORS"}\n`
+  );
   console.log("📋 Available Routes:\n");
-  
+
   Object.keys(routes).forEach((route) => {
     const config = routes[route];
     let auth = "public";
     if (config.requiresAuth) {
-      auth = config.requiresRole ? `protected (${config.requiresRole})` : "protected";
+      auth = config.requiresRole
+        ? `protected (${config.requiresRole})`
+        : "protected";
     } else if (config.requiresGuest) {
       auth = "guest only";
     }
-    console.log(`   GET  ${route.padEnd(15)} - ${config.page.padEnd(20)} (${auth})`);
+    console.log(
+      `   GET  ${route.padEnd(15)} - ${config.page.padEnd(20)} (${auth})`
+    );
   });
-  
+
   console.log(`\n✅ Server ready!\n`);
 });
 
@@ -507,4 +583,3 @@ process.on("unhandledRejection", (reason, promise) => {
 });
 
 module.exports = server;
-

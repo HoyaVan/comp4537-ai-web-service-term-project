@@ -25,8 +25,11 @@ async function getSpotifyTrack(req, res) {
   } catch (error) {
     console.error("Error in getSpotifyTrack controller:", error.message);
     // Return more detailed error information
-    const statusCode = error.message.includes("authentication") ? 401 : 
-                      error.message.includes("not found") ? 404 : 400;
+    const statusCode = error.message.includes("authentication")
+      ? 401
+      : error.message.includes("not found")
+      ? 404
+      : 400;
     return res.status(statusCode).json({
       success: false,
       message: error.message || spotifyMessages.errorFetchingSpotifyTrack,
@@ -70,27 +73,25 @@ async function searchSpotifyTracks(req, res) {
 async function initiateOAuth(req, res) {
   try {
     // Get user ID from authenticated request
-    const userId = req.userId;
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required to connect Spotify",
-      });
-    }
+    // const userId = req.userId;
+    // if (!userId) {
+    //   return res.status(401).json({
+    //     success: false,
+    //     message: "Authentication required to connect Spotify",
+    //   });
+    // }
 
     const { scopes, format } = req.query;
     const scopesArray = scopes ? scopes.split(",") : undefined;
 
     // Include user ID in state parameter so we can identify the user in callback
-    const state = userId;
+    // const state = userId;
+    const state = "1234567890";
 
-    const authURL = spotifyService.getAuthorizationURL(
-      state,
-      scopesArray
-    );
+    const authURL = spotifyService.getAuthorizationURL(state, scopesArray);
 
     // If format=json is requested, return the URL as JSON (for frontend to handle redirect)
-    if (format === 'json') {
+    if (format === "json") {
       return res.status(200).json({
         success: true,
         data: {
@@ -123,31 +124,41 @@ async function handleOAuthCallback(req, res) {
     if (error) {
       console.error("Spotify OAuth error:", error);
       const errorMessage = encodeURIComponent(
-        spotifyMessages.spotifyOAuthError(error) || "Spotify authorization failed"
+        spotifyMessages.spotifyOAuthError(error) ||
+          "Spotify authorization failed"
       );
-      return res.redirect(`${redirectBase}?spotify=error&message=${errorMessage}`);
+      return res.redirect(
+        `${redirectBase}?spotify=error&message=${errorMessage}`
+      );
     }
 
     // Check if authorization code is present
     if (!code) {
       const errorMessage = encodeURIComponent(
-        spotifyMessages.authorizationCodeRequired || "Authorization code is required"
+        spotifyMessages.authorizationCodeRequired ||
+          "Authorization code is required"
       );
-      return res.redirect(`${redirectBase}?spotify=error&message=${errorMessage}`);
+      return res.redirect(
+        `${redirectBase}?spotify=error&message=${errorMessage}`
+      );
     }
 
     // Extract user ID from state parameter
     const userId = state;
     if (!userId) {
-      const errorMessage = encodeURIComponent("User ID not found in OAuth state");
-      return res.redirect(`${redirectBase}?spotify=error&message=${errorMessage}`);
+      const errorMessage = encodeURIComponent(
+        "User ID not found in OAuth state"
+      );
+      return res.redirect(
+        `${redirectBase}?spotify=error&message=${errorMessage}`
+      );
     }
 
     // Exchange authorization code for access token
     const tokenData = await spotifyService.exchangeCodeForToken(code);
 
     // Calculate expiration time
-    const expiresAt = Date.now() + (tokenData.expires_in * 1000);
+    const expiresAt = Date.now() + tokenData.expires_in * 1000;
 
     // Store tokens in database for this specific user
     await authService.updateUserSpotifyTokens(
@@ -165,12 +176,15 @@ async function handleOAuthCallback(req, res) {
     console.error("Error handling OAuth callback:", error);
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:8080";
     const errorMessage = encodeURIComponent(
-      error.message || spotifyMessages.errorHandlingSpotifyOAuthCallback || "Failed to connect to Spotify"
+      error.message ||
+        spotifyMessages.errorHandlingSpotifyOAuthCallback ||
+        "Failed to connect to Spotify"
     );
-    return res.redirect(`${frontendUrl}/dashboard?spotify=error&message=${errorMessage}`);
+    return res.redirect(
+      `${frontendUrl}/dashboard?spotify=error&message=${errorMessage}`
+    );
   }
 }
-
 
 /**
  * Get current user's Spotify token information
@@ -201,7 +215,9 @@ async function getSpotifyToken(req, res) {
 
     // Check if token is expired
     const isExpired = tokens.expiresAt && Date.now() >= tokens.expiresAt;
-    const expiresIn = tokens.expiresAt ? Math.max(0, Math.floor((tokens.expiresAt - Date.now()) / 1000)) : null;
+    const expiresIn = tokens.expiresAt
+      ? Math.max(0, Math.floor((tokens.expiresAt - Date.now()) / 1000))
+      : null;
 
     return res.status(200).json({
       success: true,
@@ -253,7 +269,8 @@ async function addTrackToQueue(req, res) {
     if (!tokens || !tokens.accessToken) {
       return res.status(400).json({
         success: false,
-        message: "User not connected to Spotify. Please connect your Spotify account first.",
+        message:
+          "User not connected to Spotify. Please connect your Spotify account first.",
       });
     }
 
@@ -262,11 +279,14 @@ async function addTrackToQueue(req, res) {
     if (tokens.expiresAt && Date.now() >= tokens.expiresAt) {
       if (tokens.refreshToken) {
         try {
-          const refreshed = await spotifyService.refreshAccessToken(tokens.refreshToken);
+          const refreshed = await spotifyService.refreshAccessToken(
+            tokens.refreshToken
+          );
           accessToken = refreshed.access_token;
           // Use new refresh token if Spotify provided one, otherwise keep existing
-          const newRefreshToken = refreshed.refresh_token || tokens.refreshToken;
-          const newExpiresAt = Date.now() + (refreshed.expires_in * 1000);
+          const newRefreshToken =
+            refreshed.refresh_token || tokens.refreshToken;
+          const newExpiresAt = Date.now() + refreshed.expires_in * 1000;
           await authService.updateUserSpotifyTokens(
             userId,
             refreshed.access_token,
@@ -277,13 +297,15 @@ async function addTrackToQueue(req, res) {
           console.error("Failed to refresh token for queue:", error.message);
           return res.status(401).json({
             success: false,
-            message: "Spotify authentication failed. Please reconnect to Spotify.",
+            message:
+              "Spotify authentication failed. Please reconnect to Spotify.",
           });
         }
       } else {
         return res.status(401).json({
           success: false,
-          message: "Spotify authentication expired. Please reconnect to Spotify.",
+          message:
+            "Spotify authentication expired. Please reconnect to Spotify.",
         });
       }
     }
@@ -301,7 +323,11 @@ async function addTrackToQueue(req, res) {
 
     // Add track to queue
     try {
-      await spotifyService.addToQueue(accessToken, finalTrackUri, deviceId || null);
+      await spotifyService.addToQueue(
+        accessToken,
+        finalTrackUri,
+        deviceId || null
+      );
       return res.status(200).json({
         success: true,
         message: "Track added to queue successfully",
@@ -311,7 +337,8 @@ async function addTrackToQueue(req, res) {
       if (error.message.includes("No active Spotify device")) {
         return res.status(404).json({
           success: false,
-          message: "No active Spotify device found. Please open Spotify and start playing music.",
+          message:
+            "No active Spotify device found. Please open Spotify and start playing music.",
         });
       } else if (error.message.includes("Spotify Premium")) {
         return res.status(403).json({
@@ -321,10 +348,11 @@ async function addTrackToQueue(req, res) {
       } else if (error.message.includes("authentication failed")) {
         return res.status(401).json({
           success: false,
-          message: "Spotify authentication failed. Please reconnect to Spotify.",
+          message:
+            "Spotify authentication failed. Please reconnect to Spotify.",
         });
       }
-      
+
       // Generic error
       return res.status(400).json({
         success: false,

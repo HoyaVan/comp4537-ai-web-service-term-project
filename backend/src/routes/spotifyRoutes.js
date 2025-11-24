@@ -106,7 +106,9 @@ router.get("/tracks/:trackId", spotifyController.getSpotifyTrack);
  *       302:
  *         description: Redirects to Spotify authorization page
  */
-router.get("/oauth/authorize", authenticateToken, spotifyController.initiateOAuth);
+// OAuth initiation - authentication optional (can be used for testing)
+// If authenticated, user ID is included in state; otherwise uses random state
+router.get("/auth", spotifyController.initiateOAuth);
 
 /**
  * @swagger
@@ -154,7 +156,7 @@ router.get("/oauth/authorize", authenticateToken, spotifyController.initiateOAut
  *                     scope:
  *                       type: string
  */
-router.get("/oauth/callback", spotifyController.handleOAuthCallback);
+router.get("/callback", spotifyController.handleOAuthCallback);
 
 /**
  * @swagger

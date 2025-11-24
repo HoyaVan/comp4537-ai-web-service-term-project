@@ -42,12 +42,12 @@ async function getUserFromDbById(userIdInt, includePassword = false) {
   const fields = includePassword
     ? "user_id, email, password, name, creation_date, api_calls"
     : "user_id, email, name, creation_date, api_calls";
-  
+
   const users = await db.query(
     `SELECT ${fields} FROM \`user\` WHERE user_id = ?`,
     [userIdInt]
   );
-  
+
   return users.length > 0 ? users[0] : null;
 }
 
@@ -61,12 +61,12 @@ async function getUserFromDbByEmail(email, includePassword = false) {
   const fields = includePassword
     ? "user_id, email, password, name, creation_date, api_calls"
     : "user_id, email, name, creation_date, api_calls";
-  
+
   const users = await db.query(
     `SELECT ${fields} FROM \`user\` WHERE email = ?`,
     [email.toLowerCase()]
   );
-  
+
   return users.length > 0 ? users[0] : null;
 }
 
@@ -81,7 +81,7 @@ function buildUserObject(dbUser, isAdmin) {
     id: dbUser.user_id.toString(),
     email: dbUser.email,
     name: dbUser.name,
-    role: isAdmin ? 'admin' : 'user',
+    role: isAdmin ? "admin" : "user",
     createdAt: dbUser.creation_date
       ? new Date(dbUser.creation_date).toISOString()
       : new Date().toISOString(),
@@ -120,6 +120,21 @@ function verifyToken(token) {
   } catch (error) {
     return null;
   }
+}
+
+/**
+ * Update user Spotify tokens
+ */
+async function updateUserSpotifyTokens(userId, accessToken, refreshToken, expiresAt) {
+  await db.query("UPDATE `user` SET spotify_access_token = ?, spotify_refresh_token = ?, spotify_expires_at = ? WHERE user_id = ?", [accessToken, refreshToken, expiresAt, userId]);
+}
+
+/**
+ * Get user Spotify tokens
+ */
+async function getUserSpotifyTokens(userId) {
+  const tokens = await db.query("SELECT spotify_access_token, spotify_refresh_token, spotify_expires_at FROM `user` WHERE user_id = ?", [userId]);
+  return tokens.length > 0 ? tokens[0] : null;
 }
 
 /**
@@ -260,4 +275,6 @@ module.exports = {
   getUserById,
   verifyToken,
   getAllUsers,
+  updateUserSpotifyTokens,
+  getUserSpotifyTokens,
 };
