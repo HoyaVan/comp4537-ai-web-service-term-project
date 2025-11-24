@@ -5,6 +5,7 @@ const {
   resetUserApiCount,
 } = require("../middleware/apiTrackingMiddleware");
 const authService = require("../services/authService");
+const adminMessages = require("../messages/admin");
 
 /**
  * Get API endpoint statistics (admin only)
@@ -17,7 +18,7 @@ async function getApiEndpointStats(req, res) {
     if (!user || user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: "Admin access required",
+        message: adminMessages.adminAccessRequired,
       });
     }
 
@@ -67,7 +68,7 @@ async function getApiEndpointStats(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Error fetching endpoint statistics",
+      message: adminMessages.errorFetchingEndpointStats,
       error: error.message,
     });
   }
@@ -84,7 +85,7 @@ async function getUserApiConsumptionStats(req, res) {
     if (!user || user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: "Admin access required",
+        message: adminMessages.adminAccessRequired,
       });
     }
 
@@ -109,7 +110,7 @@ async function getUserApiConsumptionStats(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Error fetching user consumption statistics",
+      message: adminMessages.errorFetchingUserConsumptionStats,
       error: error.message,
     });
   }
@@ -126,7 +127,7 @@ async function getAllApiCallLogs(req, res) {
     if (!user || user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: "Admin access required",
+        message: adminMessages.adminAccessRequired,
       });
     }
 
@@ -141,7 +142,7 @@ async function getAllApiCallLogs(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Error fetching API call logs",
+      message: adminMessages.errorFetchingApiLogs,
       error: error.message,
     });
   }
@@ -157,7 +158,7 @@ async function resetUserApiCallCount(req, res) {
     if (!user || user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: "Admin access required",
+        message: adminMessages.adminAccessRequired,
       });
     }
 
@@ -165,7 +166,7 @@ async function resetUserApiCallCount(req, res) {
     if (!userId) {
       return res.status(400).json({
         success: false,
-        message: "User ID is required",
+        message: adminMessages.userIdRequired,
       });
     }
 
@@ -174,7 +175,7 @@ async function resetUserApiCallCount(req, res) {
     if (!targetUser) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message: adminMessages.userNotFound,
       });
     }
 
@@ -182,12 +183,12 @@ async function resetUserApiCallCount(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: `API call count reset for user ${userId}`,
+      message: adminMessages.apiCallCountReset(userId),
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Error resetting user API call count",
+      message: adminMessages.errorResettingApiCallCount,
       error: error.message,
     });
   }

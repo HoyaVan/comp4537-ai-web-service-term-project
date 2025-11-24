@@ -1,3 +1,5 @@
+import { dashboardMessages } from '/messages/dashboard.js';
+
 const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 // Check if user is authenticated
@@ -17,6 +19,27 @@ function getToken() {
   } catch (_) {
     return null;
   }
+}
+
+// Display API limit warning
+function showApiLimitWarning(message) {
+  // Check if warning already exists to avoid duplicates
+  let warningEl = document.getElementById('api-limit-warning');
+  if (!warningEl) {
+    warningEl = document.createElement('div');
+    warningEl.id = 'api-limit-warning';
+    warningEl.className = 'api-limit-warning';
+    document.body.appendChild(warningEl);
+  }
+  warningEl.textContent = message;
+  warningEl.classList.remove('hidden');
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    if (warningEl) {
+      warningEl.classList.add('hidden');
+    }
+  }, 5000);
 }
 
 // Make authenticated API request
@@ -39,6 +62,15 @@ async function apiRequest(url, options = {}) {
     credentials: 'include',
   });
 
+  // Check for API limit warning headers
+  const limitExceeded = response.headers.get('X-API-Limit-Exceeded');
+  const limitMessage = response.headers.get('X-API-Limit-Message');
+  
+  if (limitExceeded === 'true' && limitMessage) {
+    // Display warning but continue with the request
+    showApiLimitWarning(limitMessage);
+  }
+
   const data = await response.json();
   return { ok: response.ok, status: response.status, data };
 }
@@ -49,7 +81,7 @@ async function loadUserInfo() {
   if (ok && data.success) {
     const user = data.data;
     const userEmail = document.getElementById('user-email');
-    if (userEmail) userEmail.textContent = user.email || 'User';
+    if (userEmail) userEmail.textContent = user.email || dashboardMessages.user;
     
     return user; // Return user object for role checking
   }
@@ -100,7 +132,7 @@ async function getQRCode(roundId) {
 // Generate QR code image
 function generateQRCode(url, containerId) {
   const container = document.getElementById(containerId);
-  container.innerHTML = '<p>Generating QR code...</p>';
+  container.innerHTML = `<p>${dashboardMessages.generatingQrCode}</p>`;
   
   // Function to try generating QR code
   const tryGenerateQR = () => {
@@ -210,7 +242,7 @@ function displayRounds(rounds) {
   if (!container) return;
 
   if (rounds.length === 0) {
-    container.innerHTML = '<p class="no-rounds">No voting rounds yet. Create one above!</p>';
+    container.innerHTML = `<p class="no-rounds">${dashboardMessages.noRoundsYet}</p>`;
     return;
   }
 
@@ -246,7 +278,7 @@ function displayRounds(rounds) {
 window.showQRCode = async function(roundId) {
   const qrData = await getQRCode(roundId);
   if (!qrData) {
-    alert('Failed to get QR code');
+    alert(dashboardMessages.failedToGetQrCode);
     return;
   }
 
@@ -263,13 +295,13 @@ window.showQRCode = async function(roundId) {
 window.viewResults = async function(roundId) {
   const results = await getResults(roundId);
   if (!results) {
-    alert('Failed to load results');
+    alert(dashboardMessages.failedToLoadResults);
     return;
   }
 
   const spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
   if (!spotifyTrackInfo) {
-    alert('Failed to load Spotify track info');
+    alert(dashboardMessages.failedToLoadSpotifyTrack);
     return;
   }
   console.log(spotifyTrackInfo);
@@ -323,7 +355,7 @@ window.pauseRound = async function(roundId) {
   if (ok && data.success) {
     await loadAndDisplayRounds();
   } else {
-    alert('Failed to pause round: ' + (data.message || 'Unknown error'));
+    alert(dashboardMessages.failedToPauseRound + (data.message || dashboardMessages.unknownError));
   }
 };
 
@@ -334,7 +366,7 @@ window.resumeRound = async function(roundId) {
   if (ok && data.success) {
     await loadAndDisplayRounds();
   } else {
-    alert('Failed to resume round: ' + (data.message || 'Unknown error'));
+    alert(dashboardMessages.failedToResumeRound + (data.message || dashboardMessages.unknownError));
   }
 };
 
@@ -346,26 +378,26 @@ window.generateNext = async function(roundId) {
 
   const btn = event.target;
   btn.disabled = true;
-  btn.textContent = 'Generating...';
+  btn.textContent = dashboardMessages.generating;
 
   const { ok, data } = await generateNextRound(roundId);
   
   if (ok && data.success) {
-    alert('Next round generated successfully!');
+    alert(dashboardMessages.nextRoundGenerated);
     loadAndDisplayRounds();
   } else {
-    alert('Failed to generate next round: ' + (data.message || 'Unknown error'));
+    alert(dashboardMessages.failedToGenerateNextRound + (data.message || dashboardMessages.unknownError));
   }
   
   btn.disabled = false;
-  btn.textContent = 'Generate Next Round';
+  btn.textContent = dashboardMessages.generateNextRound;
 };
 
 // Load and display rounds
 async function loadAndDisplayRounds() {
   const container = document.getElementById('rounds-container');
   if (container) {
-    container.innerHTML = '<p class="loading">Loading rounds...</p>';
+    container.innerHTML = `<p class="loading">${dashboardMessages.loadingRounds}</p>`;
   }
   const rounds = await loadRounds();
   displayRounds(rounds);
@@ -414,7 +446,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     healthCheckBtn.addEventListener('click', async () => {
       // Disable button during check
       healthCheckBtn.disabled = true;
-      healthCheckBtn.textContent = 'Checking...';
+      healthCheckBtn.textContent = dashboardMessages.checking;
       healthStatus.classList.add('hidden');
       
       try {
@@ -459,7 +491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       } finally {
         // Re-enable button
         healthCheckBtn.disabled = false;
-        healthCheckBtn.textContent = 'Check AI Health';
+        healthCheckBtn.textContent = dashboardMessages.checkAiHealth;
       }
     });
   }
@@ -471,7 +503,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       createMessage.textContent = '';
       createMessage.className = 'msg';
       createBtn.disabled = true;
-      createBtn.textContent = 'Creating...';
+      createBtn.textContent = dashboardMessages.creating;
 
       const formData = new FormData(createForm);
       const roundData = {
@@ -485,17 +517,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       const { ok, data } = await createRound(roundData);
 
       if (ok && data.success) {
-        createMessage.textContent = 'Voting round created successfully!';
+        createMessage.textContent = dashboardMessages.votingRoundCreated;
         createMessage.className = 'msg ok';
         createForm.reset();
         await loadAndDisplayRounds();
       } else {
-        createMessage.textContent = 'Failed to create round: ' + (data.message || 'Unknown error');
+        createMessage.textContent = dashboardMessages.failedToCreateRound + (data.message || dashboardMessages.unknownError);
         createMessage.className = 'msg err';
       }
 
       createBtn.disabled = false;
-      createBtn.textContent = 'Create Voting Round';
+      createBtn.textContent = dashboardMessages.createVotingRound;
     });
   }
 

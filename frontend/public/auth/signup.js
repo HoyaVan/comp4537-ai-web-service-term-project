@@ -1,3 +1,5 @@
+import { authMessages } from '/messages/auth.js';
+
 const SIGNUP_PATH = '/api/auth/signup';
 
 async function submitSignup(payload) {
@@ -54,28 +56,28 @@ async function initSignup() {
     const password = document.getElementById('password').value || '';
     const confirm = document.getElementById('confirm').value || '';
 
-    if (!name.trim()) return setMessage('Name is required.');
-    if (!email.trim()) return setMessage('Email is required.');
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setMessage('Enter a valid email.');
-    if (!password) return setMessage('Password is required.');
-    if (password.length < 6) return setMessage('Password must be at least 6 characters.');
-    if (password !== confirm) return setMessage('Passwords do not match.');
+    if (!name.trim()) return setMessage(authMessages.firstNameRequired);
+    if (!email.trim()) return setMessage(authMessages.emailRequired);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setMessage(authMessages.emailInvalid);
+    if (!password) return setMessage(authMessages.passwordRequired);
+    if (password.length < 6) return setMessage(authMessages.passwordMinLength);
+    if (password !== confirm) return setMessage(authMessages.passwordsNotMatch);
 
-    btn.disabled = true; btn.textContent = 'Signing up...';
+    btn.disabled = true; btn.textContent = authMessages.signingUp;
     try {
       const { ok, data } = await submitSignup({ name, email, password });
       if (!ok) {
         const message = typeof data === 'string' ? data : (data.message || JSON.stringify(data));
-        setMessage('Signup failed: ' + message, false);
+        setMessage(authMessages.signupFailed + message, false);
       } else {
-        const message = typeof data === 'string' ? data : (data.message || 'Account created.');
-        setMessage('Success: ' + message, true);
+        const message = typeof data === 'string' ? data : (data.message || authMessages.accountCreated);
+        setMessage(authMessages.successPrefix + message, true);
         form.reset();
       }
     } catch (err) {
-      setMessage('Network error: ' + err, false);
+      setMessage(authMessages.networkError + err, false);
     } finally {
-      btn.disabled = false; btn.textContent = 'Sign up';
+      btn.disabled = false; btn.textContent = authMessages.signUp;
     }
   });
 }

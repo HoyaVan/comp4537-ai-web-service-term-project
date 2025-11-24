@@ -1,4 +1,27 @@
+import { adminMessages } from '/messages/admin.js';
+
 const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+
+// Display API limit warning
+function showApiLimitWarning(message) {
+  // Check if warning already exists to avoid duplicates
+  let warningEl = document.getElementById('api-limit-warning');
+  if (!warningEl) {
+    warningEl = document.createElement('div');
+    warningEl.id = 'api-limit-warning';
+    warningEl.className = 'api-limit-warning';
+    document.body.appendChild(warningEl);
+  }
+  warningEl.textContent = message;
+  warningEl.classList.remove('hidden');
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    if (warningEl) {
+      warningEl.classList.add('hidden');
+    }
+  }, 5000);
+}
 
 // Make authenticated API request
 async function apiRequest(url, options = {}) {
@@ -19,6 +42,15 @@ async function apiRequest(url, options = {}) {
     mode: 'cors',
     credentials: 'include',
   });
+
+  // Check for API limit warning headers
+  const limitExceeded = response.headers.get('X-API-Limit-Exceeded');
+  const limitMessage = response.headers.get('X-API-Limit-Message');
+  
+  if (limitExceeded === 'true' && limitMessage) {
+    // Display warning but continue with the request
+    showApiLimitWarning(limitMessage);
+  }
 
   const data = await response.json();
   return { ok: response.ok, status: response.status, data };
@@ -85,7 +117,7 @@ async function fetchAllUsers() {
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to fetch users');
+      throw new Error(errorData.message || adminMessages.failedToFetchUsers);
     }
 
     const data = await res.json();
@@ -109,7 +141,7 @@ function displayUsers(users) {
   // Update user count
   if (userCount) {
     const count = users.length;
-    userCount.textContent = `${count} user${count !== 1 ? 's' : ''}`;
+    userCount.textContent = adminMessages.userCount(count);
   }
 
   // Clear existing content
@@ -194,7 +226,7 @@ async function loadUsers() {
     const users = await fetchAllUsers();
     displayUsers(users);
   } catch (err) {
-    showError(err.message || 'Failed to load users. Please try again.');
+    showError(err.message || adminMessages.failedToLoadUsers);
   } finally {
     if (loading) loading.classList.add('hidden');
     if (refreshBtn) refreshBtn.disabled = false;
@@ -228,7 +260,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Check if user is admin - only admins can view API statistics
   if (!user || user.role !== 'admin') {
-    alert('Access denied. Admin privileges required.');
+    alert(adminMessages.accessDenied);
     window.location.href = '/dashboard.html';
     return;
   }
@@ -275,17 +307,17 @@ async function loadEndpointStats() {
   const container = document.getElementById('endpoints-container');
   if (!container) return;
   
-  container.innerHTML = '<p class="loading">Loading endpoint statistics...</p>';
+  container.innerHTML = `<p class="loading">${adminMessages.loadingEndpointStats}</p>`;
   
   try {
     const { ok, data } = await apiRequest('/api/admin/stats/endpoints');
     if (ok && data.success) {
       displayEndpointStats(data.data || []);
     } else {
-      container.innerHTML = `<p class="error">Failed to load endpoint statistics: ${data.message || 'Unknown error'}</p>`;
+      container.innerHTML = `<p class="error">${adminMessages.failedToLoadEndpointStats}${data.message || adminMessages.unknownError}</p>`;
     }
   } catch (error) {
-    container.innerHTML = `<p class="error">Error loading endpoint statistics: ${error.message}</p>`;
+    container.innerHTML = `<p class="error">${adminMessages.errorLoadingEndpointStats}${error.message}</p>`;
   }
 }
 
@@ -295,7 +327,7 @@ function displayEndpointStats(stats) {
   if (!container) return;
   
   if (!stats || stats.length === 0) {
-    container.innerHTML = '<p class="empty-state">No endpoint statistics available.</p>';
+    container.innerHTML = `<p class="empty-state">${adminMessages.noEndpointStats}</p>`;
     return;
   }
   
@@ -370,17 +402,17 @@ async function loadConsumptionStats() {
   const container = document.getElementById('consumption-container');
   if (!container) return;
   
-  container.innerHTML = '<p class="loading">Loading consumption statistics...</p>';
+  container.innerHTML = `<p class="loading">${adminMessages.loadingConsumptionStats}</p>`;
   
   try {
     const { ok, data } = await apiRequest('/api/admin/stats/users');
     if (ok && data.success) {
       displayConsumptionStats(data.data || []);
     } else {
-      container.innerHTML = `<p class="error">Failed to load consumption statistics: ${data.message || 'Unknown error'}</p>`;
+      container.innerHTML = `<p class="error">${adminMessages.failedToLoadConsumptionStats}${data.message || adminMessages.unknownError}</p>`;
     }
   } catch (error) {
-    container.innerHTML = `<p class="error">Error loading consumption statistics: ${error.message}</p>`;
+    container.innerHTML = `<p class="error">${adminMessages.errorLoadingConsumptionStats}${error.message}</p>`;
   }
 }
 
@@ -390,7 +422,7 @@ function displayConsumptionStats(stats) {
   if (!container) return;
   
   if (!stats || stats.length === 0) {
-    container.innerHTML = '<p class="empty-state">No consumption statistics available.</p>';
+    container.innerHTML = `<p class="empty-state">${adminMessages.noConsumptionStats}</p>`;
     return;
   }
   

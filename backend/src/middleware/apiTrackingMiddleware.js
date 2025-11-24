@@ -1,14 +1,19 @@
+const apiTrackingMessages = require("../messages/apiTracking");
+
 /**
  * API Tracking Middleware
  * 
  * Tracks API calls for:
- * 1. Per-user API consumption (unlimited calls)
+ * 1. Per-user API consumption (20 free calls per user)
  * 2. Per-endpoint statistics (for admin dashboard)
  * 
  * This middleware should be applied to all API routes.
  * 
  * Attribution: Created with assistance from ChatGPT
  */
+
+// Free API calls limit per user
+const FREE_API_CALLS_LIMIT = 20;
 
 // In-memory storage (replace with database in production)
 const apiCallLogs = [];
@@ -24,6 +29,33 @@ const endpointLastCall = new Map(); // "METHOD /endpoint" -> { userId, timestamp
  */
 const getUserApiCount = (userId) => {
   return userApiCounts.get(userId) || 0;
+};
+
+/**
+ * Check if user has exceeded free API calls limit
+ * @param {string} userId - User ID
+ * @returns {boolean} True if user has exceeded limit
+ */
+const hasExceededLimit = (userId) => {
+  if (!userId || userId === 'anonymous') {
+    return false; // Anonymous users don't have limits
+  }
+  const count = getUserApiCount(userId);
+  return count >= FREE_API_CALLS_LIMIT;
+};
+
+/**
+ * Get remaining free API calls for a user
+ * @param {string} userId - User ID
+ * @returns {number} Remaining calls (0 if exceeded)
+ */
+const getRemainingCalls = (userId) => {
+  if (!userId || userId === 'anonymous') {
+    return null; // Anonymous users don't have limits
+  }
+  const count = getUserApiCount(userId);
+  const remaining = Math.max(0, FREE_API_CALLS_LIMIT - count);
+  return remaining;
 };
 
 
@@ -62,8 +94,13 @@ const trackApiCall = (method, endpoint, userId, statusCode, responseTime) => {
   // Store log entry
   apiCallLogs.push(logEntry);
   
-  // Update user API count (only for authenticated users and successful calls)
-  if (userId && userId !== 'anonymous' && statusCode >= 200 && statusCode < 300) {
+  // Check if this is an auth endpoint (should not count towards limit)
+  const isAuthEndpoint = endpoint.includes('/api/auth/login') || 
+                         endpoint.includes('/api/auth/signup') || 
+                         endpoint.includes('/api/auth/profile');
+  
+  // Update user API count (only for authenticated users, successful calls, and non-auth endpoints)
+  if (userId && userId !== 'anonymous' && statusCode >= 200 && statusCode < 300 && !isAuthEndpoint) {
     incrementUserApiCount(userId);
   }
   
@@ -199,10 +236,16 @@ const resetUserApiCount = (userId) => {
 /**
  * API Tracking Middleware
  * Tracks all API calls and logs them
+ * Adds warning headers when user exceeds free API calls limit
  */
 const apiTrackingMiddleware = (req, res, next) => {
   const startTime = Date.now();
   const method = req.method;
+  
+  // Check API limit before processing (for authenticated users)
+  // Note: We need to check after auth middleware runs, so we'll check in the finish handler
+  // But we can set up the warning header here if we have user info
+  const userId = req.userId || req.user?.id || null;
   
   // Track response when it finishes
   // Note: We capture userId and endpoint here (after auth middleware may have run) to get the actual user
@@ -211,7 +254,7 @@ const apiTrackingMiddleware = (req, res, next) => {
     const statusCode = res.statusCode || 200;
     
     // Capture userId at response time (after authentication middleware has run)
-    const userId = req.userId || req.user?.id || null;
+    const finalUserId = req.userId || req.user?.id || null;
     
     // Capture endpoint - use route path if available (more accurate), otherwise use request path
     // req.route?.path gives the route pattern (e.g., "/api/auth/profile")
@@ -219,7 +262,24 @@ const apiTrackingMiddleware = (req, res, next) => {
     // req.url gives full URL with query string
     const endpoint = req.route?.path || req.path || req.url.split('?')[0];
     
-    trackApiCall(method, endpoint, userId, statusCode, responseTime);
+    // Track the API call
+    trackApiCall(method, endpoint, finalUserId, statusCode, responseTime);
+    
+    // Check if this is an auth endpoint (should not show warning)
+    const isAuthEndpoint = endpoint.includes('/api/auth/login') || 
+                           endpoint.includes('/api/auth/signup') || 
+                           endpoint.includes('/api/auth/profile');
+    
+    // Add warning header if user has exceeded limit (only for authenticated users, successful calls, and non-auth endpoints)
+    if (finalUserId && finalUserId !== 'anonymous' && 
+        statusCode >= 200 && statusCode < 300 &&
+        !isAuthEndpoint) {
+      const exceeded = hasExceededLimit(finalUserId);
+      if (exceeded) {
+        res.setHeader('X-API-Limit-Exceeded', 'true');
+        res.setHeader('X-API-Limit-Message', apiTrackingMessages.apiLimitExceededMessage(FREE_API_CALLS_LIMIT));
+      }
+    }
   });
   
   next();
@@ -235,5 +295,8 @@ module.exports = {
   getUserEndpointStats,
   getAllApiLogs,
   resetUserApiCount,
+  hasExceededLimit,
+  getRemainingCalls,
+  FREE_API_CALLS_LIMIT,
 };
 

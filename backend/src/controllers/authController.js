@@ -1,5 +1,6 @@
 const authService = require("../services/authService");
-const { getUserApiCount, getUserEndpointStats } = require("../middleware/apiTrackingMiddleware");
+const { getUserApiCount, getUserEndpointStats, hasExceededLimit, getRemainingCalls, FREE_API_CALLS_LIMIT } = require("../middleware/apiTrackingMiddleware");
+const authMessages = require("../messages/auth");
 
 /**
  * Sign up controller
@@ -21,13 +22,13 @@ async function signup(req, res) {
 
     return res.status(201).json({
       success: true,
-      message: "User created successfully",
+      message: authMessages.userCreatedSuccessfully,
       data: result,
     });
   } catch (error) {
     return res.status(400).json({
       success: false,
-      message: error.message || "Error creating user",
+      message: error.message || authMessages.errorCreatingUser,
     });
   }
 }
@@ -43,7 +44,7 @@ async function login(req, res) {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required",
+        message: authMessages.emailPasswordRequired,
       });
     }
 
@@ -52,13 +53,13 @@ async function login(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: "Login successful",
+      message: authMessages.loginSuccessful,
       data: result,
     });
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: error.message || "Invalid credentials",
+      message: error.message || authMessages.invalidCredentials,
     });
   }
 }
@@ -77,11 +78,14 @@ async function getProfile(req, res) {
     // Include API consumption for all users
     const apiCallsUsed = getUserApiCount(user.id);
     const endpointStats = getUserEndpointStats(user.id);
+    const remainingCalls = getRemainingCalls(user.id);
+    const exceeded = hasExceededLimit(user.id);
     
     responseData.apiConsumption = {
       callsUsed: apiCallsUsed,
-      callsLimit: 'unlimited',
-      hasUnlimitedCalls: true,
+      callsLimit: FREE_API_CALLS_LIMIT,
+      remainingCalls: remainingCalls,
+      hasExceededLimit: exceeded,
       endpointBreakdown: endpointStats, // Per-endpoint breakdown
     };
 
@@ -92,7 +96,7 @@ async function getProfile(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Error fetching profile",
+      message: authMessages.errorFetchingProfile,
     });
   }
 }
@@ -112,7 +116,7 @@ async function getAllUsers(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Error fetching users",
+      message: authMessages.errorFetchingUsers,
     });
   }
 }

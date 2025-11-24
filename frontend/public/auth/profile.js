@@ -1,3 +1,6 @@
+import { profileMessages } from '/messages/profile.js';
+import { commonMessages } from '/messages/common.js';
+
 const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 // Check if user is authenticated
@@ -17,6 +20,27 @@ function getToken() {
   } catch (_) {
     return null;
   }
+}
+
+// Display API limit warning
+function showApiLimitWarning(message) {
+  // Check if warning already exists to avoid duplicates
+  let warningEl = document.getElementById('api-limit-warning');
+  if (!warningEl) {
+    warningEl = document.createElement('div');
+    warningEl.id = 'api-limit-warning';
+    warningEl.className = 'api-limit-warning';
+    document.body.appendChild(warningEl);
+  }
+  warningEl.textContent = message;
+  warningEl.classList.remove('hidden');
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    if (warningEl) {
+      warningEl.classList.add('hidden');
+    }
+  }, 5000);
 }
 
 // Make authenticated API request
@@ -39,6 +63,15 @@ async function apiRequest(url, options = {}) {
     credentials: 'include',
   });
 
+  // Check for API limit warning headers
+  const limitExceeded = response.headers.get('X-API-Limit-Exceeded');
+  const limitMessage = response.headers.get('X-API-Limit-Message');
+  
+  if (limitExceeded === 'true' && limitMessage) {
+    // Display warning but continue with the request
+    showApiLimitWarning(limitMessage);
+  }
+
   const data = await response.json();
   return { ok: response.ok, status: response.status, data };
 }
@@ -57,7 +90,7 @@ function displayUserInfo(user) {
   const container = document.getElementById('user-info-container');
   if (!container || !user) {
     if (container) {
-      container.innerHTML = '<p class="muted-text">Unable to load user information.</p>';
+      container.innerHTML = `<p class="muted-text">${profileMessages.unableToLoadUserInfo}</p>`;
     }
     return;
   }
@@ -93,19 +126,50 @@ function displayApiConsumption(user) {
   const container = document.getElementById('api-consumption-container');
   if (!container || !user || !user.apiConsumption) {
     if (container) {
-      container.innerHTML = '<p class="muted-text">No API consumption data available.</p>';
+      container.innerHTML = `<p class="muted-text">${profileMessages.noApiConsumptionData}</p>`;
     }
     return;
   }
 
   const consumption = user.apiConsumption;
   const endpointBreakdown = consumption.endpointBreakdown || [];
+  const callsUsed = consumption.callsUsed || 0;
+  const callsLimit = consumption.callsLimit || 20;
+  const remainingCalls = consumption.remainingCalls !== undefined ? consumption.remainingCalls : (callsLimit - callsUsed);
+  const hasExceeded = consumption.hasExceededLimit || false;
+
+  // Show warning banner if limit exceeded
+  let warningHtml = '';
+  if (hasExceeded) {
+    warningHtml = `
+      <div style="margin-bottom: 16px; padding: 12px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 6px; color: #92400e; font-size: 14px;">
+        <strong>⚠️ ${profileMessages.apiLimitExceeded}:</strong> ${profileMessages.apiLimitExceededMessage(callsLimit)}
+      </div>
+    `;
+  } else if (remainingCalls !== null && remainingCalls <= 5) {
+    warningHtml = `
+      <div style="margin-bottom: 16px; padding: 12px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 6px; color: #92400e; font-size: 14px;">
+        <strong>⚠️ ${profileMessages.warningRemaining(remainingCalls)}</strong>
+      </div>
+    `;
+  }
+
+  // Show remaining calls info
+  let callsInfoHtml = '';
+  if (remainingCalls !== null) {
+    callsInfoHtml = `
+      <div style="margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 6px; font-size: 14px;">
+        <strong>${profileMessages.freeApiCalls(callsUsed, callsLimit)}</strong>
+        ${remainingCalls > 0 ? profileMessages.remainingCalls(remainingCalls) : profileMessages.limitExceeded}
+      </div>
+    `;
+  }
 
   // Only show per-endpoint breakdown (individual API consumption)
-  let html = '';
+  let tableHtml = '';
   
   if (endpointBreakdown.length > 0) {
-    html = `
+    tableHtml = `
       <div style="overflow-x: auto;">
         <table class="endpoint-table">
           <thead>
@@ -132,14 +196,14 @@ function displayApiConsumption(user) {
       </div>
     `;
   } else {
-    html = `
+    tableHtml = `
       <div style="padding: 12px; background: #f8fafc; border-radius: 6px; color: var(--muted); font-size: 14px;">
-        No endpoint-specific data available yet. Start making API calls to see your usage breakdown.
+        ${profileMessages.noEndpointData}
       </div>
     `;
   }
 
-  container.innerHTML = html;
+  container.innerHTML = warningHtml + callsInfoHtml + tableHtml;
 }
 
 // Initialize
@@ -154,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = await loadUserInfo();
   
   if (!user) {
-    alert('Failed to load user information. Please try logging in again.');
+    alert(profileMessages.failedToLoadUserInfo);
     window.location.href = '/index.html';
     return;
   }

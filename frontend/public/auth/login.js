@@ -1,3 +1,5 @@
+import { authMessages } from '/messages/auth.js';
+
 const LOGIN_PATH = '/api/auth/login';
 
 async function submitLogin(payload) {
@@ -51,19 +53,19 @@ async function initLogin() {
     const email = document.getElementById('email').value || '';
     const password = document.getElementById('password').value || '';
 
-    if (!email.trim()) return setMessage('Email is required.');
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setMessage('Enter a valid email.');
-    if (!password) return setMessage('Password is required.');
+    if (!email.trim()) return setMessage(authMessages.emailRequired);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setMessage(authMessages.emailInvalid);
+    if (!password) return setMessage(authMessages.passwordRequired);
 
-    btn.disabled = true; btn.textContent = 'Logging in...';
+    btn.disabled = true; btn.textContent = authMessages.loggingIn;
     try {
       const { ok, data } = await submitLogin({ email, password });
       if (!ok) {
         const message = typeof data === 'string' ? data : (data.message || JSON.stringify(data));
-        setMessage('Login failed: ' + message, false);
+        setMessage(authMessages.loginFailed + message, false);
       } else {
-        const message = typeof data === 'string' ? data : (data.message || 'Logged in.');
-        setMessage('Success: ' + message, true);
+        const message = typeof data === 'string' ? data : (data.message || authMessages.loggedIn);
+        setMessage(authMessages.successPrefix + message, true);
         // Backend returns { success: true, data: { user: {...}, token: "..." } }
         const token = data?.data?.token || data?.token;
         if (token) { 
@@ -77,9 +79,9 @@ async function initLogin() {
         }
       }
     } catch (err) {
-      setMessage('Network error: ' + err, false);
+      setMessage(authMessages.networkError + err, false);
     } finally {
-      btn.disabled = false; btn.textContent = 'Login';
+      btn.disabled = false; btn.textContent = authMessages.login;
     }
   });
 }
