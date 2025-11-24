@@ -233,6 +233,7 @@ app.listen(PORT, async () => {
   console.log("   GET    /api/v1/spotify/oauth/authorize           - Initiate OAuth (protected)");
   console.log("   GET    /api/v1/spotify/oauth/callback            - OAuth callback (public)");
   console.log("   GET    /api/v1/spotify/me/token                  - Get user's Spotify token (protected)");
+  console.log("   POST   /api/v1/spotify/me/queue                  - Add track to queue (protected)");
   
   console.log("\n👑 Admin (/api/v1/admin):");
   console.log(

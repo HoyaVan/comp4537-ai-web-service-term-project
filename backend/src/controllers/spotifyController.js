@@ -212,10 +212,128 @@ async function getSpotifyToken(req, res) {
     });
   }
 }
+/**
+ * Add a track to the user's Spotify queue
+ * Requires authentication and Spotify connection
+ */
+async function addTrackToQueue(req, res) {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { trackUri, trackId, deviceId } = req.body;
+
+    // Validate input - need either trackUri or trackId
+    if (!trackUri && !trackId) {
+      return res.status(400).json({
+        success: false,
+        message: "Either trackUri or trackId is required",
+      });
+    }
+
+    // Get user's Spotify tokens from database
+    const tokens = await authService.getUserSpotifyTokens(userId);
+
+    if (!tokens || !tokens.accessToken) {
+      return res.status(400).json({
+        success: false,
+        message: "User not connected to Spotify. Please connect your Spotify account first.",
+      });
+    }
+
+    // Check if token is expired and refresh if needed
+    let accessToken = tokens.accessToken;
+    if (tokens.expiresAt && Date.now() >= tokens.expiresAt) {
+      if (tokens.refreshToken) {
+        try {
+          const refreshed = await spotifyService.refreshAccessToken(tokens.refreshToken);
+          accessToken = refreshed.access_token;
+          // Use new refresh token if Spotify provided one, otherwise keep existing
+          const newRefreshToken = refreshed.refresh_token || tokens.refreshToken;
+          const newExpiresAt = Date.now() + (refreshed.expires_in * 1000);
+          await authService.updateUserSpotifyTokens(
+            userId,
+            refreshed.access_token,
+            newRefreshToken,
+            newExpiresAt
+          );
+        } catch (error) {
+          console.error("Failed to refresh token for queue:", error.message);
+          return res.status(401).json({
+            success: false,
+            message: "Spotify authentication failed. Please reconnect to Spotify.",
+          });
+        }
+      } else {
+        return res.status(401).json({
+          success: false,
+          message: "Spotify authentication expired. Please reconnect to Spotify.",
+        });
+      }
+    }
+
+    // Convert trackId to trackUri if needed
+    let finalTrackUri = trackUri;
+    if (!finalTrackUri && trackId) {
+      // If trackId is already a URI, use it; otherwise construct it
+      if (trackId.startsWith("spotify:track:")) {
+        finalTrackUri = trackId;
+      } else {
+        finalTrackUri = `spotify:track:${trackId}`;
+      }
+    }
+
+    // Add track to queue
+    try {
+      await spotifyService.addToQueue(accessToken, finalTrackUri, deviceId || null);
+      return res.status(200).json({
+        success: true,
+        message: "Track added to queue successfully",
+      });
+    } catch (error) {
+      // Handle specific error cases
+      if (error.message.includes("No active Spotify device")) {
+        return res.status(404).json({
+          success: false,
+          message: "No active Spotify device found. Please open Spotify and start playing music.",
+        });
+      } else if (error.message.includes("Spotify Premium")) {
+        return res.status(403).json({
+          success: false,
+          message: "Spotify Premium is required to add songs to queue.",
+        });
+      } else if (error.message.includes("authentication failed")) {
+        return res.status(401).json({
+          success: false,
+          message: "Spotify authentication failed. Please reconnect to Spotify.",
+        });
+      }
+      
+      // Generic error
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Failed to add track to queue",
+      });
+    }
+  } catch (error) {
+    console.error("Error adding track to queue:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error",
+    });
+  }
+}
+
 module.exports = {
   getSpotifyTrack,
   searchSpotifyTracks,
   initiateOAuth,
   handleOAuthCallback,
   getSpotifyToken,
+  addTrackToQueue,
 };

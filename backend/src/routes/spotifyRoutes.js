@@ -192,4 +192,55 @@ router.get("/oauth/callback", spotifyController.handleOAuthCallback);
  */
 router.get("/me/token", authenticateToken, spotifyController.getSpotifyToken);
 
+/**
+ * @swagger
+ * /api/v1/spotify/me/queue:
+ *   post:
+ *     summary: Add a track to the user's Spotify playback queue
+ *     tags: [Spotify]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - trackUri
+ *             properties:
+ *               trackUri:
+ *                 type: string
+ *                 description: Spotify track URI (e.g., "spotify:track:4iV5W9uYEdYUVa79Axb7Rh")
+ *                 example: "spotify:track:4iV5W9uYEdYUVa79Axb7Rh"
+ *               trackId:
+ *                 type: string
+ *                 description: Spotify track ID (alternative to trackUri)
+ *                 example: "4iV5W9uYEdYUVa79Axb7Rh"
+ *               deviceId:
+ *                 type: string
+ *                 description: Optional device ID (uses active device if not provided)
+ *     responses:
+ *       200:
+ *         description: Track added to queue successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Bad request (missing trackUri/trackId, not connected to Spotify, etc.)
+ *       401:
+ *         description: Authentication required or Spotify authentication failed
+ *       403:
+ *         description: Spotify Premium required
+ *       404:
+ *         description: No active Spotify device found
+ */
+router.post("/me/queue", authenticateToken, spotifyController.addTrackToQueue);
+
 module.exports = router;
