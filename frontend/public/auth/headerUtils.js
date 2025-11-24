@@ -127,39 +127,56 @@ async function initLoggedInHeader(additionalLinks = []) {
   
   // Wait for DOM to update
   await new Promise(resolve => setTimeout(resolve, 0));
+  
+  // Add additional navigation links if provided
+  const headerNav = document.getElementById('header-nav');
+  if (headerNav && additionalLinks.length > 0) {
+    const userEmailSpan = document.getElementById('user-email');
     
-    // Add additional navigation links if provided
-    const headerNav = document.getElementById('header-nav');
-    if (headerNav && additionalLinks.length > 0) {
-      const userEmailSpan = document.getElementById('user-email');
+    // Insert links before user email
+    additionalLinks.forEach(link => {
+      let href, text, onClick, isButton, className;
+      if (typeof link === 'string') {
+        // Simple string format - generate href from text
+        text = link;
+        href = '/' + text.toLowerCase().replace(/\s+/g, '-') + '.html';
+      } else {
+        // Object format
+        href = link.href || '#';
+        text = link.text;
+        onClick = link.onClick;
+        isButton = link.isButton || false;
+        className = link.className || '';
+      }
       
-      // Insert links before user email
-      additionalLinks.forEach(link => {
-        let href, text;
-        if (typeof link === 'string') {
-          // Simple string format - generate href from text
-          text = link;
-          href = '/' + text.toLowerCase().replace(/\s+/g, '-') + '.html';
-        } else {
-          // Object format
-          href = link.href;
-          text = link.text;
+      let element;
+      if (isButton || onClick) {
+        // Create button element
+        element = document.createElement('button');
+        element.type = 'button';
+        element.className = 'header-btn' + (className ? ' ' + className : '');
+        element.textContent = text;
+        if (onClick) {
+          element.addEventListener('click', onClick);
         }
-        
-        const linkElement = document.createElement('a');
-        linkElement.href = href;
-        linkElement.className = 'header-btn';
-        linkElement.textContent = text;
-        headerNav.insertBefore(linkElement, userEmailSpan);
-      });
-    }
+      } else {
+        // Create anchor element
+        element = document.createElement('a');
+        element.href = href;
+        element.className = 'header-btn' + (className ? ' ' + className : '');
+        element.textContent = text;
+      }
+      
+      headerNav.insertBefore(element, userEmailSpan);
+    });
+  }
   
   // Setup logout button
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', logout);
   }
-  
+
   // Get user info and display email
   const token = getToken();
   if (token) {
@@ -167,6 +184,29 @@ async function initLoggedInHeader(additionalLinks = []) {
     const userEmail = document.getElementById('user-email');
     if (user && userEmail) {
       userEmail.textContent = user.email || '';
+    }
+  }
+  
+  // Add Spotify OAuth button right after user email (profile)
+  const userEmailSpan = document.getElementById('user-email');
+  const logoutBtnAfter = document.getElementById('logout-btn');
+  if (userEmailSpan && !document.getElementById('spotify-oauth-btn')) {
+    // Check if Spotify button already exists
+    const spotifyBtn = document.createElement('button');
+    spotifyBtn.id = 'spotify-oauth-btn';
+    spotifyBtn.type = 'button';
+    spotifyBtn.className = 'header-btn spotify-btn';
+    spotifyBtn.textContent = '🎵 Connect Spotify';
+    spotifyBtn.addEventListener('click', function() {
+      const backendUrl = window.getBackendUrl ? window.getBackendUrl() : (window.BACKEND_URL || 'http://localhost:3000');
+      window.location.href = backendUrl + '/api/spotify/auth';
+    });
+    
+    // Insert after user email, before logout button
+    if (logoutBtnAfter) {
+      headerNav.insertBefore(spotifyBtn, logoutBtnAfter);
+    } else {
+      headerNav.appendChild(spotifyBtn);
     }
   }
 }
