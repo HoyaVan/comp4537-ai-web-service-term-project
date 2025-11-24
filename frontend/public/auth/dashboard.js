@@ -437,11 +437,11 @@ window.viewResults = async function (roundId) {
     return;
   }
 
-  const spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
-  if (!spotifyTrackInfo) {
-    alert(dashboardMessages.failedToLoadSpotifyTrack);
-    return;
-  }
+  // const spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
+  // if (!spotifyTrackInfo) {
+  //   alert(dashboardMessages.failedToLoadSpotifyTrack);
+  //   return;
+  // }
 
   const countdownData = await getRoundCountdown(roundId);
   const modal = document.getElementById("results-modal");

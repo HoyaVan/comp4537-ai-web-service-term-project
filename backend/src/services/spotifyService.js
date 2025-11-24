@@ -10,22 +10,63 @@ class SpotifyService {
     this.tokenURL = "https://accounts.spotify.com/api/token";
     this.authURL = "https://accounts.spotify.com/authorize";
     this.callbackURI = process.env.SPOTIFY_CALLBACK_URI || null;
+    // OAuth tokens (from user authorization)
     this.accessToken = null;
-    this.tokenExpiresIn = null;
+    this.refreshToken = null;
+    this.expiresIn = null;
+    this.tokenExpiresAt = null;
+    this.tokenType = null;
+    this.scope = null;
+    this.state = null;
+    // Client credentials tokens (for app-only access)
+    this.clientCredentialsToken = null;
+    this.clientCredentialsExpiresAt = null;
   }
 
 
   /**
+   * Get a valid access token - prefers OAuth token if available, otherwise uses client credentials
+   */
+  async getValidAccessToken() {
+    // Check if OAuth token exists and is still valid
+    if (this.accessToken && this.expiresIn) {
+      const expiresAt = this.tokenExpiresAt || (Date.now() + this.expiresIn * 1000);
+      if (Date.now() < expiresAt) {
+        return this.accessToken;
+      }
+      // Token expired, try to refresh if we have refresh token
+      if (this.refreshToken) {
+        try {
+          const refreshed = await this.refreshAccessToken(this.refreshToken);
+          this.accessToken = refreshed.access_token;
+          this.expiresIn = refreshed.expires_in;
+          this.tokenExpiresAt = Date.now() + refreshed.expires_in * 1000;
+          if (refreshed.refresh_token) {
+            this.refreshToken = refreshed.refresh_token;
+          }
+          return this.accessToken;
+        } catch (error) {
+          console.error("Failed to refresh OAuth token, falling back to client credentials:", error.message);
+          // Fall through to client credentials flow
+        }
+      }
+    }
+
+    // Fall back to client credentials flow
+    return await this.getClientCredentialsToken();
+  }
+
+  /**
    * Get access token using client credentials flow
    */
-  async getAccessToken() {
-    // Return cached token if still valid
+  async getClientCredentialsToken() {
+    // Return cached client credentials token if still valid
     if (
-      this.accessToken &&
-      this.tokenExpiresAt &&
-      Date.now() < this.tokenExpiresAt
+      this.clientCredentialsToken &&
+      this.clientCredentialsExpiresAt &&
+      Date.now() < this.clientCredentialsExpiresAt
     ) {
-      return this.accessToken;
+      return this.clientCredentialsToken;
     }
 
     if (!this.clientId || !this.clientSecret) {
@@ -46,12 +87,11 @@ class SpotifyService {
         }
       );
 
-      this.accessToken = response.data.access_token;
-      // Set expiration to 2 hours 
-      this.tokenExpiresAt =
-        Date.now() + response.data.expires_in 
+      this.clientCredentialsToken = response.data.access_token;
+      // Set expiration
+      this.clientCredentialsExpiresAt = Date.now() + response.data.expires_in * 1000;
 
-      return this.accessToken;
+      return this.clientCredentialsToken;
     } catch (error) {
       console.error(
         "Error getting Spotify access token:",
@@ -62,11 +102,18 @@ class SpotifyService {
   }
 
   /**
+   * Get access token using client credentials flow (legacy method for backward compatibility)
+   */
+  async getAccessToken() {
+    return await this.getValidAccessToken();
+  }
+
+  /**
    * Search for tracks
    */
   async searchTracks(query, limit = 10) {
     try {
-      const token = await this.accessToken;
+      const token = await this.getValidAccessToken();
 
       const response = await axios.get(`${this.baseURL}/search`, {
         params: {
@@ -104,7 +151,7 @@ class SpotifyService {
    */
   async getTrack(trackId) {
     try {
-      const token = await this.accessToken
+      const token = await this.getValidAccessToken();
 
       const response = await axios.get(`${this.baseURL}/tracks/${trackId}`, {
         headers: {
@@ -138,7 +185,7 @@ class SpotifyService {
    */
   async getTracks(trackIds) {
     try {
-      const token = await this.accessToken
+      const token = await this.getValidAccessToken();
       const response = await axios.get(`${this.baseURL}/tracks`, {
         params: {
           ids: trackIds.join(","),

@@ -111,6 +111,8 @@ async function handleOAuthCallback(req, res) {
     spotifyService.tokenType = tokenData.token_type;
     spotifyService.scope = tokenData.scope;
     spotifyService.state = state || null;
+    // Calculate expiration time
+    spotifyService.tokenExpiresAt = Date.now() + (tokenData.expires_in * 1000);
 
     console.log("Spotify OAuth successful - tokens stored");
 
