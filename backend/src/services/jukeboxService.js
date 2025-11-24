@@ -411,12 +411,15 @@ async function startJukebox(ownerId, initialRoundId) {
     };
 
     // Add initial winning song to user's Spotify playlist and queue (async, don't wait)
+    console.log(`🎵 [Jukebox] Initial winner: "${results.winner.title}" by ${results.winner.artist}, spotifyUri: ${results.winner.spotifyUri || 'MISSING'}`);
     if (results.winner.spotifyUri) {
       const winnerSong = {
         spotifyUri: results.winner.spotifyUri,
         title: results.winner.title,
         artist: results.winner.artist,
       };
+      
+      console.log(`📝 [Jukebox] Adding initial winner "${winnerSong.title}" to playlist and queue...`);
       
       // Add to playlist
       addWinnerToPlaylist(ownerId, winnerSong, jukebox.initialCriteria).catch(error => {
@@ -427,6 +430,8 @@ async function startJukebox(ownerId, initialRoundId) {
       addWinnerToQueue(ownerId, winnerSong).catch(error => {
         console.error("Error in addWinnerToQueue promise:", error.message);
       });
+    } else {
+      console.warn(`⚠️ [Jukebox] Initial winner "${results.winner.title}" has no spotifyUri, cannot add to queue/playlist`);
     }
 
     const votingServiceLazy3 = require("./votingService");
@@ -804,10 +809,13 @@ function setupJukeboxTimer(jukebox) {
  */
 async function advanceJukebox(ownerId) {
   try {
+    console.log(`🔄 [Jukebox] advanceJukebox called for owner ${ownerId}`);
     const jukebox = jukeboxes.get(ownerId);
     if (!jukebox || !jukebox.isActive) {
+      console.log(`⚠️ [Jukebox] Jukebox not active for owner ${ownerId}`);
       return;
     }
+    console.log(`✅ [Jukebox] Jukebox is active, advancing to next song...`);
 
     if (!jukebox.votingRound || !jukebox.votingRound.roundId) {
       setTimeout(() => advanceJukebox(ownerId), 5000);
@@ -885,6 +893,7 @@ async function advanceJukebox(ownerId) {
     };
 
     // Add winning song to user's Spotify playlist and queue (async, don't wait)
+    console.log(`🎵 [Jukebox] Winner: "${results.winner.title}" by ${results.winner.artist}, spotifyUri: ${results.winner.spotifyUri || 'MISSING'}`);
     if (results.winner.spotifyUri) {
       // Get round criteria from jukebox or voting round
       let roundCriteria = jukebox.initialCriteria;
@@ -908,6 +917,8 @@ async function advanceJukebox(ownerId) {
         artist: results.winner.artist,
       };
       
+      console.log(`📝 [Jukebox] Adding "${winnerSong.title}" to playlist and queue...`);
+      
       // Add to playlist
       addWinnerToPlaylist(jukebox.ownerId, winnerSong, roundCriteria).catch(error => {
         console.warn("Failed to add winner to playlist (non-blocking):", error.message);
@@ -917,6 +928,8 @@ async function advanceJukebox(ownerId) {
       addWinnerToQueue(jukebox.ownerId, winnerSong).catch(error => {
         console.error("Error in addWinnerToQueue promise:", error.message);
       });
+    } else {
+      console.warn(`⚠️ [Jukebox] Winner "${results.winner.title}" has no spotifyUri, cannot add to queue/playlist`);
     }
 
     if (jukebox.nextUp) {

@@ -504,6 +504,9 @@ window.viewResults = async function (roundId) {
         ${
           (() => {
             const normalizedId = normalizeSpotifyTrackId(results.winner.spotifyId);
+            if (!normalizedId && results.winner.spotifyId) {
+              console.warn('Failed to normalize Spotify ID:', results.winner.spotifyId, 'for song:', results.winner.title);
+            }
             return normalizedId
               ? `
           <div style="margin: 16px 0;">

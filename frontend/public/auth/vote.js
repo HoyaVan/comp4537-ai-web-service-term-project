@@ -366,6 +366,9 @@ function displayResults(results) {
             return idMatch ? idMatch[0] : null;
           }
           const normalizedId = normalizeSpotifyTrackId(results.winner.spotifyId);
+          if (!normalizedId && results.winner.spotifyId) {
+            console.warn('Failed to normalize Spotify ID:', results.winner.spotifyId, 'for song:', results.winner.title);
+          }
           return normalizedId ? `
           <div style="margin: 16px 0;">
             <iframe 
