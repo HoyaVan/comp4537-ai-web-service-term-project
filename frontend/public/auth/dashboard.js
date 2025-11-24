@@ -84,11 +84,14 @@ async function loadUserInfo() {
   if (ok && data.success) {
     const user = data.data;
     const userEmail = document.getElementById("user-email");
-    if (userEmail) userEmail.textContent = user.email || "User";
+    if (userEmail) userEmail.textContent = user.email || dashboardMessages.user;
 
     // Display API consumption
     displayApiConsumption(user.apiConsumption);
+    
+    return user; // Return user object for role checking
   }
+  return null;
 }
 
 async function loadSpotifyToken() {
@@ -145,12 +148,6 @@ function displayApiConsumption(consumption) {
       }
     </div>
   `;
-    const userEmail = document.getElementById('user-email');
-    if (userEmail) userEmail.textContent = user.email || dashboardMessages.user;
-    
-    return user; // Return user object for role checking
-  }
-  return null;
 }
 
 // Create new voting round
@@ -610,7 +607,6 @@ window.resumeRound = async function (roundId) {
     await loadAndDisplayRounds();
   } else {
     alert(dashboardMessages.failedToResumeRound + (data.message || dashboardMessages.unknownError));
-    alert("Failed to resume round: " + (data.message || "Unknown error"));
   }
 };
 

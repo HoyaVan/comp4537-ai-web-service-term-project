@@ -42,8 +42,7 @@ async function createRound(req, res) {
 
     const response = {
       success: true,
-      message,
-      message: votingMessages.votingRoundCreatedSuccessfully,
+      message, // Use dynamic message that includes jukebox info when applicable
       data: {
         round,
         songs,
