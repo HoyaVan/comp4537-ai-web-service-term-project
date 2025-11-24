@@ -775,68 +775,6 @@ async function initDashboard() {
   await loadAndDisplayRounds();
   // await loadSpotifyToken();
 
-  // Setup health check button
-  const healthCheckBtn = document.getElementById("health-check-btn");
-  const healthStatus = document.getElementById("health-status");
-
-  if (healthCheckBtn && healthStatus) {
-    healthCheckBtn.addEventListener("click", async () => {
-      // Disable button during check
-      healthCheckBtn.disabled = true;
-      healthCheckBtn.textContent = dashboardMessages.checking;
-      healthStatus.classList.add('hidden');
-      
-      try {
-        const response = await fetch(
-          window.getBackendUrl() + "/api/v1/ai/health",
-          {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-            },
-            mode: "cors",
-            credentials: "omit",
-          }
-        );
-
-        const data = await response.json();
-
-        // Remove hidden class to show status
-        healthStatus.classList.remove("hidden");
-
-        if (response.ok && data.success && data.connected) {
-          // AI is healthy
-          healthStatus.className = "health-status health-status-success";
-          healthStatus.innerHTML = `
-            <strong>✓ AI Service is Healthy</strong>
-            <p>The AI agent is connected and ready to process requests.</p>
-          `;
-        } else {
-          // AI is not healthy
-          healthStatus.className = "health-status health-status-error";
-          const errorMsg =
-            data.error || "The AI agent is not reachable or not connected.";
-          healthStatus.innerHTML = `
-            <strong>✗ AI Service is Unavailable</strong>
-            <p>${errorMsg}</p>
-          `;
-        }
-      } catch (error) {
-        // Network or other error
-        healthStatus.className = "health-status health-status-error";
-        healthStatus.classList.remove("hidden");
-        healthStatus.innerHTML = `
-          <strong>✗ Connection Error</strong>
-          <p>Unable to reach the backend server. Please check your connection or try again later.</p>
-        `;
-      } finally {
-        // Re-enable button
-        healthCheckBtn.disabled = false;
-        healthCheckBtn.textContent = dashboardMessages.checkAiHealth;
-      }
-    });
-  }
-
   // Setup create form
   if (createForm) {
     createForm.addEventListener("submit", async (e) => {
