@@ -1,5 +1,6 @@
 const spotifyService = require("../services/spotifyService");
 const spotifyMessages = require("../messages/spotify");
+const authService = require("../services/authService");
 
 /**
  * Get Spotify track info
@@ -64,14 +65,27 @@ async function searchSpotifyTracks(req, res) {
 
 /**
  * Initiate Spotify OAuth flow - redirect to Spotify authorization
+ * Requires authentication - user must be logged in
  */
 async function initiateOAuth(req, res) {
   try {
-    const { state, scopes } = req.query;
+    // Get user ID from authenticated request
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required to connect Spotify",
+      });
+    }
+
+    const { scopes } = req.query;
     const scopesArray = scopes ? scopes.split(",") : undefined;
 
+    // Include user ID in state parameter so we can identify the user in callback
+    const state = userId;
+
     const authURL = spotifyService.getAuthorizationURL(
-      state || null,
+      state,
       scopesArray
     );
 
@@ -111,20 +125,28 @@ async function handleOAuthCallback(req, res) {
       return res.redirect(`${redirectBase}?spotify=error&message=${errorMessage}`);
     }
 
+    // Extract user ID from state parameter
+    const userId = state;
+    if (!userId) {
+      const errorMessage = encodeURIComponent("User ID not found in OAuth state");
+      return res.redirect(`${redirectBase}?spotify=error&message=${errorMessage}`);
+    }
+
     // Exchange authorization code for access token
     const tokenData = await spotifyService.exchangeCodeForToken(code);
 
-    // Store tokens in service (in-memory for now)
-    spotifyService.accessToken = tokenData.access_token;
-    spotifyService.refreshToken = tokenData.refresh_token;
-    spotifyService.expiresIn = tokenData.expires_in;
-    spotifyService.tokenType = tokenData.token_type;
-    spotifyService.scope = tokenData.scope;
-    spotifyService.state = state || null;
     // Calculate expiration time
-    spotifyService.tokenExpiresAt = Date.now() + (tokenData.expires_in * 1000);
+    const expiresAt = Date.now() + (tokenData.expires_in * 1000);
 
-    console.log("Spotify OAuth successful - tokens stored");
+    // Store tokens in database for this specific user
+    await authService.updateUserSpotifyTokens(
+      userId,
+      tokenData.access_token,
+      tokenData.refresh_token,
+      expiresAt
+    );
+
+    console.log(`Spotify OAuth successful - tokens stored for user ${userId}`);
 
     // Redirect to frontend with success indicator
     return res.redirect(`${redirectBase}?spotify=connected`);
@@ -139,33 +161,179 @@ async function handleOAuthCallback(req, res) {
 }
 
 
-async function setSpotifyToken(req, res) {
+/**
+ * Get current user's Spotify token information
+ * Requires authentication
+ */
+async function getSpotifyToken(req, res) {
   try {
-    
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    // Get user's Spotify tokens from database
+    const tokens = await authService.getUserSpotifyTokens(userId);
+
+    if (!tokens) {
+      return res.status(200).json({
+        success: true,
+        message: "User not connected to Spotify",
+        data: {
+          connected: false,
+        },
+      });
+    }
+
+    // Check if token is expired
+    const isExpired = tokens.expiresAt && Date.now() >= tokens.expiresAt;
+    const expiresIn = tokens.expiresAt ? Math.max(0, Math.floor((tokens.expiresAt - Date.now()) / 1000)) : null;
+
     return res.status(200).json({
       success: true,
       message: "Spotify token retrieved successfully",
       data: {
-        access_token: spotifyService.accessToken,
-        refresh_token: spotifyService.refreshToken,
-        expires_in: spotifyService.expiresIn,
-        token_type: spotifyService.tokenType,
-        scope: spotifyService.scope,
-        state: spotifyService.state,
+        connected: true,
+        access_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken,
+        expires_in: expiresIn,
+        expires_at: tokens.expiresAt,
+        is_expired: isExpired,
       },
     });
   } catch (error) {
-    console.error("Error setting Spotify token:", error);
+    console.error("Error getting Spotify token:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Error setting Spotify token",
+      message: error.message || "Error getting Spotify token",
     });
   }
 }
+/**
+ * Add a track to the user's Spotify queue
+ * Requires authentication and Spotify connection
+ */
+async function addTrackToQueue(req, res) {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { trackUri, trackId, deviceId } = req.body;
+
+    // Validate input - need either trackUri or trackId
+    if (!trackUri && !trackId) {
+      return res.status(400).json({
+        success: false,
+        message: "Either trackUri or trackId is required",
+      });
+    }
+
+    // Get user's Spotify tokens from database
+    const tokens = await authService.getUserSpotifyTokens(userId);
+
+    if (!tokens || !tokens.accessToken) {
+      return res.status(400).json({
+        success: false,
+        message: "User not connected to Spotify. Please connect your Spotify account first.",
+      });
+    }
+
+    // Check if token is expired and refresh if needed
+    let accessToken = tokens.accessToken;
+    if (tokens.expiresAt && Date.now() >= tokens.expiresAt) {
+      if (tokens.refreshToken) {
+        try {
+          const refreshed = await spotifyService.refreshAccessToken(tokens.refreshToken);
+          accessToken = refreshed.access_token;
+          // Use new refresh token if Spotify provided one, otherwise keep existing
+          const newRefreshToken = refreshed.refresh_token || tokens.refreshToken;
+          const newExpiresAt = Date.now() + (refreshed.expires_in * 1000);
+          await authService.updateUserSpotifyTokens(
+            userId,
+            refreshed.access_token,
+            newRefreshToken,
+            newExpiresAt
+          );
+        } catch (error) {
+          console.error("Failed to refresh token for queue:", error.message);
+          return res.status(401).json({
+            success: false,
+            message: "Spotify authentication failed. Please reconnect to Spotify.",
+          });
+        }
+      } else {
+        return res.status(401).json({
+          success: false,
+          message: "Spotify authentication expired. Please reconnect to Spotify.",
+        });
+      }
+    }
+
+    // Convert trackId to trackUri if needed
+    let finalTrackUri = trackUri;
+    if (!finalTrackUri && trackId) {
+      // If trackId is already a URI, use it; otherwise construct it
+      if (trackId.startsWith("spotify:track:")) {
+        finalTrackUri = trackId;
+      } else {
+        finalTrackUri = `spotify:track:${trackId}`;
+      }
+    }
+
+    // Add track to queue
+    try {
+      await spotifyService.addToQueue(accessToken, finalTrackUri, deviceId || null);
+      return res.status(200).json({
+        success: true,
+        message: "Track added to queue successfully",
+      });
+    } catch (error) {
+      // Handle specific error cases
+      if (error.message.includes("No active Spotify device")) {
+        return res.status(404).json({
+          success: false,
+          message: "No active Spotify device found. Please open Spotify and start playing music.",
+        });
+      } else if (error.message.includes("Spotify Premium")) {
+        return res.status(403).json({
+          success: false,
+          message: "Spotify Premium is required to add songs to queue.",
+        });
+      } else if (error.message.includes("authentication failed")) {
+        return res.status(401).json({
+          success: false,
+          message: "Spotify authentication failed. Please reconnect to Spotify.",
+        });
+      }
+      
+      // Generic error
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Failed to add track to queue",
+      });
+    }
+  } catch (error) {
+    console.error("Error adding track to queue:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error",
+    });
+  }
+}
+
 module.exports = {
   getSpotifyTrack,
   searchSpotifyTracks,
   initiateOAuth,
   handleOAuthCallback,
-  setSpotifyToken,
+  getSpotifyToken,
+  addTrackToQueue,
 };

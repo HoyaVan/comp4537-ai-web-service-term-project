@@ -228,19 +228,13 @@ app.listen(PORT, async () => {
   );
 
   console.log("\n🎵 Spotify (/api/v1/spotify):");
-  console.log(
-    "   GET    /api/v1/spotify/search                    - Search Spotify tracks (public)"
-  );
-  console.log(
-    "   GET    /api/v1/spotify/tracks/:trackId           - Get Spotify track (public)"
-  );
-  console.log(
-    "   GET    /api/v1/spotify/auth                      - Initiate OAuth (public)"
-  );
-  console.log(
-    "   GET    /api/v1/spotify/callback                 - OAuth callback (public)"
-  );
-
+  console.log("   GET    /api/v1/spotify/search                    - Search Spotify tracks (public)");
+  console.log("   GET    /api/v1/spotify/tracks/:trackId           - Get Spotify track (public)");
+  console.log("   GET    /api/v1/spotify/oauth/authorize           - Initiate OAuth (protected)");
+  console.log("   GET    /api/v1/spotify/oauth/callback            - OAuth callback (public)");
+  console.log("   GET    /api/v1/spotify/me/token                  - Get user's Spotify token (protected)");
+  console.log("   POST   /api/v1/spotify/me/queue                  - Add track to queue (protected)");
+  
   console.log("\n👑 Admin (/api/v1/admin):");
   console.log(
     "   GET    /api/v1/admin/stats/endpoints             - Get endpoint stats (admin)"
@@ -256,31 +250,15 @@ app.listen(PORT, async () => {
   );
 
   console.log("\n🎧 Jukebox (/api/v1/jukebox):");
-  console.log(
-    "   POST   /api/v1/jukebox/start                     - Start jukebox mode (protected)"
-  );
-  console.log(
-    "   GET    /api/v1/jukebox/status                    - Get jukebox status (protected)"
-  );
-  console.log(
-    "   POST   /api/v1/jukebox/stop                      - Stop jukebox (protected)"
-  );
-  console.log(
-    "   POST   /api/v1/jukebox/skip                      - Skip current song (protected)"
-  );
-  console.log(
-    "   POST   /api/v1/jukebox/pause                     - Pause jukebox (protected)"
-  );
-  console.log(
-    "   POST   /api/v1/jukebox/resume                    - Resume jukebox (protected)"
-  );
-  console.log(
-    "   GET    /api/v1/jukebox/:ownerId/voting-round     - Get voting round (public)"
-  );
-  console.log(
-    "   GET    /api/v1/jukebox/:ownerId/now-playing      - Get now playing (public)"
-  );
-
+  console.log("   POST   /api/v1/jukebox/start                     - Start jukebox mode (protected)");
+  console.log("   GET    /api/v1/jukebox/status                    - Get jukebox status (protected)");
+  console.log("   POST   /api/v1/jukebox/stop                      - Stop jukebox (protected)");
+  console.log("   POST   /api/v1/jukebox/skip                      - Skip current song (protected)");
+  console.log("   POST   /api/v1/jukebox/pause                     - Pause jukebox (protected)");
+  console.log("   POST   /api/v1/jukebox/resume                    - Resume jukebox (protected)");
+  console.log("   GET    /api/v1/jukebox/owners/:ownerId/voting-round - Get voting round (public)");
+  console.log("   GET    /api/v1/jukebox/owners/:ownerId/now-playing  - Get now playing (public)");
+  
   console.log("\n🏥 Health:");
   console.log("   GET    /health                  - Health check (public)");
   console.log("   GET    /                        - Server status (public)");

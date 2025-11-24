@@ -1,5 +1,6 @@
 // Use lazy requires to avoid circular dependency issues
 const spotifyService = require("./spotifyService");
+const authService = require("./authService");
 const crypto = require("crypto");
 const aiService = require("./aiService");
 
@@ -348,7 +349,33 @@ async function startJukebox(ownerId, initialRoundId) {
       nextUp: null,
       votingRound: null,
       timer: null,
+      initialCriteria: {
+        genre: round.genre,
+        artists: round.artists,
+        mood: round.mood,
+        energy: round.energy,
+        bpm: round.bpm,
+      },
     };
+
+    // Add initial winning song to user's Spotify playlist and queue (async, don't wait)
+    if (results.winner.spotifyUri) {
+      const winnerSong = {
+        spotifyUri: results.winner.spotifyUri,
+        title: results.winner.title,
+        artist: results.winner.artist,
+      };
+      
+      // Add to playlist
+      addWinnerToPlaylist(ownerId, winnerSong, jukebox.initialCriteria).catch(error => {
+        console.warn("Failed to add initial winner to playlist (non-blocking):", error.message);
+      });
+      
+      // Add to queue (for Premium users with active device)
+      addWinnerToQueue(ownerId, winnerSong).catch(error => {
+        // Silently fail - queue requires Premium and active device
+      });
+    }
 
     const votingServiceLazy3 = require("./votingService");
     const { round: votingRound } = await votingServiceLazy3.generateNextRound(initialRoundId, true);
@@ -365,6 +392,304 @@ async function startJukebox(ownerId, initialRoundId) {
   } catch (error) {
     console.error("Error starting jukebox:", error);
     throw error;
+  }
+}
+
+/**
+ * Generate playlist name from round criteria
+ * @param {Object} roundCriteria - Round criteria (genre, artists, mood, energy, bpm)
+ * @returns {string} Formatted playlist name
+ */
+function generatePlaylistName(roundCriteria) {
+  const dateStr = new Date().toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric' 
+  });
+
+  const parts = [];
+  
+  // Add genre if available
+  if (roundCriteria?.genre) {
+    parts.push(roundCriteria.genre);
+  }
+  
+  // Add artists if available (limit to first 2)
+  if (roundCriteria?.artists && roundCriteria.artists.length > 0) {
+    const artistStr = roundCriteria.artists.slice(0, 2).join(", ");
+    parts.push(artistStr);
+  }
+  
+  // Add mood if available
+  if (roundCriteria?.mood && roundCriteria.mood !== "Any") {
+    parts.push(roundCriteria.mood);
+  }
+  
+  // Add energy if available
+  if (roundCriteria?.energy && roundCriteria.energy !== "Any") {
+    parts.push(roundCriteria.energy);
+  }
+  
+  // Add BPM if available
+  if (roundCriteria?.bpm) {
+    parts.push(`${roundCriteria.bpm} BPM`);
+  }
+
+  // Build name: "DJ Clownfish - {Date} - {Criteria}"
+  let name = `DJ Clownfish - ${dateStr}`;
+  if (parts.length > 0) {
+    name += ` - ${parts.join(" • ")}`;
+  }
+
+  // Spotify playlist name limit is 100 characters
+  if (name.length > 100) {
+    // Truncate criteria but keep date
+    const maxCriteriaLength = 100 - name.length + parts.join(" • ").length;
+    if (maxCriteriaLength > 0) {
+      const truncatedCriteria = parts.join(" • ").substring(0, maxCriteriaLength - 3) + "...";
+      name = `DJ Clownfish - ${dateStr} - ${truncatedCriteria}`;
+    } else {
+      // If even date is too long (shouldn't happen), just use date
+      name = `DJ Clownfish - ${dateStr}`;
+    }
+  }
+
+  return name;
+}
+
+/**
+ * Get or create Spotify playlist for user's jukebox session
+ * @param {string} ownerId - User ID
+ * @param {Object} roundCriteria - Round criteria (genre, artists, mood, energy, bpm) for playlist naming
+ * @returns {Promise<Object|null>} Playlist object with id and external_urls, or null if user not connected
+ */
+async function getOrCreateJukeboxPlaylist(ownerId, roundCriteria = null) {
+  try {
+    // Get user's Spotify tokens
+    const tokens = await authService.getUserSpotifyTokens(ownerId);
+    if (!tokens || !tokens.accessToken) {
+      return null; // User not connected to Spotify
+    }
+
+    // Check if token is expired and refresh if needed
+    let accessToken = tokens.accessToken;
+    if (tokens.expiresAt && Date.now() >= tokens.expiresAt) {
+      if (tokens.refreshToken) {
+        try {
+          const refreshed = await spotifyService.refreshAccessToken(tokens.refreshToken);
+          accessToken = refreshed.access_token;
+          
+          // Update tokens in database
+          // Use new refresh token if Spotify provided one, otherwise keep existing
+          const newRefreshToken = refreshed.refresh_token || tokens.refreshToken;
+          const newExpiresAt = Date.now() + (refreshed.expires_in * 1000);
+          await authService.updateUserSpotifyTokens(
+            ownerId,
+            refreshed.access_token,
+            newRefreshToken,
+            newExpiresAt
+          );
+        } catch (error) {
+          console.error("Failed to refresh Spotify token:", error.message);
+          return null;
+        }
+      } else {
+        return null; // No refresh token available
+      }
+    }
+
+    // Get user's Spotify profile
+    const userProfile = await spotifyService.getUserProfile(accessToken);
+    
+    // Generate playlist name with date and round criteria
+    const playlistName = generatePlaylistName(roundCriteria);
+    const dateStr = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+
+    // Build description with criteria
+    let description = `Auto-generated playlist from DJ Clownfish jukebox session on ${dateStr}.`;
+    if (roundCriteria) {
+      const criteriaParts = [];
+      if (roundCriteria.genre) criteriaParts.push(`Genre: ${roundCriteria.genre}`);
+      if (roundCriteria.artists && roundCriteria.artists.length > 0) {
+        criteriaParts.push(`Artists: ${roundCriteria.artists.join(", ")}`);
+      }
+      if (roundCriteria.mood && roundCriteria.mood !== "Any") {
+        criteriaParts.push(`Mood: ${roundCriteria.mood}`);
+      }
+      if (roundCriteria.energy && roundCriteria.energy !== "Any") {
+        criteriaParts.push(`Energy: ${roundCriteria.energy}`);
+      }
+      if (roundCriteria.bpm) criteriaParts.push(`BPM: ${roundCriteria.bpm}`);
+      
+      if (criteriaParts.length > 0) {
+        description += ` Criteria: ${criteriaParts.join(" • ")}.`;
+      }
+    }
+    description += " Songs are added automatically as they win voting rounds.";
+
+    // Check if playlist already exists
+    let playlist = await spotifyService.getUserPlaylistByName(accessToken, playlistName);
+    
+    if (!playlist) {
+      // Create new playlist
+      playlist = await spotifyService.createPlaylist(
+        accessToken,
+        userProfile.id,
+        playlistName,
+        description,
+        true // public
+      );
+    }
+
+    return playlist;
+  } catch (error) {
+    console.error("Error getting/creating Spotify playlist:", error.message);
+    return null; // Fail silently - don't break jukebox if playlist fails
+  }
+}
+
+/**
+ * Add winning song to user's Spotify queue (for Premium users with active device)
+ * @param {string} ownerId - User ID
+ * @param {Object} winnerSong - Song object with spotifyUri
+ * @returns {Promise<boolean>} True if added successfully, false otherwise
+ */
+async function addWinnerToQueue(ownerId, winnerSong) {
+  try {
+    if (!winnerSong.spotifyUri) {
+      return false; // No Spotify URI, can't add to queue
+    }
+
+    // Get user's Spotify tokens
+    const tokens = await authService.getUserSpotifyTokens(ownerId);
+    if (!tokens || !tokens.accessToken) {
+      return false; // User not connected to Spotify
+    }
+
+    // Check if token is expired and refresh if needed
+    let accessToken = tokens.accessToken;
+    if (tokens.expiresAt && Date.now() >= tokens.expiresAt) {
+      if (tokens.refreshToken) {
+        try {
+          const refreshed = await spotifyService.refreshAccessToken(tokens.refreshToken);
+          accessToken = refreshed.access_token;
+          // Use new refresh token if Spotify provided one, otherwise keep existing
+          const newRefreshToken = refreshed.refresh_token || tokens.refreshToken;
+          const newExpiresAt = Date.now() + (refreshed.expires_in * 1000);
+          await authService.updateUserSpotifyTokens(
+            ownerId,
+            refreshed.access_token,
+            newRefreshToken,
+            newExpiresAt
+          );
+        } catch (error) {
+          console.error("Failed to refresh token for queue:", error.message);
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+
+    // Add track to queue (non-blocking, fails silently if Premium not available or no active device)
+    try {
+      await spotifyService.addToQueue(accessToken, winnerSong.spotifyUri);
+      return true;
+    } catch (error) {
+      // Expected errors: Premium required, no active device, etc.
+      // Log but don't throw - this is optional functionality
+      console.log(`Could not add to queue (non-critical): ${error.message}`);
+      return false;
+    }
+  } catch (error) {
+    console.error("Error adding winner to Spotify queue:", error.message);
+    return false; // Fail silently - don't break jukebox
+  }
+}
+
+/**
+ * Add winning song to user's Spotify playlist
+ * @param {string} ownerId - User ID
+ * @param {Object} winnerSong - Song object with spotifyUri
+ * @param {Object} roundCriteria - Round criteria for playlist naming (optional, will get from jukebox if not provided)
+ * @returns {Promise<boolean>} True if added successfully, false otherwise
+ */
+async function addWinnerToPlaylist(ownerId, winnerSong, roundCriteria = null) {
+  try {
+    if (!winnerSong.spotifyUri) {
+      return false; // No Spotify URI, can't add to playlist
+    }
+
+    // If roundCriteria not provided, try to get from jukebox
+    if (!roundCriteria) {
+      const jukebox = jukeboxes.get(ownerId);
+      if (jukebox) {
+        // Try to get from initialCriteria (for startJukeboxWithRandomSong)
+        if (jukebox.initialCriteria) {
+          roundCriteria = jukebox.initialCriteria;
+        } else if (jukebox.votingRound) {
+          // Try to get from voting round
+          const votingServiceLazy = require("./votingService");
+          const round = votingServiceLazy.getRoundById(jukebox.votingRound.roundId);
+          if (round) {
+            roundCriteria = {
+              genre: round.genre,
+              artists: round.artists,
+              mood: round.mood,
+              energy: round.energy,
+              bpm: round.bpm,
+            };
+          }
+        }
+      }
+    }
+
+    const playlist = await getOrCreateJukeboxPlaylist(ownerId, roundCriteria);
+    if (!playlist) {
+      return false; // User not connected or playlist creation failed
+    }
+
+    // Get user's access token (with refresh if needed)
+    const tokens = await authService.getUserSpotifyTokens(ownerId);
+    if (!tokens || !tokens.accessToken) {
+      return false;
+    }
+
+    let accessToken = tokens.accessToken;
+    if (tokens.expiresAt && Date.now() >= tokens.expiresAt) {
+      if (tokens.refreshToken) {
+        try {
+          const refreshed = await spotifyService.refreshAccessToken(tokens.refreshToken);
+          accessToken = refreshed.access_token;
+          // Use new refresh token if Spotify provided one, otherwise keep existing
+          const newRefreshToken = refreshed.refresh_token || tokens.refreshToken;
+          const newExpiresAt = Date.now() + (refreshed.expires_in * 1000);
+          await authService.updateUserSpotifyTokens(
+            ownerId,
+            refreshed.access_token,
+            newRefreshToken,
+            newExpiresAt
+          );
+        } catch (error) {
+          console.error("Failed to refresh token for playlist:", error.message);
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+
+    // Add track to playlist
+    await spotifyService.addTracksToPlaylist(accessToken, playlist.id, [winnerSong.spotifyUri]);
+    
+    return true;
+  } catch (error) {
+    console.error("Error adding winner to Spotify playlist:", error.message);
+    return false; // Fail silently - don't break jukebox
   }
 }
 
@@ -478,6 +803,41 @@ async function advanceJukebox(ownerId) {
       durationMs,
       endsAt: new Date(now.getTime() + durationMs).toISOString(),
     };
+
+    // Add winning song to user's Spotify playlist and queue (async, don't wait)
+    if (results.winner.spotifyUri) {
+      // Get round criteria from jukebox or voting round
+      let roundCriteria = jukebox.initialCriteria;
+      if (!roundCriteria && jukebox.votingRound) {
+        const votingServiceLazy6 = require("./votingService");
+        const currentRound = votingServiceLazy6.getRoundById(jukebox.votingRound.roundId);
+        if (currentRound) {
+          roundCriteria = {
+            genre: currentRound.genre,
+            artists: currentRound.artists,
+            mood: currentRound.mood,
+            energy: currentRound.energy,
+            bpm: currentRound.bpm,
+          };
+        }
+      }
+      
+      const winnerSong = {
+        spotifyUri: results.winner.spotifyUri,
+        title: results.winner.title,
+        artist: results.winner.artist,
+      };
+      
+      // Add to playlist
+      addWinnerToPlaylist(jukebox.ownerId, winnerSong, roundCriteria).catch(error => {
+        console.warn("Failed to add winner to playlist (non-blocking):", error.message);
+      });
+      
+      // Add to queue (for Premium users with active device)
+      addWinnerToQueue(jukebox.ownerId, winnerSong).catch(error => {
+        // Silently fail - queue requires Premium and active device
+      });
+    }
 
     if (jukebox.nextUp) {
       jukebox.nextUp = null;
