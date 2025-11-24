@@ -249,10 +249,19 @@ class SpotifyService {
 
   /**
    * Generate OAuth authorization URL
+   * Includes playlist scopes for creating and managing playlists
+   * Includes playback control scope for adding songs to queue
    */
   getAuthorizationURL(
     state = null,
-    scopes = ["user-read-private", "user-read-email"]
+    scopes = [
+      "user-read-private",
+      "user-read-email",
+      "playlist-modify-public",
+      "playlist-modify-private",
+      "playlist-read-private",
+      "user-modify-playback-state"
+    ]
   ) {
     if (!this.clientId) {
       throw new Error(spotifyMessages.spotifyClientIdNotConfigured);
@@ -360,6 +369,285 @@ class SpotifyService {
         error.response?.data || error.message
       );
       throw new Error(spotifyMessages.failedToRefreshAccessToken);
+    }
+  }
+
+  /**
+   * Get current user's Spotify profile (requires user OAuth token)
+   * @param {string} userAccessToken - User's Spotify OAuth access token
+   * @returns {Promise<Object>} User profile with id, display_name, email, etc.
+   */
+  async getUserProfile(userAccessToken) {
+    try {
+      const response = await axios.get(`${this.baseURL}/me`, {
+        headers: {
+          Authorization: `Bearer ${userAccessToken}`,
+        },
+      });
+
+      return {
+        id: response.data.id,
+        display_name: response.data.display_name,
+        email: response.data.email,
+        external_urls: response.data.external_urls,
+        images: response.data.images,
+      };
+    } catch (error) {
+      console.error(
+        "Error getting Spotify user profile:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to get Spotify user profile");
+    }
+  }
+
+  /**
+   * Create a new playlist for the user
+   * @param {string} userAccessToken - User's Spotify OAuth access token
+   * @param {string} userId - Spotify user ID
+   * @param {string} name - Playlist name
+   * @param {string} description - Playlist description
+   * @param {boolean} isPublic - Whether playlist is public (default: true)
+   * @returns {Promise<Object>} Created playlist with id, name, external_urls, etc.
+   */
+  async createPlaylist(userAccessToken, userId, name, description = "", isPublic = true) {
+    try {
+      const response = await axios.post(
+        `${this.baseURL}/users/${userId}/playlists`,
+        {
+          name: name,
+          description: description,
+          public: isPublic,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${userAccessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      return {
+        id: response.data.id,
+        name: response.data.name,
+        description: response.data.description,
+        external_urls: response.data.external_urls,
+        public: response.data.public,
+        tracks: response.data.tracks,
+      };
+    } catch (error) {
+      console.error(
+        "Error creating Spotify playlist:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to create Spotify playlist");
+    }
+  }
+
+  /**
+   * Add tracks to a playlist
+   * @param {string} userAccessToken - User's Spotify OAuth access token
+   * @param {string} playlistId - Spotify playlist ID
+   * @param {Array<string>} trackUris - Array of Spotify track URIs (e.g., ["spotify:track:xxx"])
+   * @returns {Promise<Object>} Snapshot ID and tracks added
+   */
+  async addTracksToPlaylist(userAccessToken, playlistId, trackUris) {
+    if (!trackUris || trackUris.length === 0) {
+      throw new Error("No track URIs provided");
+    }
+
+    // Spotify API limit: max 100 tracks per request
+    const maxTracksPerRequest = 100;
+    const results = [];
+
+    try {
+      // Add tracks in batches of 100
+      for (let i = 0; i < trackUris.length; i += maxTracksPerRequest) {
+        const batch = trackUris.slice(i, i + maxTracksPerRequest);
+        
+        const response = await axios.post(
+          `${this.baseURL}/playlists/${playlistId}/tracks`,
+          {
+            uris: batch,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${userAccessToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        results.push({
+          snapshot_id: response.data.snapshot_id,
+          tracks_added: batch.length,
+        });
+      }
+
+      return {
+        total_tracks_added: trackUris.length,
+        batches: results,
+      };
+    } catch (error) {
+      console.error(
+        "Error adding tracks to Spotify playlist:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to add tracks to Spotify playlist");
+    }
+  }
+
+  /**
+   * Get user's playlists (to find existing playlist)
+   * @param {string} userAccessToken - User's Spotify OAuth access token
+   * @param {string} playlistName - Name of playlist to search for
+   * @returns {Promise<Object|null>} Playlist object if found, null otherwise
+   */
+  async getUserPlaylistByName(userAccessToken, playlistName) {
+    try {
+      let offset = 0;
+      const limit = 50;
+
+      while (true) {
+        const response = await axios.get(`${this.baseURL}/me/playlists`, {
+          params: {
+            limit: limit,
+            offset: offset,
+          },
+          headers: {
+            Authorization: `Bearer ${userAccessToken}`,
+          },
+        });
+
+        const playlists = response.data.items;
+        
+        // Search for playlist with matching name
+        const found = playlists.find(
+          (playlist) => playlist.name === playlistName
+        );
+        
+        if (found) {
+          return {
+            id: found.id,
+            name: found.name,
+            description: found.description,
+            external_urls: found.external_urls,
+            public: found.public,
+          };
+        }
+
+        // If no more playlists, stop searching
+        if (playlists.length < limit) {
+          break;
+        }
+
+        offset += limit;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(
+        "Error searching user playlists:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to search user playlists");
+    }
+  }
+
+  /**
+   * Add a track to the user's playback queue
+   * @param {string} userAccessToken - User's Spotify OAuth access token
+   * @param {string} trackUri - Spotify track URI (e.g., "spotify:track:4iV5W9uYEdYUVa79Axb7Rh")
+   * @param {string} deviceId - Optional device ID (uses active device if not provided)
+   * @returns {Promise<boolean>} True if added successfully
+   */
+  async addToQueue(userAccessToken, trackUri, deviceId = null) {
+    try {
+      const params = new URLSearchParams({ uri: trackUri });
+      if (deviceId) {
+        params.append("device_id", deviceId);
+      }
+
+      const response = await axios.post(
+        `${this.baseURL}/me/player/queue?${params.toString()}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${userAccessToken}`,
+          },
+        }
+      );
+
+      // Success response is 204 No Content
+      return response.status === 204;
+    } catch (error) {
+      // Handle specific error cases
+      if (error.response?.status === 404) {
+        // No active device
+        throw new Error("No active Spotify device found. Please open Spotify and start playing music.");
+      } else if (error.response?.status === 403) {
+        // Premium required
+        throw new Error("Spotify Premium is required to add songs to queue.");
+      } else if (error.response?.status === 401) {
+        // Invalid or expired token
+        throw new Error("Spotify authentication failed. Please reconnect to Spotify.");
+      }
+      
+      console.error(
+        "Error adding track to Spotify queue:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to add track to Spotify queue");
+    }
+  }
+
+  /**
+   * Get user's available playback devices
+   * @param {string} userAccessToken - User's Spotify OAuth access token
+   * @returns {Promise<Array>} Array of available devices
+   */
+  async getPlaybackDevices(userAccessToken) {
+    try {
+      const response = await axios.get(`${this.baseURL}/me/player/devices`, {
+        headers: {
+          Authorization: `Bearer ${userAccessToken}`,
+        },
+      });
+
+      return response.data.devices || [];
+    } catch (error) {
+      console.error(
+        "Error getting playback devices:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to get playback devices");
+    }
+  }
+
+  /**
+   * Get user's current playback state
+   * @param {string} userAccessToken - User's Spotify OAuth access token
+   * @returns {Promise<Object|null>} Current playback state or null if nothing is playing
+   */
+  async getCurrentPlayback(userAccessToken) {
+    try {
+      const response = await axios.get(`${this.baseURL}/me/player`, {
+        headers: {
+          Authorization: `Bearer ${userAccessToken}`,
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 204) {
+        // No content = nothing is playing
+        return null;
+      }
+      console.error(
+        "Error getting current playback:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to get current playback");
     }
   }
 }
