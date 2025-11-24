@@ -40,8 +40,8 @@ async function isUserAdmin(userIdInt) {
  */
 async function getUserFromDbById(userIdInt, includePassword = false) {
   const fields = includePassword
-    ? "user_id, email, password, name, creation_date, api_calls, spotify_access_token, spotify_refresh_token, spotify_token_expires_at"
-    : "user_id, email, name, creation_date, api_calls, spotify_access_token, spotify_refresh_token, spotify_token_expires_at";
+    ? "user_id, email, password, name, creation_date, api_calls"
+    : "user_id, email, name, creation_date, api_calls";
   
   const users = await db.query(
     `SELECT ${fields} FROM \`user\` WHERE user_id = ?`,
@@ -59,8 +59,8 @@ async function getUserFromDbById(userIdInt, includePassword = false) {
  */
 async function getUserFromDbByEmail(email, includePassword = false) {
   const fields = includePassword
-    ? "user_id, email, password, name, creation_date, api_calls, spotify_access_token, spotify_refresh_token, spotify_token_expires_at"
-    : "user_id, email, name, creation_date, api_calls, spotify_access_token, spotify_refresh_token, spotify_token_expires_at";
+    ? "user_id, email, password, name, creation_date, api_calls"
+    : "user_id, email, name, creation_date, api_calls";
   
   const users = await db.query(
     `SELECT ${fields} FROM \`user\` WHERE email = ?`,
@@ -240,7 +240,7 @@ async function getUserById(userId) {
 async function getAllUsers() {
   // Query all users from database
   const users = await db.query(
-    "SELECT user_id, email, name, creation_date, api_calls, spotify_access_token, spotify_refresh_token, spotify_token_expires_at FROM `user` ORDER BY creation_date DESC"
+    "SELECT user_id, email, name, creation_date, api_calls FROM `user` ORDER BY creation_date DESC"
   );
 
   // Get all admin user IDs
@@ -254,78 +254,10 @@ async function getAllUsers() {
   });
 }
 
-/**
- * Update user's Spotify tokens
- */
-async function updateUserSpotifyTokens(userId, accessToken, refreshToken, expiresAt) {
-  const userIdInt = parseUserId(userId);
-  if (!userIdInt) {
-    throw new Error("Invalid user ID");
-  }
-
-  await db.query(
-    `UPDATE \`user\` 
-     SET spotify_access_token = ?, 
-         spotify_refresh_token = ?, 
-         spotify_token_expires_at = ? 
-     WHERE user_id = ?`,
-    [accessToken, refreshToken, expiresAt ? new Date(expiresAt) : null, userIdInt]
-  );
-}
-
-/**
- * Get user's Spotify tokens
- */
-async function getUserSpotifyTokens(userId) {
-  const userIdInt = parseUserId(userId);
-  if (!userIdInt) {
-    return null;
-  }
-
-  const users = await db.query(
-    `SELECT spotify_access_token, spotify_refresh_token, spotify_token_expires_at 
-     FROM \`user\` 
-     WHERE user_id = ?`,
-    [userIdInt]
-  );
-
-  if (users.length === 0 || !users[0].spotify_access_token) {
-    return null;
-  }
-
-  return {
-    accessToken: users[0].spotify_access_token,
-    refreshToken: users[0].spotify_refresh_token,
-    expiresAt: users[0].spotify_token_expires_at ? new Date(users[0].spotify_token_expires_at).getTime() : null,
-  };
-}
-
-/**
- * Clear user's Spotify tokens (disconnect)
- */
-async function clearUserSpotifyTokens(userId) {
-  const userIdInt = parseUserId(userId);
-  if (!userIdInt) {
-    throw new Error("Invalid user ID");
-  }
-
-  await db.query(
-    `UPDATE \`user\` 
-     SET spotify_access_token = NULL, 
-         spotify_refresh_token = NULL, 
-         spotify_token_expires_at = NULL 
-     WHERE user_id = ?`,
-    [userIdInt]
-  );
-}
-
 module.exports = {
   signup,
   login,
   getUserById,
   verifyToken,
   getAllUsers,
-  updateUserSpotifyTokens,
-  getUserSpotifyTokens,
-  clearUserSpotifyTokens,
 };
