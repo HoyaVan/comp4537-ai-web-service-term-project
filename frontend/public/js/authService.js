@@ -33,6 +33,13 @@ class AuthService {
    * @returns {Promise<boolean>}
    */
   async isAuthenticated() {
+    // If we're in the process of logging out, return false immediately
+    const isLoggingOut = window.__isLoggingOut || sessionStorage.getItem('__isLoggingOut') === 'true';
+    if (isLoggingOut) {
+      this.currentUser = null;
+      return false;
+    }
+    
     const token = this.getToken();
     if (!token) {
       this.currentUser = null;
@@ -40,7 +47,7 @@ class AuthService {
     }
 
     try {
-      const response = await fetch(`${this.backendUrl}/api/auth/profile`, {
+      const response = await fetch(`${this.backendUrl}/api/v1/auth/profile`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -51,7 +58,15 @@ class AuthService {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      let data;
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Expected JSON but got ${contentType || 'unknown type'}: ${text.substring(0, 100)}`);
+      }
         if (data.success && data.data) {
           this.currentUser = data.data;
           return true;
@@ -87,7 +102,7 @@ class AuthService {
    */
   async login(email, password) {
     try {
-      const response = await fetch(`${this.backendUrl}/api/auth/login`, {
+      const response = await fetch(`${this.backendUrl}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +115,15 @@ class AuthService {
         }),
       });
 
-      const data = await response.json();
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      let data;
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Expected JSON but got ${contentType || 'unknown type'}: ${text.substring(0, 100)}`);
+      }
 
       if (response.ok && data.success) {
         const token = data.data?.token;
@@ -136,7 +159,7 @@ class AuthService {
    */
   async signup(name, email, password) {
     try {
-      const response = await fetch(`${this.backendUrl}/api/auth/signup`, {
+      const response = await fetch(`${this.backendUrl}/api/v1/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -150,7 +173,15 @@ class AuthService {
         }),
       });
 
-      const data = await response.json();
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      let data;
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Expected JSON but got ${contentType || 'unknown type'}: ${text.substring(0, 100)}`);
+      }
 
       if (response.ok && data.success) {
         const token = data.data?.token;
@@ -184,7 +215,7 @@ class AuthService {
   async logout() {
     try {
       const token = this.getToken();
-      const response = await fetch(`${this.backendUrl}/api/auth/logout`, {
+      const response = await fetch(`${this.backendUrl}/api/v1/auth/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

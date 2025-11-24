@@ -78,7 +78,7 @@ async function isAuthenticated() {
 // Fetch all users from backend
 async function fetchAllUsers() {
   try {
-    const { ok, data } = await apiRequest('/api/auth/users');
+    const { ok, data } = await apiRequest('/api/v1/auth/users');
     if (!ok || !data.success) {
       throw new Error(data.message || adminMessages.failedToFetchUsers);
     }
@@ -355,7 +355,7 @@ async function loadEndpointStats() {
   container.innerHTML = `<p class="loading">${adminMessages.loadingEndpointStats}</p>`;
   
   try {
-    const { ok, data } = await apiRequest('/api/admin/stats/endpoints');
+    const { ok, data } = await apiRequest('/api/v1/admin/stats/endpoints');
     if (ok && data.success) {
       displayEndpointStats(data.data || []);
     } else {
@@ -450,7 +450,7 @@ async function loadConsumptionStats() {
   container.innerHTML = `<p class="loading">${adminMessages.loadingConsumptionStats}</p>`;
   
   try {
-    const { ok, data } = await apiRequest('/api/admin/stats/users');
+    const { ok, data } = await apiRequest('/api/v1/admin/stats/users');
     if (ok && data.success) {
       displayConsumptionStats(data.data || []);
     } else {

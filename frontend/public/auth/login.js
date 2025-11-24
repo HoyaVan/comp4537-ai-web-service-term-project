@@ -1,6 +1,6 @@
 import { authMessages } from '/messages/auth.js';
 
-const LOGIN_PATH = '/api/auth/login';
+const LOGIN_PATH = '/api/v1/auth/login';
 
 async function submitLogin(payload) {
   const res = await fetch(window.getBackendUrl() + LOGIN_PATH, {
@@ -13,12 +13,49 @@ async function submitLogin(payload) {
       password: payload.password
     })
   });
-  const isJSON = (res.headers.get('content-type') || '').includes('application/json');
-  const data = isJSON ? await res.json() : await res.text();
+  
+  // Clone response to read body multiple times if needed
+  const clonedRes = res.clone();
+  
+  // Check content-type and handle response appropriately
+  const contentType = res.headers.get('content-type') || '';
+  const isJSON = contentType.includes('application/json');
+  
+  let data;
+  if (isJSON) {
+    try {
+      data = await res.json();
+    } catch (jsonError) {
+      // If JSON parsing fails, get text from cloned response
+      const text = await clonedRes.text();
+      return { 
+        ok: false, 
+        data: { 
+          message: `Server returned invalid JSON. Status: ${res.status}. Response: ${text.substring(0, 200)}` 
+        } 
+      };
+    }
+  } else {
+    // Not JSON - get as text
+    const text = await res.text();
+    return { 
+      ok: false, 
+      data: { 
+        message: `Server returned ${contentType || 'non-JSON'} response. Status: ${res.status}. Response: ${text.substring(0, 200)}` 
+      } 
+    };
+  }
+  
   return { ok: res.ok, data };
 }
 
 async function initLogin() {
+  // Clear logout flag if present (logout completed successfully)
+  if (sessionStorage.getItem('__isLoggingOut') === 'true') {
+    sessionStorage.removeItem('__isLoggingOut');
+    window.__isLoggingOut = false;
+  }
+  
   // Initialize header first (if headerUtils is loaded)
   if (typeof initLoggedOutHeader === 'function') {
     try {

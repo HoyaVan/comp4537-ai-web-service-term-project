@@ -39,14 +39,34 @@ async function fetchPartial(partialName) {
 
 // Logout function - uses authService and router
 async function logout() {
+  // Set a flag to prevent any auth checks during logout (persist in sessionStorage)
+  window.__isLoggingOut = true;
+  sessionStorage.setItem('__isLoggingOut', 'true');
+  
   try {
+    // Clear token immediately to prevent any auth checks from passing
     if (window.authService) {
-      await window.authService.logout();
+      // Clear token first, then make logout request
+      window.authService.setToken(null);
+      window.authService.currentUser = null;
+      // Make logout request (but don't wait for it - clear local state first)
+      window.authService.logout().catch(err => {
+        console.error('Logout API error (non-critical):', err);
+      });
     }
-    window.location.href = '/';
+    // Use replace instead of href to avoid history issues
+    // Small delay to ensure localStorage is cleared before redirect
+    setTimeout(() => {
+      window.location.replace('/');
+    }, 50);
   } catch (error) {
     console.error('Logout error:', error);
-    window.location.href = '/';
+    // Clear token even on error
+    if (window.authService) {
+      window.authService.setToken(null);
+      window.authService.currentUser = null;
+    }
+    window.location.replace('/');
   }
 }
 
@@ -226,7 +246,7 @@ async function initLoggedInHeader(additionalLinks = []) {
       spotifyBtn.style.cursor = 'pointer';
       spotifyBtn.addEventListener('click', function() {
         const backendUrl = window.getBackendUrl ? window.getBackendUrl() : (window.BACKEND_URL || 'http://localhost:3000');
-        window.location.href = backendUrl + '/api/spotify/auth';
+        window.location.href = backendUrl + '/api/v1/spotify/auth';
       });
       
       // Insert right after Profile link if it exists, otherwise before user email

@@ -1,6 +1,6 @@
 import { authMessages } from '/messages/auth.js';
 
-const SIGNUP_PATH = '/api/auth/signup';
+const SIGNUP_PATH = '/api/v1/auth/signup';
 
 async function submitSignup(payload) {
   const res = await fetch(window.getBackendUrl() + SIGNUP_PATH, {
@@ -20,6 +20,12 @@ async function submitSignup(payload) {
 }
 
 async function initSignup() {
+  // Clear logout flag if present (logout completed successfully)
+  if (sessionStorage.getItem('__isLoggingOut') === 'true') {
+    sessionStorage.removeItem('__isLoggingOut');
+    window.__isLoggingOut = false;
+  }
+  
   // Initialize header first (if headerUtils is loaded)
   if (typeof initLoggedOutHeader === 'function') {
     try {
@@ -94,7 +100,7 @@ async function initSignup() {
         } else {
           // If no token in response, try auto-login with the credentials
           try {
-            const loginRes = await fetch(window.getBackendUrl() + '/api/auth/login', {
+            const loginRes = await fetch(window.getBackendUrl() + '/api/v1/auth/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
               mode: 'cors',
