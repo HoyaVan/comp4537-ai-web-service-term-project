@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const db = require("./src/utils/db");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -102,7 +103,10 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/jukebox", jukeboxRoutes);
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  // Test database connection
+  await db.testConnection();
+  
   console.log(`\n🚀 Server is running on port ${PORT}\n`);
   console.log("📋 Available Endpoints:\n");
   

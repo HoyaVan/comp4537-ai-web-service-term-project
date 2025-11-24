@@ -1,4 +1,5 @@
 const apiTrackingMessages = require("../messages/apiTracking");
+const db = require("../utils/db");
 
 /**
  * API Tracking Middleware
@@ -15,36 +16,70 @@ const apiTrackingMessages = require("../messages/apiTracking");
 // Free API calls limit per user
 const FREE_API_CALLS_LIMIT = 20;
 
-// In-memory storage (replace with database in production)
+// In-memory storage for endpoint stats and logs (not stored in database)
 const apiCallLogs = [];
-const userApiCounts = new Map(); // userId -> count
 const endpointStats = new Map(); // "METHOD /endpoint" -> count
 const endpointUserStats = new Map(); // "METHOD /endpoint" -> Map<userId, count>
 const endpointLastCall = new Map(); // "METHOD /endpoint" -> { userId, timestamp }
 
 /**
- * Get API call count for a user
- * @param {string} userId - User ID
- * @returns {number} Number of API calls made by user
+ * Parse and validate user ID for API tracking
+ * @param {string} userId - User ID to parse
+ * @returns {number|null} Parsed user ID or null if invalid/anonymous
  */
-const getUserApiCount = (userId) => {
-  return userApiCounts.get(userId) || 0;
+function parseUserIdForTracking(userId) {
+  if (!userId || userId === 'anonymous') {
+    return null;
+  }
+  const userIdInt = parseInt(userId, 10);
+  return isNaN(userIdInt) ? null : userIdInt;
+}
+
+/**
+ * Get API call count for a user from database
+ * @param {number} userIdInt - User ID (integer)
+ * @returns {Promise<number>} Number of API calls made by user
+ */
+async function getUserApiCallsFromDb(userIdInt) {
+  try {
+    const users = await db.query(
+      "SELECT api_calls FROM `user` WHERE user_id = ?",
+      [userIdInt]
+    );
+    return users.length > 0 ? (users[0].api_calls || 0) : 0;
+  } catch (error) {
+    console.error("Error getting user API count:", error);
+    return 0;
+  }
+}
+
+/**
+ * Get API call count for a user from database
+ * @param {string} userId - User ID
+ * @returns {Promise<number>} Number of API calls made by user
+ */
+const getUserApiCount = async (userId) => {
+  const userIdInt = parseUserIdForTracking(userId);
+  if (!userIdInt) {
+    return 0;
+  }
+  return await getUserApiCallsFromDb(userIdInt);
 };
 
 /**
  * Check if user has exceeded free API calls limit
  * @param {string} userId - User ID
  * @param {string} userRole - User role (optional)
- * @returns {boolean} True if user has exceeded limit
+ * @returns {Promise<boolean>} True if user has exceeded limit
  */
-const hasExceededLimit = (userId, userRole = null) => {
+const hasExceededLimit = async (userId, userRole = null) => {
   if (!userId || userId === 'anonymous') {
     return false; // Anonymous users don't have limits
   }
   if (userRole === 'admin') {
     return false; // Admin users don't have limits
   }
-  const count = getUserApiCount(userId);
+  const count = await getUserApiCount(userId);
   return count >= FREE_API_CALLS_LIMIT;
 };
 
@@ -52,16 +87,16 @@ const hasExceededLimit = (userId, userRole = null) => {
  * Get remaining free API calls for a user
  * @param {string} userId - User ID
  * @param {string} userRole - User role (optional)
- * @returns {number|null} Remaining calls (null for unlimited, 0 if exceeded)
+ * @returns {Promise<number|null>} Remaining calls (null for unlimited, 0 if exceeded)
  */
-const getRemainingCalls = (userId, userRole = null) => {
+const getRemainingCalls = async (userId, userRole = null) => {
   if (!userId || userId === 'anonymous') {
     return null; // Anonymous users don't have limits
   }
   if (userRole === 'admin') {
     return null; // Admin users have unlimited calls
   }
-  const count = getUserApiCount(userId);
+  const count = await getUserApiCount(userId);
   const remaining = Math.max(0, FREE_API_CALLS_LIMIT - count);
   return remaining;
 };
@@ -69,14 +104,43 @@ const getRemainingCalls = (userId, userRole = null) => {
 
 
 /**
- * Increment API call count for a user
+ * Update API call count for a user in database
+ * @param {number} userIdInt - User ID (integer)
+ * @param {number} increment - Amount to increment (can be negative)
+ * @returns {Promise<number>} New API call count
+ */
+async function updateUserApiCallsInDb(userIdInt, increment) {
+  try {
+    await db.query(
+      "UPDATE `user` SET api_calls = api_calls + ? WHERE user_id = ?",
+      [increment, userIdInt]
+    );
+    
+    // Get updated count for logging
+    const newCount = await getUserApiCallsFromDb(userIdInt);
+    return newCount;
+  } catch (error) {
+    console.error("Error updating user API count:", error);
+    throw error;
+  }
+}
+
+/**
+ * Increment API call count for a user in database
  * @param {string} userId - User ID
  */
-const incrementUserApiCount = (userId) => {
-  const currentCount = getUserApiCount(userId);
-  const newCount = currentCount + 1;
-  userApiCounts.set(userId, newCount);
-  console.log(`[API Tracker] Incremented API count for user ${userId}: ${currentCount} -> ${newCount}`);
+const incrementUserApiCount = async (userId) => {
+  const userIdInt = parseUserIdForTracking(userId);
+  if (!userIdInt) {
+    return;
+  }
+  
+  try {
+    const newCount = await updateUserApiCallsInDb(userIdInt, 1);
+    console.log(`[API Tracker] Incremented API count for user ${userId}: ${newCount}`);
+  } catch (error) {
+    console.error("Error incrementing user API count:", error);
+  }
 };
 
 /**
@@ -119,7 +183,12 @@ const trackApiCall = (method, endpoint, userId, statusCode, responseTime, userRo
   
   // Update user API count (only for authenticated users, successful calls, non-auth endpoints, and non-admin users)
   if (userId && userId !== 'anonymous' && statusCode >= 200 && statusCode < 300 && !isAuthEndpoint && !isAdmin) {
-    incrementUserApiCount(userId);
+    // Use setImmediate to avoid blocking the response
+    setImmediate(() => {
+      incrementUserApiCount(userId).catch(err => {
+        console.error("Error incrementing API count:", err);
+      });
+    });
   }
   
   // Update endpoint statistics (only for successful calls and non-auth endpoints)
@@ -198,20 +267,23 @@ const getEndpointStats = () => {
 };
 
 /**
- * Get user API consumption statistics
- * @returns {Array} Array of user consumption stats
+ * Get user API consumption statistics from database
+ * @returns {Promise<Array>} Array of user consumption stats
  */
-const getUserConsumptionStats = () => {
-  const stats = [];
-  for (const [userId, count] of userApiCounts) {
-    stats.push({
-      userId,
-      totalRequests: count,
-    });
+const getUserConsumptionStats = async () => {
+  try {
+    const users = await db.query(
+      "SELECT user_id, api_calls FROM `user` ORDER BY api_calls DESC"
+    );
+    
+    return users.map((user) => ({
+      userId: user.user_id.toString(),
+      totalRequests: user.api_calls || 0,
+    }));
+  } catch (error) {
+    console.error("Error getting user consumption stats:", error);
+    return [];
   }
-  const sortedStats = [...stats];
-  sortedStats.sort((a, b) => b.totalRequests - a.totalRequests);
-  return sortedStats;
 };
 
 /**
@@ -268,11 +340,24 @@ const getAllApiLogs = (limit = 1000) => {
 };
 
 /**
- * Reset API call count for a user (admin function)
+ * Reset API call count for a user in database (admin function)
  * @param {string} userId - User ID
  */
-const resetUserApiCount = (userId) => {
-  userApiCounts.set(userId, 0);
+const resetUserApiCount = async (userId) => {
+  const userIdInt = parseUserIdForTracking(userId);
+  if (!userIdInt) {
+    return;
+  }
+  
+  try {
+    // Get current count to reset to 0
+    const currentCount = await getUserApiCallsFromDb(userIdInt);
+    await updateUserApiCallsInDb(userIdInt, -currentCount);
+    console.log(`[API Tracker] Reset API count for user ${userId}`);
+  } catch (error) {
+    console.error("Error resetting user API count:", error);
+    throw error;
+  }
 };
 
 /**
@@ -345,11 +430,18 @@ const apiTrackingMiddleware = (req, res, next) => {
         statusCode >= 200 && statusCode < 300 &&
         !isAuthEndpoint &&
         userRole !== 'admin') {
-      const exceeded = hasExceededLimit(finalUserId, userRole);
-      if (exceeded) {
-        res.setHeader('X-API-Limit-Exceeded', 'true');
-        res.setHeader('X-API-Limit-Message', apiTrackingMessages.apiLimitExceededMessage(FREE_API_CALLS_LIMIT));
-      }
+      // Use setImmediate to avoid blocking the response
+      setImmediate(async () => {
+        try {
+          const exceeded = await hasExceededLimit(finalUserId, userRole);
+          if (exceeded) {
+            res.setHeader('X-API-Limit-Exceeded', 'true');
+            res.setHeader('X-API-Limit-Message', apiTrackingMessages.apiLimitExceededMessage(FREE_API_CALLS_LIMIT));
+          }
+        } catch (error) {
+          console.error("Error checking API limit:", error);
+        }
+      });
     }
   });
   
