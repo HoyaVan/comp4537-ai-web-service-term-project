@@ -74,7 +74,9 @@ const getRemainingCalls = (userId, userRole = null) => {
  */
 const incrementUserApiCount = (userId) => {
   const currentCount = getUserApiCount(userId);
-  userApiCounts.set(userId, currentCount + 1);
+  const newCount = currentCount + 1;
+  userApiCounts.set(userId, newCount);
+  console.log(`[API Tracker] Incremented API count for user ${userId}: ${currentCount} -> ${newCount}`);
 };
 
 /**
@@ -120,8 +122,9 @@ const trackApiCall = (method, endpoint, userId, statusCode, responseTime, userRo
     incrementUserApiCount(userId);
   }
   
-  // Update endpoint statistics (only for successful calls)
-  if (statusCode >= 200 && statusCode < 300) {
+  // Update endpoint statistics (only for successful calls and non-auth endpoints)
+  // Exclude auth endpoints from endpoint stats
+  if (statusCode >= 200 && statusCode < 300 && !isAuthEndpoint) {
     const endpointKey = `${method} ${endpoint}`;
     const currentCount = endpointStats.get(endpointKey) || 0;
     endpointStats.set(endpointKey, currentCount + 1);
@@ -132,14 +135,17 @@ const trackApiCall = (method, endpoint, userId, statusCode, responseTime, userRo
       timestamp: timestamp,
     });
     
-    // Track which users called this endpoint
+    // Track which users called this endpoint (for per-user endpoint stats)
+    // Count unique endpoints per user, not total requests
     if (userId && userId !== 'anonymous') {
       if (!endpointUserStats.has(endpointKey)) {
         endpointUserStats.set(endpointKey, new Map());
       }
       const userStats = endpointUserStats.get(endpointKey);
-      const userCount = userStats.get(userId) || 0;
-      userStats.set(userId, userCount + 1);
+      // Only count once per endpoint per user (unique endpoint count)
+      if (!userStats.has(userId)) {
+        userStats.set(userId, 1);
+      }
     }
   }
   
@@ -172,11 +178,14 @@ const getEndpointStats = () => {
     // Get latest call info
     const lastCall = endpointLastCall.get(endpointKey) || null;
     
+    const sortedUsers = [...users];
+    sortedUsers.sort((a, b) => b.count - a.count);
+    
     stats.push({
       method,
       endpoint,
       requests: count,
-      users: users.sort((a, b) => b.count - a.count), // Sort by count descending
+      users: sortedUsers,
       lastCall: lastCall ? {
         userId: lastCall.userId,
         timestamp: lastCall.timestamp,
@@ -207,6 +216,7 @@ const getUserConsumptionStats = () => {
 
 /**
  * Get per-endpoint API consumption for a specific user
+ * Returns unique endpoints the user has called (counts each endpoint once, not per request)
  * @param {string} userId - User ID
  * @returns {Array} Array of endpoint stats for the user
  */
@@ -217,16 +227,32 @@ const getUserEndpointStats = (userId) => {
     const userCount = userStats.get(userId);
     if (userCount && userCount > 0) {
       const [method, endpoint] = endpointKey.split(' ', 2);
-      userEndpointStats.push({
-        method,
-        endpoint,
-        requests: userCount,
-      });
+      
+      // Check if this is an auth endpoint - exclude from user's endpoint breakdown
+      const isAuthEndpoint = endpoint.includes('/api/auth/login') || 
+                             endpoint.includes('/api/auth/signup') || 
+                             endpoint.includes('/api/auth/profile') ||
+                             endpoint === '/profile' ||
+                             endpoint === '/login' ||
+                             endpoint === '/signup';
+      
+      // Only include non-auth endpoints in user's breakdown
+      if (!isAuthEndpoint) {
+        userEndpointStats.push({
+          method,
+          endpoint,
+          requests: userCount, // This is now 1 per unique endpoint (not total requests)
+        });
+      }
     }
   }
   
-  // Sort by request count descending
-  userEndpointStats.sort((a, b) => b.requests - a.requests);
+  // Sort by endpoint name for consistency
+  userEndpointStats.sort((a, b) => {
+    const aKey = `${a.method} ${a.endpoint}`;
+    const bKey = `${b.method} ${b.endpoint}`;
+    return aKey.localeCompare(bKey);
+  });
   return userEndpointStats;
 };
 
@@ -286,12 +312,20 @@ const apiTrackingMiddleware = (req, res, next) => {
     // req.url gives full URL with query string
     // We use req.path to get the full path including the mount point
     // Also check req.baseUrl + req.route?.path for more accurate route matching
-    let endpoint = req.path;
+    let endpoint = req.path || req.url?.split('?')[0] || '/';
+    
+    // Try to get the full path with baseUrl if available
     if (req.baseUrl && req.route?.path) {
       // Combine baseUrl (mount point) with route path for accurate endpoint
       endpoint = req.baseUrl + req.route.path;
-    } else if (!endpoint && req.url) {
-      endpoint = req.url.split('?')[0];
+    } else if (req.baseUrl && !req.route?.path) {
+      // If we have baseUrl but no route path, use baseUrl + path
+      endpoint = req.baseUrl + (req.path || '');
+    }
+    
+    // Normalize endpoint (remove trailing slash except for root)
+    if (endpoint !== '/' && endpoint.endsWith('/')) {
+      endpoint = endpoint.slice(0, -1);
     }
     
     // Track the API call (pass userRole to exclude admin users from counting)
