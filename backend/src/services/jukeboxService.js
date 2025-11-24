@@ -137,7 +137,59 @@ Return ONLY the JSON array starting with [ and ending with ]. No other text.`;
       });
     }
 
-    return songList.slice(0, 10);
+    // Search Spotify API to get real track IDs for songs that don't have valid ones
+    const spotifyService = require("./spotifyService");
+    const enrichedSongs = await Promise.all(
+      songList.slice(0, 10).map(async (song) => {
+        // If spotifyId is null, invalid, or looks like a placeholder, search for it
+        const hasValidId = song.spotifyId && 
+          /^[a-zA-Z0-9]{22}$/.test(song.spotifyId) && 
+          !song.spotifyId.includes('track_id');
+        
+        if (!hasValidId && song.title && song.artist) {
+          try {
+            const searchQuery = `track:"${song.title}" artist:"${song.artist}"`;
+            const results = await spotifyService.searchTracks(searchQuery, 1);
+            if (results && results.length > 0) {
+              const track = results[0];
+              song.spotifyId = track.id;
+              song.spotifyUri = track.uri || `spotify:track:${track.id}`;
+              console.log(`Found Spotify track for "${song.title}" by ${song.artist}: ${track.id}`);
+            } else {
+              // Try a simpler search without quotes
+              const simpleQuery = `${song.title} ${song.artist}`;
+              const simpleResults = await spotifyService.searchTracks(simpleQuery, 3);
+              if (simpleResults && simpleResults.length > 0) {
+                // Find best match by checking if title and artist match
+                const match = simpleResults.find(t => 
+                  t.name.toLowerCase().includes(song.title.toLowerCase()) &&
+                  t.artist.toLowerCase().includes(song.artist.toLowerCase())
+                ) || simpleResults[0];
+                song.spotifyId = match.id;
+                song.spotifyUri = match.uri || `spotify:track:${match.id}`;
+                console.log(`Found Spotify track (fuzzy match) for "${song.title}" by ${song.artist}: ${match.id}`);
+              }
+            }
+          } catch (error) {
+            console.warn(`Failed to search Spotify for "${song.title}" by ${song.artist}:`, error.message);
+            // Keep original values (null or placeholder)
+          }
+        } else if (song.spotifyId && !song.spotifyUri) {
+          // Ensure spotifyUri is set if we have spotifyId
+          song.spotifyUri = `spotify:track:${song.spotifyId}`;
+        } else if (song.spotifyUri && !song.spotifyId) {
+          // Extract spotifyId from URI if we have URI but not ID
+          const uriMatch = song.spotifyUri.match(/spotify:track:([a-zA-Z0-9]+)/);
+          if (uriMatch) {
+            song.spotifyId = uriMatch[1];
+          }
+        }
+        
+        return song;
+      })
+    );
+
+    return enrichedSongs;
   } catch (error) {
     console.error("Error generating songs with AI:", error.message);
     return generateFallbackSongs(round);

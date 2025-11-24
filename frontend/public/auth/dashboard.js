@@ -508,18 +508,22 @@ window.viewResults = async function (roundId) {
               ? `
           <div style="margin: 16px 0;">
             <iframe 
-              src="https://open.spotify.com/embed/track/${normalizedId}" 
+              src="https://open.spotify.com/embed/track/${normalizedId}?utm_source=generator" 
               width="100%" 
               height="352" 
               frameBorder="0" 
               allowtransparency="true" 
               allow="encrypted-media"
               style="border-radius: 8px;"
-              onerror="this.parentElement.innerHTML='<p style=\\'color:#666;\\'>Unable to load Spotify player. <a href=\\'https://open.spotify.com/track/${normalizedId}\\' target=\\'_blank\\'>Open in Spotify</a></p>'">
+              loading="lazy"
+              onerror="this.parentElement.innerHTML='<p style=\\'color:#666; padding: 20px; text-align: center;\\'>Unable to load Spotify player.<br><a href=\\'https://open.spotify.com/track/${normalizedId}\\' target=\\'_blank\\' style=\\'color: #1DB954; text-decoration: underline;\\'>Open in Spotify</a> to play full song</p>'">
             </iframe>
+            <p style="color: #666; font-size: 0.85em; margin-top: 8px; text-align: center;">
+              ⚠️ Preview only. <a href="https://open.spotify.com/track/${normalizedId}" target="_blank" style="color: #1DB954; text-decoration: underline;">Open in Spotify</a> for full playback
+            </p>
           </div>
-          <a href="https://open.spotify.com/track/${normalizedId}" target="_blank" class="btn btn-small" style="margin-top: 8px;">
-            Open in Spotify
+          <a href="https://open.spotify.com/track/${normalizedId}" target="_blank" class="btn btn-small" style="margin-top: 8px; background: #1DB954; color: white;">
+            🎵 Open in Spotify (Full Song)
           </a>
         `
               : `

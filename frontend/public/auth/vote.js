@@ -369,14 +369,18 @@ function displayResults(results) {
           return normalizedId ? `
           <div style="margin: 16px 0;">
             <iframe 
-              src="https://open.spotify.com/embed/track/${normalizedId}" 
+              src="https://open.spotify.com/embed/track/${normalizedId}?utm_source=generator" 
               width="100%" 
               height="352" 
               frameBorder="0" 
               allowtransparency="true" 
               allow="encrypted-media"
-              style="border-radius: 8px; max-width: 100%;">
+              style="border-radius: 8px; max-width: 100%;"
+              loading="lazy">
             </iframe>
+            <p style="color: #666; font-size: 0.85em; margin-top: 8px; text-align: center;">
+              ⚠️ Preview only. <a href="https://open.spotify.com/track/${normalizedId}" target="_blank" style="color: #1DB954; text-decoration: underline;">Open in Spotify</a> for full playback
+            </p>
           </div>
         ` : '';
         })()}
