@@ -69,15 +69,34 @@
                     const result = await window.authService.login(email, password);
                     if (result.success) {
                         setMessage(authMessages.successPrefix + result.message, true);
-                        setTimeout(() => {
-                            window.location.href = '/dashboard';
-                        }, 1000);
+                        // Verify authentication is working before redirecting
+                        // This ensures the cookie is properly set and recognized
+                        let attempts = 0;
+                        const maxAttempts = 5;
+                        const checkAuth = async () => {
+                            attempts++;
+                            const isAuth = await window.authService.isAuthenticated();
+                            if (isAuth) {
+                                // Authentication confirmed, redirect to dashboard
+                                window.location.href = '/dashboard';
+                            } else if (attempts < maxAttempts) {
+                                // Wait a bit and try again
+                                setTimeout(checkAuth, 300);
+                            } else {
+                                // Max attempts reached, redirect anyway (server will handle auth)
+                                window.location.href = '/dashboard';
+                            }
+                        };
+                        // Start checking after a short delay to allow cookie to be set
+                        setTimeout(checkAuth, 500);
+                        // Note: Don't re-enable button here as we're redirecting
                     } else {
                         setMessage(authMessages.loginFailed + result.message, false);
+                        btn.disabled = false;
+                        btn.textContent = authMessages.login;
                     }
                 } catch (err) {
                     setMessage(authMessages.networkError + err, false);
-                } finally {
                     btn.disabled = false;
                     btn.textContent = authMessages.login;
                 }
