@@ -69,34 +69,36 @@
                     const result = await window.authService.login(email, password);
                     if (result.success) {
                         setMessage(authMessages.successPrefix + result.message, true);
-                        // Verify authentication is working before redirecting
-                        // This ensures the cookie is properly set and recognized
-                        let attempts = 0;
-                        const maxAttempts = 5;
-                        const checkAuth = async () => {
-                            attempts++;
-                            const isAuth = await window.authService.isAuthenticated();
-                            if (isAuth) {
-                                // Authentication confirmed, redirect to dashboard
-                                window.location.href = '/dashboard';
-                            } else if (attempts < maxAttempts) {
-                                // Wait a bit and try again
-                                setTimeout(checkAuth, 300);
-                            } else {
-                                // Max attempts reached, redirect anyway (server will handle auth)
-                                window.location.href = '/dashboard';
+                        
+                        // Helper function to wait/delay using Promise
+                        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+                        
+                        // Wait briefly for the httpOnly cookie to be processed by the browser
+                        await delay(200);
+                        
+                        // Verify authentication with one retry if needed
+                        try {
+                            let isAuth = await window.authService.isAuthenticated();
+                            if (!isAuth) {
+                                // Retry once after a short delay
+                                await delay(300);
+                                isAuth = await window.authService.isAuthenticated();
                             }
-                        };
-                        // Start checking after a short delay to allow cookie to be set
-                        setTimeout(checkAuth, 500);
-                        // Note: Don't re-enable button here as we're redirecting
+                        } catch (authErr) {
+                            console.warn('Auth verification error:', authErr);
+                        }
+                        
+                        // Redirect to dashboard (server-side auth will handle verification)
+                        window.location.replace('/dashboard');
+                        return; // Exit early, don't re-enable button
                     } else {
                         setMessage(authMessages.loginFailed + result.message, false);
                         btn.disabled = false;
                         btn.textContent = authMessages.login;
                     }
                 } catch (err) {
-                    setMessage(authMessages.networkError + err, false);
+                    console.error('Login error:', err);
+                    setMessage(authMessages.networkError + (err.message || err), false);
                     btn.disabled = false;
                     btn.textContent = authMessages.login;
                 }
