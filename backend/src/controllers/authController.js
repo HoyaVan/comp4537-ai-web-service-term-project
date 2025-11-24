@@ -76,10 +76,10 @@ async function getProfile(req, res) {
     const responseData = { ...user };
     
     // Include API consumption for all users
-    const apiCallsUsed = getUserApiCount(user.id);
+    const apiCallsUsed = await getUserApiCount(user.id);
     const endpointStats = getUserEndpointStats(user.id);
-    const remainingCalls = getRemainingCalls(user.id, user.role);
-    const exceeded = hasExceededLimit(user.id, user.role);
+    const remainingCalls = await getRemainingCalls(user.id, user.role);
+    const exceeded = await hasExceededLimit(user.id, user.role);
     
     // For admin users, show unlimited calls
     const isAdmin = user.role === 'admin';
@@ -110,7 +110,7 @@ async function getProfile(req, res) {
  */
 async function getAllUsers(req, res) {
   try {
-    const users = authService.getAllUsers();
+    const users = await authService.getAllUsers();
 
     return res.status(200).json({
       success: true,

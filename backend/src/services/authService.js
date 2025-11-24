@@ -1,14 +1,93 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const authMessages = require("../messages/auth");
-
-// In-memory user storage (replace with database in production)
-const users = [];
+const db = require("../utils/db");
 
 // JWT secret (in production, use environment variable)
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+
+/**
+ * Parse and validate user ID
+ * @param {string|number} userId - User ID to parse
+ * @returns {number|null} Parsed user ID or null if invalid
+ */
+function parseUserId(userId) {
+  if (!userId) return null;
+  const userIdInt = parseInt(userId, 10);
+  return isNaN(userIdInt) ? null : userIdInt;
+}
+
+/**
+ * Check if a user is an admin
+ * @param {number} userIdInt - User ID (integer)
+ * @returns {Promise<boolean>} True if user is admin
+ */
+async function isUserAdmin(userIdInt) {
+  const adminRecords = await db.query(
+    "SELECT admin_id FROM `admin` WHERE user_id = ?",
+    [userIdInt]
+  );
+  return adminRecords.length > 0;
+}
+
+/**
+ * Get user from database by ID
+ * @param {number} userIdInt - User ID (integer)
+ * @param {boolean} includePassword - Whether to include password in result
+ * @returns {Promise<Object|null>} User object or null if not found
+ */
+async function getUserFromDbById(userIdInt, includePassword = false) {
+  const fields = includePassword
+    ? "user_id, email, password, name, creation_date, api_calls"
+    : "user_id, email, name, creation_date, api_calls";
+  
+  const users = await db.query(
+    `SELECT ${fields} FROM \`user\` WHERE user_id = ?`,
+    [userIdInt]
+  );
+  
+  return users.length > 0 ? users[0] : null;
+}
+
+/**
+ * Get user from database by email
+ * @param {string} email - User email
+ * @param {boolean} includePassword - Whether to include password in result
+ * @returns {Promise<Object|null>} User object or null if not found
+ */
+async function getUserFromDbByEmail(email, includePassword = false) {
+  const fields = includePassword
+    ? "user_id, email, password, name, creation_date, api_calls"
+    : "user_id, email, name, creation_date, api_calls";
+  
+  const users = await db.query(
+    `SELECT ${fields} FROM \`user\` WHERE email = ?`,
+    [email.toLowerCase()]
+  );
+  
+  return users.length > 0 ? users[0] : null;
+}
+
+/**
+ * Build user object from database user record
+ * @param {Object} dbUser - User record from database
+ * @param {boolean} isAdmin - Whether user is an admin
+ * @returns {Object} User object without password
+ */
+function buildUserObject(dbUser, isAdmin) {
+  return {
+    id: dbUser.user_id.toString(),
+    email: dbUser.email,
+    name: dbUser.name,
+    role: isAdmin ? 'admin' : 'user',
+    createdAt: dbUser.creation_date
+      ? new Date(dbUser.creation_date).toISOString()
+      : new Date().toISOString(),
+    api_calls: dbUser.api_calls || 0,
+  };
+}
 
 /**
  * Hash a password
@@ -47,8 +126,10 @@ function verifyToken(token) {
  * Sign up a new user
  */
 async function signup(email, password, name) {
+  const normalizedEmail = email.toLowerCase();
+
   // Check if user already exists
-  const existingUser = users.find((user) => user.email === email.toLowerCase());
+  const existingUser = await getUserFromDbByEmail(normalizedEmail);
   if (existingUser) {
     throw new Error(authMessages.userAlreadyExists);
   }
@@ -67,29 +148,31 @@ async function signup(email, password, name) {
   // Hash password
   const hashedPassword = await hashPassword(password);
 
-  // Create user object
-  const userId = Date.now().toString(); // Simple ID generation
-  // Check if this is the admin user (based on assignment requirements)
-  const isAdmin = email.toLowerCase() === 'admin@admin.com';
-  const user = {
-    id: userId,
-    email: email.toLowerCase(),
-    password: hashedPassword,
-    name: name || email.split("@")[0],
-    role: isAdmin ? 'admin' : 'user',
-    createdAt: new Date().toISOString(),
-  };
+  // Insert user into database
+  const userName = name || email.split("@")[0];
+  const result = await db.query(
+    "INSERT INTO `user` (email, password, name) VALUES (?, ?, ?)",
+    [normalizedEmail, hashedPassword, userName]
+  );
 
-  // Store user
-  users.push(user);
+  const userId = result.insertId;
 
-  // Generate token
-  const token = generateToken(user.id, user.email);
+  // Get the created user and check admin status
+  const dbUser = await getUserFromDbById(userId);
+  if (!dbUser) {
+    throw new Error("Failed to retrieve created user");
+  }
+
+  const isAdmin = await isUserAdmin(userId);
+
+  // Generate token (use string ID for JWT compatibility)
+  const token = generateToken(userId.toString(), normalizedEmail);
 
   // Return user without password
-  const { password: _, ...userWithoutPassword } = user;
+  const user = buildUserObject(dbUser, isAdmin);
+
   return {
-    user: userWithoutPassword,
+    user,
     token,
   };
 }
@@ -98,25 +181,32 @@ async function signup(email, password, name) {
  * Login user
  */
 async function login(email, password) {
-  // Find user
-  const user = users.find((u) => u.email === email.toLowerCase());
-  if (!user) {
+  const normalizedEmail = email.toLowerCase();
+
+  // Find user in database (include password for verification)
+  const dbUser = await getUserFromDbByEmail(normalizedEmail, true);
+
+  if (!dbUser) {
     throw new Error(authMessages.invalidEmailOrPassword);
   }
 
   // Verify password
-  const isValidPassword = await comparePassword(password, user.password);
+  const isValidPassword = await comparePassword(password, dbUser.password);
   if (!isValidPassword) {
     throw new Error(authMessages.invalidEmailOrPassword);
   }
 
-  // Generate token
-  const token = generateToken(user.id, user.email);
+  // Check if user is admin
+  const isAdmin = await isUserAdmin(dbUser.user_id);
+
+  // Generate token (use string ID for JWT compatibility)
+  const token = generateToken(dbUser.user_id.toString(), dbUser.email);
 
   // Return user without password
-  const { password: _, ...userWithoutPassword } = user;
+  const user = buildUserObject(dbUser, isAdmin);
+
   return {
-    user: userWithoutPassword,
+    user,
     token,
   };
 }
@@ -124,23 +214,43 @@ async function login(email, password) {
 /**
  * Get user by ID
  */
-function getUserById(userId) {
-  const user = users.find((u) => u.id === userId);
-  if (!user) {
+async function getUserById(userId) {
+  const userIdInt = parseUserId(userId);
+  if (!userIdInt) {
     return null;
   }
-  const { password: _, ...userWithoutPassword } = user;
-  return userWithoutPassword;
+
+  // Get user from database
+  const dbUser = await getUserFromDbById(userIdInt);
+  if (!dbUser) {
+    return null;
+  }
+
+  // Check if user is admin
+  const isAdmin = await isUserAdmin(userIdInt);
+
+  // Return user without password
+  return buildUserObject(dbUser, isAdmin);
 }
 
 /**
  * Get all users (admin function)
  * Returns all users without passwords
  */
-function getAllUsers() {
-  return users.map((user) => {
-    const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+async function getAllUsers() {
+  // Query all users from database
+  const users = await db.query(
+    "SELECT user_id, email, name, creation_date, api_calls FROM `user` ORDER BY creation_date DESC"
+  );
+
+  // Get all admin user IDs
+  const adminRecords = await db.query("SELECT user_id FROM `admin`");
+  const adminUserIds = new Set(adminRecords.map((admin) => admin.user_id));
+
+  // Map users and add role based on admin table
+  return users.map((dbUser) => {
+    const isAdmin = adminUserIds.has(dbUser.user_id);
+    return buildUserObject(dbUser, isAdmin);
   });
 }
 
