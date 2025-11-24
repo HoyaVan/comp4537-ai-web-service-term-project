@@ -4,9 +4,12 @@ const url = require("url");
 const fs = require("fs");
 const path = require("path");
 const { parse } = require("querystring");
+// const config = require("./public/config");
+require("dotenv").config();
 
 const PORT = process.env.PORT || 8080;
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
+const BACKEND_URL = process.env.BACKEND_URL;
+console.log("BACKEND_URL: ", BACKEND_URL);
 
 // Route configuration - similar to backend index.js structure
 const routes = {
