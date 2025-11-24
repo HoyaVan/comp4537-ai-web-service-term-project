@@ -23,18 +23,30 @@ function showApiLimitWarning(message) {
   }, 5000);
 }
 
-// Make authenticated API request
+// Make authenticated API request using authService
 async function apiRequest(url, options = {}) {
-  const token = getToken();
+  // Use authService if available
+  if (window.authService) {
+    const response = await window.authService.apiRequest(url, options);
+    
+    // Check for API limit warning headers
+    const limitExceeded = response.headers.get('X-API-Limit-Exceeded');
+    const limitMessage = response.headers.get('X-API-Limit-Message');
+    
+    if (limitExceeded === 'true' && limitMessage) {
+      showApiLimitWarning(limitMessage);
+    }
+
+    const data = await response.json();
+    return { ok: response.ok, status: response.status, data };
+  }
+
+  // Fallback
   const headers = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
     ...(options.headers || {}),
   };
-  
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   const response = await fetch(BACKEND_URL + url, {
     ...options,
@@ -43,12 +55,10 @@ async function apiRequest(url, options = {}) {
     credentials: 'include',
   });
 
-  // Check for API limit warning headers
   const limitExceeded = response.headers.get('X-API-Limit-Exceeded');
   const limitMessage = response.headers.get('X-API-Limit-Message');
   
   if (limitExceeded === 'true' && limitMessage) {
-    // Display warning but continue with the request
     showApiLimitWarning(limitMessage);
   }
 
@@ -57,53 +67,16 @@ async function apiRequest(url, options = {}) {
 }
 
 // Check if user is authenticated
-function isAuthenticated() {
-  try {
-    const token = localStorage.getItem('token');
-    return !!token;
-  } catch (_) {
-    return false;
+// Check if user is authenticated using authService
+async function isAuthenticated() {
+  if (window.authService) {
+    return await window.authService.isAuthenticated();
   }
-}
-
-// Get token from localStorage
-function getToken() {
-  try {
-    return localStorage.getItem('token');
-  } catch (_) {
-    return null;
-  }
-}
-
-// Verify token with backend and get user info
-async function verifyTokenAndGetUser(token) {
-  try {
-    const res = await fetch(window.getBackendUrl() + '/api/auth/profile', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      },
-      mode: 'cors',
-      credentials: 'omit'
-    });
-    if (!res.ok) {
-      return { valid: false, user: null };
-    }
-    const data = await res.json();
-    return { valid: true, user: data.data || data };
-  } catch (_) {
-    return { valid: false, user: null };
-  }
+  return false;
 }
 
 // Fetch all users from backend
 async function fetchAllUsers() {
-  const token = getToken();
-  if (!token) {
-    throw new Error('No authentication token found');
-  }
-
   try {
     const res = await fetch(window.getBackendUrl() + '/api/auth/users', {
       method: 'GET',
@@ -233,42 +206,40 @@ async function loadUsers() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+// Initialize admin page
+async function initAdmin() {
   const refreshBtn = document.getElementById('refresh-btn');
 
   // Check authentication
-  if (!isAuthenticated()) {
-    window.location.href = '/index.html';
+  const auth = await isAuthenticated();
+  if (!auth) {
+    window.location.href = '/login';
     return;
   }
 
-  const token = getToken();
-  if (!token) {
-    window.location.href = '/index.html';
-    return;
-  }
-
-  // Verify token with backend and get user info
-  const { valid, user } = await verifyTokenAndGetUser(token);
-  if (!valid) {
-    try {
-      localStorage.removeItem('token');
-    } catch (_) {}
-    window.location.href = '/index.html';
-    return;
+  // Get user from authService
+  const user = window.authService ? window.authService.getCurrentUser() : null;
+  if (!user) {
+    // Try to refresh
+    const isAuth = await window.authService.isAuthenticated();
+    if (!isAuth) {
+      window.location.href = '/login';
+      return;
+    }
   }
 
   // Check if user is admin - only admins can view API statistics
-  if (!user || user.role !== 'admin') {
+  const currentUser = window.authService ? window.authService.getCurrentUser() : null;
+  if (!currentUser || currentUser.role !== 'admin') {
     alert(adminMessages.accessDenied);
-    window.location.href = '/dashboard.html';
+    window.location.href = '/dashboard';
     return;
   }
 
   // Initialize header with navigation links
   await initLoggedInHeader([
-    { href: '/dashboard.html', text: 'Dashboard' },
-    { href: '/profile.html', text: 'Profile' }
+    { href: '/dashboard', text: 'Dashboard' },
+    { href: '/profile', text: 'Profile' }
   ]);
 
   // Setup refresh button (refresh all)
@@ -300,7 +271,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (refreshConsumptionBtn) {
     refreshConsumptionBtn.addEventListener('click', loadConsumptionStats);
   }
-});
+}
+
+// Fallback: Initialize if DOM is already loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAdmin);
+} else if (!window.__adminInitialized) {
+  setTimeout(() => {
+    if (!window.__adminInitialized) {
+      initAdmin();
+    }
+  }, 100);
+}
 
 // Load endpoint statistics
 async function loadEndpointStats() {
