@@ -361,6 +361,12 @@ const server = http.createServer(async (req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
 
+    // Handle partials (header HTML files)
+    if (pathname.startsWith("/partials/")) {
+      serveStaticFile(pathname, res);
+      return;
+    }
+
     // Handle static assets (js, css, images, etc.)
     if (pathname.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|json)$/)) {
       serveStaticFile(pathname, res);

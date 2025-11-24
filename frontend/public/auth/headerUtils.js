@@ -226,3 +226,10 @@ async function initLoggedInHeader(additionalLinks = []) {
     }
   }, 100);
 }
+
+// Make functions available globally for module access
+if (typeof window !== 'undefined') {
+  window.initLoggedInHeader = initLoggedInHeader;
+  window.initLoggedOutHeader = initLoggedOutHeader;
+  window.logout = logout;
+}
