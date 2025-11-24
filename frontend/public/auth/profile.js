@@ -207,6 +207,7 @@ function displayApiConsumption(user) {
 
 // Initialize profile page
 async function initProfile() {
+  console.log('[Profile] initProfile called');
   // Check authentication
   const auth = await isAuthenticated();
   if (!auth) {
@@ -268,14 +269,37 @@ async function initProfile() {
   }
 }
 
-// Fallback: Initialize if DOM is already loaded
+// Initialize profile when module loads
+console.log('[Profile] Module loaded, checking initialization...');
+console.log('[Profile] document.readyState:', document.readyState);
+console.log('[Profile] window.__profileInitialized:', window.__profileInitialized);
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initProfile);
-} else if (!window.__profileInitialized) {
-  setTimeout(() => {
+  console.log('[Profile] DOM still loading, waiting for DOMContentLoaded...');
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('[Profile] DOMContentLoaded fired, initializing...');
     if (!window.__profileInitialized) {
-      initProfile();
+      initProfile().then(() => {
+        window.__profileInitialized = true;
+        console.log('[Profile] Initialization complete, flag set');
+      }).catch(err => {
+        console.error('[Profile] Initialization failed:', err);
+      });
+    } else {
+      console.log('[Profile] Already initialized, skipping');
     }
-  }, 100);
+  });
+} else {
+  console.log('[Profile] DOM already loaded, initializing immediately...');
+  if (!window.__profileInitialized) {
+    initProfile().then(() => {
+      window.__profileInitialized = true;
+      console.log('[Profile] Initialization complete, flag set');
+    }).catch(err => {
+      console.error('[Profile] Initialization failed:', err);
+    });
+  } else {
+    console.log('[Profile] Already initialized, skipping');
+  }
 }
 

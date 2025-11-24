@@ -890,14 +890,36 @@ async function initDashboard() {
   });
 }
 
-// Fallback: Initialize if DOM is already loaded and not called from router
+// Initialize dashboard when module loads
+console.log('[Dashboard] Module loaded, checking initialization...');
+console.log('[Dashboard] document.readyState:', document.readyState);
+console.log('[Dashboard] window.__dashboardInitialized:', window.__dashboardInitialized);
+
 if (document.readyState === 'loading') {
-  document.addEventListener("DOMContentLoaded", initDashboard);
-} else if (!window.__dashboardInitialized) {
-  // Only auto-init if not using router
-  setTimeout(() => {
+  console.log('[Dashboard] DOM still loading, waiting for DOMContentLoaded...');
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log('[Dashboard] DOMContentLoaded fired, initializing...');
     if (!window.__dashboardInitialized) {
-      initDashboard();
+      initDashboard().then(() => {
+        window.__dashboardInitialized = true;
+        console.log('[Dashboard] Initialization complete, flag set');
+      }).catch(err => {
+        console.error('[Dashboard] Initialization failed:', err);
+      });
+    } else {
+      console.log('[Dashboard] Already initialized, skipping');
     }
-  }, 100);
+  });
+} else {
+  console.log('[Dashboard] DOM already loaded, initializing immediately...');
+  if (!window.__dashboardInitialized) {
+    initDashboard().then(() => {
+      window.__dashboardInitialized = true;
+      console.log('[Dashboard] Initialization complete, flag set');
+    }).catch(err => {
+      console.error('[Dashboard] Initialization failed:', err);
+    });
+  } else {
+    console.log('[Dashboard] Already initialized, skipping');
+  }
 }

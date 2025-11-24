@@ -110,8 +110,7 @@
     <script type="module" src="/auth/dashboard.js"></script>
     <script>
         console.log('[Dashboard] Module script tag added');
-        // Mark as initialized to prevent double initialization
-        window.__dashboardInitialized = true;
+        // Don't set __dashboardInitialized here - let the module set it after initialization
     </script>
 </body>
 

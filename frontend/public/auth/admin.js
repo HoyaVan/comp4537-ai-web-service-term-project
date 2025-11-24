@@ -313,15 +313,38 @@ async function initAdmin() {
   }
 }
 
-// Fallback: Initialize if DOM is already loaded
+// Initialize admin when module loads
+console.log('[Admin] Module loaded, checking initialization...');
+console.log('[Admin] document.readyState:', document.readyState);
+console.log('[Admin] window.__adminInitialized:', window.__adminInitialized);
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAdmin);
-} else if (!window.__adminInitialized) {
-  setTimeout(() => {
+  console.log('[Admin] DOM still loading, waiting for DOMContentLoaded...');
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('[Admin] DOMContentLoaded fired, initializing...');
     if (!window.__adminInitialized) {
-      initAdmin();
+      initAdmin().then(() => {
+        window.__adminInitialized = true;
+        console.log('[Admin] Initialization complete, flag set');
+      }).catch(err => {
+        console.error('[Admin] Initialization failed:', err);
+      });
+    } else {
+      console.log('[Admin] Already initialized, skipping');
     }
-  }, 100);
+  });
+} else {
+  console.log('[Admin] DOM already loaded, initializing immediately...');
+  if (!window.__adminInitialized) {
+    initAdmin().then(() => {
+      window.__adminInitialized = true;
+      console.log('[Admin] Initialization complete, flag set');
+    }).catch(err => {
+      console.error('[Admin] Initialization failed:', err);
+    });
+  } else {
+    console.log('[Admin] Already initialized, skipping');
+  }
 }
 
 // Load endpoint statistics
