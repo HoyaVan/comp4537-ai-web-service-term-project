@@ -63,3 +63,20 @@
     outline-offset: 2px;
 }
 
+.header-btn.spotify-btn {
+    background: #1DB954;
+    color: #fff;
+    border-color: #1DB954;
+}
+
+.header-btn.spotify-btn:hover {
+    background: #1ed760;
+    filter: brightness(1.05);
+}
+
+.user-email {
+    color: var(--muted);
+    font-size: 14px;
+    margin-right: 8px;
+}
+
