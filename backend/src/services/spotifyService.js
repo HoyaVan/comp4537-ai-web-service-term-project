@@ -9,7 +9,21 @@ class SpotifyService {
     this.baseURL = "https://api.spotify.com/v1";
     this.tokenURL = "https://accounts.spotify.com/api/token";
     this.authURL = "https://accounts.spotify.com/authorize";
-    this.callbackURI = process.env.SPOTIFY_CALLBACK_URI || null;
+    
+    // Construct callback URI from BACKEND_URL or use explicit SPOTIFY_CALLBACK_URI
+    const backendUrl = process.env.BACKEND_URL || process.env.SPOTIFY_CALLBACK_URI || null;
+    if (backendUrl) {
+      // If SPOTIFY_CALLBACK_URI is explicitly set, use it
+      if (process.env.SPOTIFY_CALLBACK_URI) {
+        this.callbackURI = process.env.SPOTIFY_CALLBACK_URI;
+      } else {
+        // Otherwise, construct from BACKEND_URL
+        const baseUrl = backendUrl.replace(/\/$/, ''); // Remove trailing slash
+        this.callbackURI = `${baseUrl}/api/v1/spotify/oauth/callback`;
+      }
+    } else {
+      this.callbackURI = null;
+    }
     // OAuth tokens (from user authorization)
     this.accessToken = null;
     this.refreshToken = null;
@@ -268,8 +282,14 @@ class SpotifyService {
     }
 
     if (!this.callbackURI) {
-      throw new Error(spotifyMessages.spotifyCallbackUriNotConfigured);
+      const errorMsg = spotifyMessages.spotifyCallbackUriNotConfigured + 
+        ". Please set SPOTIFY_CALLBACK_URI environment variable to your backend URL + /api/v1/spotify/oauth/callback" +
+        " (e.g., https://your-backend.com/api/v1/spotify/oauth/callback)";
+      throw new Error(errorMsg);
     }
+
+    console.log('[SpotifyService] Using callback URI:', this.callbackURI);
+    console.log('[SpotifyService] Make sure this exact URI is registered in your Spotify app settings');
 
     const params = new URLSearchParams({
       client_id: this.clientId,
