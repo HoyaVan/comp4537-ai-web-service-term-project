@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="/styles/header.css">
     <link rel="stylesheet" href="/styles/admin.css">
     <script src="/config.js"></script>
+    <script src="/js/authService.js"></script>
+    <script src="/js/app.js"></script>
     <link rel="shortcut icon" href="#">
 </head>
 
@@ -62,6 +64,9 @@
     </div>
     <script src="/auth/headerUtils.js"></script>
     <script type="module" src="/auth/admin.js"></script>
+    <script>
+        window.__adminInitialized = true;
+    </script>
 </body>
 
 </html>

@@ -401,7 +401,8 @@ async function reloadRound() {
 }
 
 // Initialize
-document.addEventListener('DOMContentLoaded', async () => {
+// Initialize vote page
+async function initVote() {
   // Get round ID from URL
   currentRoundId = getRoundIdFromURL();
 
@@ -445,4 +446,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('beforeunload', () => {
     stopCountdownTimer();
   });
-});
+}
+
+// Fallback: Initialize if DOM is already loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initVote);
+} else if (!window.__voteInitialized) {
+  setTimeout(() => {
+    if (!window.__voteInitialized) {
+      initVote();
+    }
+  }, 100);
+}

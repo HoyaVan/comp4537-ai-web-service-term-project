@@ -2,24 +2,12 @@ import { dashboardMessages } from '/messages/dashboard.js';
 
 const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
-// Check if user is authenticated
-function isAuthenticated() {
-  try {
-    const token = localStorage.getItem("token");
-
-    return !!token;
-  } catch (_) {
-    return false;
+// Check if user is authenticated using authService
+async function isAuthenticated() {
+  if (window.authService) {
+    return await window.authService.isAuthenticated();
   }
-}
-
-// Get token from localStorage
-function getToken() {
-  try {
-    return localStorage.getItem("token");
-  } catch (_) {
-    return null;
-  }
+  return false;
 }
 
 // Display API limit warning
@@ -43,25 +31,37 @@ function showApiLimitWarning(message) {
   }, 5000);
 }
 
-// Make authenticated API request
+// Make authenticated API request using authService
 async function apiRequest(url, options = {}) {
-  const token = getToken();
+  // Use authService if available, otherwise fallback to direct fetch
+  if (window.authService) {
+    const response = await window.authService.apiRequest(url, options);
+    
+    // Check for API limit warning headers
+    const limitExceeded = response.headers.get('X-API-Limit-Exceeded');
+    const limitMessage = response.headers.get('X-API-Limit-Message');
+    
+    if (limitExceeded === 'true' && limitMessage) {
+      // Display warning but continue with the request
+      showApiLimitWarning(limitMessage);
+    }
 
+    const data = await response.json();
+    return { ok: response.ok, status: response.status, data };
+  }
+
+  // Fallback for direct fetch
   const headers = {
     "Content-Type": "application/json",
     Accept: "application/json",
     ...(options.headers || {}),
   };
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
   const response = await fetch(BACKEND_URL + url, {
     ...options,
     headers,
     mode: "cors",
-    credentials: "include",
+    credentials: "include", // Always include cookies
   });
 
   // Check for API limit warning headers
@@ -74,7 +74,6 @@ async function apiRequest(url, options = {}) {
   }
 
   const data = await response.json();
-
   return { ok: response.ok, status: response.status, data };
 }
 
@@ -683,8 +682,8 @@ async function loadAndDisplayRounds() {
   displayRounds(rounds);
 }
 
-// Initialize
-document.addEventListener("DOMContentLoaded", async () => {
+// Initialize dashboard
+async function initDashboard() {
   const backend = document.getElementById("backend-url");
   const createForm = document.getElementById("create-round-form");
   const createMessage = document.getElementById("create-message");
@@ -693,8 +692,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (backend) backend.textContent = window.getBackendUrl();
 
   // Check authentication
-  if (!isAuthenticated()) {
-    window.location.href = "/index.html";
+  const auth = await isAuthenticated();
+  if (!auth) {
+    window.location.href = "/login";
     return;
   }
 
@@ -704,12 +704,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Initialize header with navigation links
   if (typeof initLoggedInHeader === 'function') {
     const additionalLinks = [
-      { href: '/profile.html', text: 'Profile' }
+      { href: '/profile', text: 'Profile' }
     ];
     
     // Only add Admin link if user is an admin
     if (user && user.role === 'admin') {
-      additionalLinks.push({ href: '/admin.html', text: 'Admin' });
+      additionalLinks.push({ href: '/admin', text: 'Admin' });
     }
     
     await initLoggedInHeader(additionalLinks);
@@ -856,4 +856,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       resultsModal.style.display = "none";
     }
   });
-});
+}
+
+// Fallback: Initialize if DOM is already loaded and not called from router
+if (document.readyState === 'loading') {
+  document.addEventListener("DOMContentLoaded", initDashboard);
+} else if (!window.__dashboardInitialized) {
+  // Only auto-init if not using router
+  setTimeout(() => {
+    if (!window.__dashboardInitialized) {
+      initDashboard();
+    }
+  }, 100);
+}

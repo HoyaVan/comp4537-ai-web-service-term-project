@@ -23,44 +23,16 @@ async function fetchPartial(partialName) {
   }
 }
 
-// Get token from localStorage
-function getToken() {
+// Logout function - uses authService and router
+async function logout() {
   try {
-    return localStorage.getItem('token');
-  } catch (_) {
-    return null;
-  }
-}
-
-// Verify token with backend and get user info
-async function verifyTokenAndGetUser(token) {
-  try {
-    const res = await fetch(window.getBackendUrl() + '/api/auth/profile', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      },
-      mode: 'cors',
-      credentials: 'omit'
-    });
-    if (!res.ok) {
-      return { valid: false, user: null };
+    if (window.authService) {
+      await window.authService.logout();
     }
-    const data = await res.json();
-    return { valid: true, user: data.data || data };
-  } catch (_) {
-    return { valid: false, user: null };
-  }
-}
-
-// Logout function
-function logout() {
-  try {
-    localStorage.removeItem('token');
-    window.location.href = '/index.html';
-  } catch (_) {
-    window.location.href = '/index.html';
+    window.location.href = '/';
+  } catch (error) {
+    console.error('Logout error:', error);
+    window.location.href = '/';
   }
 }
 
@@ -85,7 +57,7 @@ async function initLoggedOutHeader() {
     console.error('Failed to initialize logged-out header:', error);
     // Fallback: create a basic header if fetch fails
     const existingHeader = document.querySelector('header.header');
-    const fallbackHtml = '<header class="header"><div class="header-content"><a href="/" class="logo">DJ Clownfish</a><nav class="header-nav"><a href="/login.html" class="header-btn">Login</a><a href="/signup.html" class="header-btn header-btn-primary">Sign Up</a></nav></div></header>';
+    const fallbackHtml = '<header class="header"><div class="header-content"><a href="/" class="logo">DJ Clownfish</a><nav class="header-nav"><a href="/login" class="header-btn">Login</a><a href="/signup" class="header-btn header-btn-primary">Sign Up</a></nav></div></header>';
     if (existingHeader) {
       existingHeader.outerHTML = fallbackHtml;
     } else {
@@ -97,8 +69,8 @@ async function initLoggedOutHeader() {
 /**
  * Initialize the logged-in header
  * @param {Array<string>} additionalLinks - Array of link objects with {href, text} or just text strings for simple links
- * Example: [{href: '/dashboard.html', text: 'Dashboard'}, {href: '/admin.html', text: 'Admin'}]
- * Or simple: ['Dashboard', 'Admin'] for auto-generating links
+ * Example: [{href: '/dashboard', text: 'Dashboard'}, {href: '/admin', text: 'Admin'}]
+ * Or simple: ['Dashboard', 'Admin'] for auto-generating links (will use route-based URLs)
  * Fetches the header partial from /partials/logged-in-header.html
  */
 async function initLoggedInHeader(additionalLinks = []) {
@@ -137,9 +109,9 @@ async function initLoggedInHeader(additionalLinks = []) {
       additionalLinks.forEach(link => {
         let href, text;
         if (typeof link === 'string') {
-          // Simple string format - generate href from text
+          // Simple string format - generate href from text (route-based, not .html)
           text = link;
-          href = '/' + text.toLowerCase().replace(/\s+/g, '-') + '.html';
+          href = '/' + text.toLowerCase().replace(/\s+/g, '-');
         } else {
           // Object format
           href = link.href;
@@ -160,13 +132,21 @@ async function initLoggedInHeader(additionalLinks = []) {
     logoutBtn.addEventListener('click', logout);
   }
   
-  // Get user info and display email
-  const token = getToken();
-  if (token) {
-    const { valid, user } = await verifyTokenAndGetUser(token);
+  // Get user info and display email using authService
+  if (window.authService) {
+    const user = window.authService.getCurrentUser();
     const userEmail = document.getElementById('user-email');
     if (user && userEmail) {
       userEmail.textContent = user.email || '';
+    } else {
+      // Try to refresh user info
+      const isAuth = await window.authService.isAuthenticated();
+      if (isAuth) {
+        const refreshedUser = window.authService.getCurrentUser();
+        if (refreshedUser && userEmail) {
+          userEmail.textContent = refreshedUser.email || '';
+        }
+      }
     }
   }
 }

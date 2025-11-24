@@ -1,23 +1,20 @@
-# Use nginx to serve static files
-FROM nginx:alpine
+# Use Node.js to serve the application
+FROM node:18-alpine
 
-# Remove default nginx configuration
-RUN rm -f /etc/nginx/conf.d/default.conf
+# Set working directory
+WORKDIR /app
 
-# Copy static files to both locations
-# /usr/share/nginx/html for nginx to serve
-# /app/build for DigitalOcean App Platform static site deployment
-COPY public /usr/share/nginx/html
-COPY public /app/build
+# Copy package files
+COPY package*.json ./
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Install dependencies (if any)
+RUN npm install --production
 
-# Verify files exist and nginx config is valid
-RUN test -f /usr/share/nginx/html/index.html && \
-    test -f /app/build/index.html && \
-    nginx -t
+# Copy application files
+COPY . .
 
-EXPOSE 80
+# Expose port
+EXPOSE 8080
 
-CMD ["nginx", "-g", "daemon off;"]
+# Start the server
+CMD ["node", "server.js"]

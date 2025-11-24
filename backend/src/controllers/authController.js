@@ -20,10 +20,18 @@ async function signup(req, res) {
     // Sign up user
     const result = await authService.signup(email, password, name);
 
+    // Set httpOnly cookie with token
+    res.cookie('token', result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
     return res.status(201).json({
       success: true,
       message: authMessages.userCreatedSuccessfully,
-      data: result,
+      data: { user: result.user },
     });
   } catch (error) {
     return res.status(400).json({
@@ -51,10 +59,18 @@ async function login(req, res) {
     // Login user
     const result = await authService.login(email, password);
 
+    // Set httpOnly cookie with token
+    res.cookie('token', result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
     return res.status(200).json({
       success: true,
       message: authMessages.loginSuccessful,
-      data: result,
+      data: { user: result.user },
     });
   } catch (error) {
     return res.status(401).json({
@@ -125,9 +141,26 @@ async function getAllUsers(req, res) {
   }
 }
 
+/**
+ * Logout controller - clears the httpOnly cookie
+ */
+async function logout(req, res) {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  });
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Logged out successfully',
+  });
+}
+
 module.exports = {
   signup,
   login,
+  logout,
   getProfile,
   getAllUsers,
 };
