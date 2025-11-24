@@ -207,6 +207,7 @@ function displayApiConsumption(user) {
 
 // Initialize profile page
 async function initProfile() {
+  console.log('[Profile] initProfile called');
   // Check authentication
   const auth = await isAuthenticated();
   if (!auth) {
@@ -229,29 +230,76 @@ async function initProfile() {
   // Display API consumption
   displayApiConsumption(user);
 
-  // Initialize header with navigation links
-  if (typeof initLoggedInHeader === 'function') {
-    const additionalLinks = [
-      { href: '/dashboard', text: 'Dashboard' }
-    ];
-    
-    // Only add Admin link if user is an admin
-    if (user.role === 'admin') {
-      additionalLinks.push({ href: '/admin', text: 'Admin' });
+  // Wait for headerUtils to be ready if needed
+  let headerUtilsReady = false;
+  if (window.__headerUtilsReady && window.initLoggedInHeader) {
+    headerUtilsReady = true;
+  } else {
+    // Wait up to 2 seconds for headerUtils
+    for (let i = 0; i < 40; i++) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      if (window.__headerUtilsReady && window.initLoggedInHeader) {
+        headerUtilsReady = true;
+        break;
+      }
     }
-    
-    await initLoggedInHeader(additionalLinks);
+  }
+
+  // Initialize header with navigation links
+  if (headerUtilsReady && typeof window.initLoggedInHeader === 'function') {
+    try {
+      const additionalLinks = [
+        { href: '/dashboard', text: 'Dashboard' }
+      ];
+      
+      // Only add Admin link if user is an admin
+      if (user.role === 'admin') {
+        additionalLinks.push({ href: '/admin', text: 'Admin' });
+      }
+      
+      await window.initLoggedInHeader(additionalLinks);
+      console.log('Header initialized successfully');
+    } catch (error) {
+      console.error('Error initializing header:', error);
+    }
+  } else {
+    console.error('initLoggedInHeader not available after waiting. headerUtils.js may not have loaded correctly.');
+    console.log('window.__headerUtilsReady:', window.__headerUtilsReady);
+    console.log('window.initLoggedInHeader:', typeof window.initLoggedInHeader);
   }
 }
 
-// Fallback: Initialize if DOM is already loaded
+// Initialize profile when module loads
+console.log('[Profile] Module loaded, checking initialization...');
+console.log('[Profile] document.readyState:', document.readyState);
+console.log('[Profile] window.__profileInitialized:', window.__profileInitialized);
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initProfile);
-} else if (!window.__profileInitialized) {
-  setTimeout(() => {
+  console.log('[Profile] DOM still loading, waiting for DOMContentLoaded...');
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('[Profile] DOMContentLoaded fired, initializing...');
     if (!window.__profileInitialized) {
-      initProfile();
+      initProfile().then(() => {
+        window.__profileInitialized = true;
+        console.log('[Profile] Initialization complete, flag set');
+      }).catch(err => {
+        console.error('[Profile] Initialization failed:', err);
+      });
+    } else {
+      console.log('[Profile] Already initialized, skipping');
     }
-  }, 100);
+  });
+} else {
+  console.log('[Profile] DOM already loaded, initializing immediately...');
+  if (!window.__profileInitialized) {
+    initProfile().then(() => {
+      window.__profileInitialized = true;
+      console.log('[Profile] Initialization complete, flag set');
+    }).catch(err => {
+      console.error('[Profile] Initialization failed:', err);
+    });
+  } else {
+    console.log('[Profile] Already initialized, skipping');
+  }
 }
 

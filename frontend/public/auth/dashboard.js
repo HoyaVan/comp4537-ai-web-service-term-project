@@ -193,64 +193,22 @@ async function getQRCode(roundId) {
   return null;
 }
 
-// Generate QR code image
+// Generate QR code image using online QR code API
 function generateQRCode(url, containerId) {
   const container = document.getElementById(containerId);
   container.innerHTML = `<p>${dashboardMessages.generatingQrCode}</p>`;
   
-  // Function to try generating QR code
-  const tryGenerateQR = () => {
-    // Check if QRCode library is available (try multiple possible names)
-    const QRCodeLib = window.QRCode || window.qrcode;
-
-    if (QRCodeLib && typeof QRCodeLib.toDataURL === "function") {
-      try {
-        QRCodeLib.toDataURL(
-          url,
-          { width: 256, margin: 2 },
-          (error, dataUrl) => {
-            if (error) {
-              console.error("QR Code generation error:", error);
-              // Fallback to online QR code generator
-              useFallbackQR();
-            } else {
-              container.innerHTML = `<img src="${dataUrl}" alt="QR Code" style="max-width: 100%; height: auto;" />`;
-            }
-          }
-        );
-      } catch (error) {
-        console.error("QR Code error:", error);
-        useFallbackQR();
-      }
-    } else {
-      // Library not loaded yet, wait a bit and try again
-      setTimeout(() => {
-        if (window.QRCodeLoaded || window.QRCode || window.qrcode) {
-          tryGenerateQR();
-        } else {
-          // After 2 seconds, give up and use fallback
-          useFallbackQR();
-        }
-      }, 200);
-    }
-  };
-
-  // Fallback function using online QR code API
-  const useFallbackQR = () => {
-    container.innerHTML = `
-      <div style="text-align: center;">
-        <p>Voting URL:</p>
-        <p style="word-break: break-all; margin: 10px 0;"><a href="${url}" target="_blank" style="color: #007bff;">${url}</a></p>
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(
-          url
-        )}" alt="QR Code" style="max-width: 100%; height: auto; border: 1px solid #ddd; padding: 10px; background: white;" />
-        <p style="margin-top: 10px; font-size: 0.9em; color: #666;">Scan this QR code with your phone to access the voting page</p>
-      </div>
-    `;
-  };
-
-  // Start trying to generate QR code
-  tryGenerateQR();
+  // Use online QR code API (no CDN library needed)
+  container.innerHTML = `
+    <div style="text-align: center;">
+      <p>Voting URL:</p>
+      <p style="word-break: break-all; margin: 10px 0;"><a href="${url}" target="_blank" style="color: #007bff;">${url}</a></p>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(
+        url
+      )}" alt="QR Code" style="max-width: 100%; height: auto; border: 1px solid #ddd; padding: 10px; background: white;" onerror="this.parentElement.innerHTML='<p style=\\'color:red;\\'>Failed to load QR code. Please use the URL above.</p>'"/>
+      <p style="margin-top: 10px; font-size: 0.9em; color: #666;">Scan this QR code with your phone to access the voting page</p>
+    </div>
+  `;
 }
 
 // Generate next round
@@ -682,6 +640,7 @@ async function loadAndDisplayRounds() {
 
 // Initialize dashboard
 async function initDashboard() {
+  console.log('[Dashboard] initDashboard called');
   const backend = document.getElementById("backend-url");
   const createForm = document.getElementById("create-round-form");
   const createMessage = document.getElementById("create-message");
@@ -689,9 +648,12 @@ async function initDashboard() {
 
   if (backend) backend.textContent = window.getBackendUrl();
 
+  console.log('[Dashboard] Checking authentication...');
   // Check authentication
   const auth = await isAuthenticated();
+  console.log('[Dashboard] Authentication result:', auth);
   if (!auth) {
+    console.log('[Dashboard] Not authenticated, redirecting to login');
     window.location.href = "/login";
     return;
   }
@@ -730,21 +692,58 @@ async function initDashboard() {
     }
   }
 
+  console.log('[Dashboard] Checking headerUtils availability...');
+  console.log('[Dashboard] window.__headerUtilsReady:', window.__headerUtilsReady);
+  console.log('[Dashboard] window.initLoggedInHeader:', typeof window.initLoggedInHeader);
+  
+  // Wait for headerUtils to be ready if needed
+  let headerUtilsReady = false;
+  if (window.__headerUtilsReady && window.initLoggedInHeader) {
+    headerUtilsReady = true;
+    console.log('[Dashboard] headerUtils ready immediately');
+  } else {
+    console.log('[Dashboard] Waiting for headerUtils...');
+    // Wait up to 2 seconds for headerUtils
+    for (let i = 0; i < 40; i++) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      if (window.__headerUtilsReady && window.initLoggedInHeader) {
+        headerUtilsReady = true;
+        console.log('[Dashboard] headerUtils ready after', (i + 1) * 50, 'ms');
+        break;
+      }
+    }
+  }
+
   // Load user info
+  console.log('[Dashboard] Loading user info...');
   const user = await loadUserInfo();
+  console.log('[Dashboard] User loaded:', user ? 'yes' : 'no');
 
   // Initialize header with navigation links
-  if (typeof initLoggedInHeader === 'function') {
-    const additionalLinks = [
-      { href: '/profile', text: 'Profile' }
-    ];
-    
-    // Only add Admin link if user is an admin
-    if (user && user.role === 'admin') {
-      additionalLinks.push({ href: '/admin', text: 'Admin' });
+  console.log('[Dashboard] Initializing header, headerUtilsReady:', headerUtilsReady);
+  if (headerUtilsReady && typeof window.initLoggedInHeader === 'function') {
+    try {
+      const additionalLinks = [
+        { href: '/profile', text: 'Profile' }
+      ];
+      
+      // Only add Admin link if user is an admin
+      if (user && user.role === 'admin') {
+        additionalLinks.push({ href: '/admin', text: 'Admin' });
+      }
+      
+      console.log('[Dashboard] Calling initLoggedInHeader with links:', additionalLinks);
+      await window.initLoggedInHeader(additionalLinks);
+      console.log('[Dashboard] Header initialized successfully');
+    } catch (error) {
+      console.error('[Dashboard] Error initializing header:', error);
+      console.error('[Dashboard] Error stack:', error.stack);
     }
-    
-    await initLoggedInHeader(additionalLinks);
+  } else {
+    console.error('[Dashboard] initLoggedInHeader not available after waiting.');
+    console.error('[Dashboard] headerUtilsReady:', headerUtilsReady);
+    console.error('[Dashboard] window.__headerUtilsReady:', window.__headerUtilsReady);
+    console.error('[Dashboard] window.initLoggedInHeader type:', typeof window.initLoggedInHeader);
   }
 
   // Load rounds
@@ -891,14 +890,36 @@ async function initDashboard() {
   });
 }
 
-// Fallback: Initialize if DOM is already loaded and not called from router
+// Initialize dashboard when module loads
+console.log('[Dashboard] Module loaded, checking initialization...');
+console.log('[Dashboard] document.readyState:', document.readyState);
+console.log('[Dashboard] window.__dashboardInitialized:', window.__dashboardInitialized);
+
 if (document.readyState === 'loading') {
-  document.addEventListener("DOMContentLoaded", initDashboard);
-} else if (!window.__dashboardInitialized) {
-  // Only auto-init if not using router
-  setTimeout(() => {
+  console.log('[Dashboard] DOM still loading, waiting for DOMContentLoaded...');
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log('[Dashboard] DOMContentLoaded fired, initializing...');
     if (!window.__dashboardInitialized) {
-      initDashboard();
+      initDashboard().then(() => {
+        window.__dashboardInitialized = true;
+        console.log('[Dashboard] Initialization complete, flag set');
+      }).catch(err => {
+        console.error('[Dashboard] Initialization failed:', err);
+      });
+    } else {
+      console.log('[Dashboard] Already initialized, skipping');
     }
-  }, 100);
+  });
+} else {
+  console.log('[Dashboard] DOM already loaded, initializing immediately...');
+  if (!window.__dashboardInitialized) {
+    initDashboard().then(() => {
+      window.__dashboardInitialized = true;
+      console.log('[Dashboard] Initialization complete, flag set');
+    }).catch(err => {
+      console.error('[Dashboard] Initialization failed:', err);
+    });
+  } else {
+    console.log('[Dashboard] Already initialized, skipping');
+  }
 }

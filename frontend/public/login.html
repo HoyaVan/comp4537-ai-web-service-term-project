@@ -18,7 +18,7 @@
     <!-- Header will be loaded by headerUtils.js -->
 
     <div class="wrap">
-        <h1>Sign in</h1>
+        <h1>Log in</h1>
         <div class="sub">Backend: <span id="backend-url"></span></div>
 
         <form id="login-form" novalidate>
@@ -58,26 +58,45 @@
                 const email = document.getElementById('email').value || '';
                 const password = document.getElementById('password').value || '';
 
-                if (!email.trim()) return setMessage(authMessages.emailRequired);
-                if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setMessage(authMessages.emailInvalid);
-                if (!password) return setMessage(authMessages.passwordRequired);
+                if (!email.trim()) {
+                    return setMessage(authMessages.emailRequired);
+                }
+                if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+                    return setMessage(authMessages.emailInvalid);
+                }
+                if (!password) {
+                    return setMessage(authMessages.passwordRequired);
+                }
 
                 btn.disabled = true;
                 btn.textContent = authMessages.loggingIn;
                 
                 try {
                     const result = await window.authService.login(email, password);
+                    
                     if (result.success) {
                         setMessage(authMessages.successPrefix + result.message, true);
+                        // Set cookie for server-side authentication check
+                        // The token is already stored in localStorage by authService
+                        const token = window.authService.getToken();
+                        if (token) {
+                          // Set a cookie that server can read (non-httpOnly so JS can also access it)
+                          // Cookie expires in 7 days, matches backend token expiry
+                          const expiryDate = new Date();
+                          expiryDate.setTime(expiryDate.getTime() + (7 * 24 * 60 * 60 * 1000));
+                          document.cookie = `token=${token}; expires=${expiryDate.toUTCString()}; path=/; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`;
+                        }
                         setTimeout(() => {
-                            window.location.href = '/dashboard';
+                            window.location.replace('/dashboard');
                         }, 1000);
+                        return;
                     } else {
                         setMessage(authMessages.loginFailed + result.message, false);
+                        btn.disabled = false;
+                        btn.textContent = authMessages.login;
                     }
                 } catch (err) {
-                    setMessage(authMessages.networkError + err, false);
-                } finally {
+                    setMessage(authMessages.networkError + (err.message || err), false);
                     btn.disabled = false;
                     btn.textContent = authMessages.login;
                 }

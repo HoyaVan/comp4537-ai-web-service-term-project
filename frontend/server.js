@@ -51,27 +51,65 @@ const routes = {
 };
 
 // Helper function to check authentication via backend
-async function checkAuth(cookies) {
+async function checkAuth(cookies, authHeader) {
   try {
-    const token = parseCookies(cookies).token;
+    let token = null;
+    
+    // Check Authorization header first (Bearer token)
+    if (authHeader) {
+      const parts = authHeader.split(" ");
+      if (parts.length === 2 && parts[0] === "Bearer") {
+        token = parts[1];
+      }
+    }
+    
+    // Fallback to cookie for backward compatibility
+    if (!token) {
+      token = parseCookies(cookies).token;
+    }
+    
     if (!token) {
       return { authenticated: false, user: null };
     }
 
-    const backendUrl = new URL(BACKEND_URL);
+    // Validate BACKEND_URL before using it
+    if (!BACKEND_URL) {
+      console.error("BACKEND_URL is not set");
+      return { authenticated: false, user: null, error: "backend_unreachable", errorDetails: "BACKEND_URL not configured" };
+    }
+
+    let backendUrl;
+    try {
+      backendUrl = new URL(BACKEND_URL);
+    } catch (urlError) {
+      console.error("Invalid BACKEND_URL:", BACKEND_URL, urlError);
+      return { authenticated: false, user: null, error: "backend_unreachable", errorDetails: "Invalid BACKEND_URL configuration" };
+    }
+
     const httpModule = backendUrl.protocol === "https:" ? https : http;
+    
+    // Force IPv4 if localhost (to avoid IPv6 issues)
+    let hostname = backendUrl.hostname;
+    if (hostname === "localhost" || hostname === "::1") {
+      hostname = "127.0.0.1";
+      console.warn(`WARNING: localhost detected in BACKEND_URL, using 127.0.0.1 instead. BACKEND_URL should be the actual backend service URL in production.`);
+    }
     
     return new Promise((resolve) => {
       const options = {
-        hostname: backendUrl.hostname,
+        hostname: hostname,
         port: backendUrl.port || (backendUrl.protocol === "https:" ? 443 : 80),
         path: "/api/auth/profile",
         method: "GET",
         headers: {
-          "Cookie": `token=${token}`,
+          "Authorization": `Bearer ${token}`,
           "Accept": "application/json"
-        }
+        },
+        timeout: 5000,
+        family: 4 // Force IPv4 to avoid IPv6 resolution issues
       };
+      
+      console.log(`Attempting auth check with backend: ${backendUrl.protocol}//${hostname}:${options.port}`);
 
       const req = httpModule.request(options, (res) => {
         let data = "";
@@ -88,6 +126,7 @@ async function checkAuth(cookies) {
                 resolve({ authenticated: false, user: null });
               }
             } catch (e) {
+              console.error("Error parsing auth response:", e);
               resolve({ authenticated: false, user: null });
             }
           } else {
@@ -96,14 +135,24 @@ async function checkAuth(cookies) {
         });
       });
 
-      req.on("error", () => {
-        resolve({ authenticated: false, user: null });
+      req.on("error", (err) => {
+        console.error("Error contacting backend for auth check:", err.message);
+        // If there's a network error (backend unreachable), we need to signal this
+        resolve({ authenticated: false, user: null, error: "backend_unreachable", errorDetails: err.message });
+      });
+
+      // Set a timeout to detect if backend doesn't respond
+      req.setTimeout(5000, () => {
+        console.error("Backend auth check timeout");
+        req.destroy();
+        resolve({ authenticated: false, user: null, error: "backend_timeout" });
       });
 
       req.end();
     });
   } catch (error) {
-    return { authenticated: false, user: null };
+    console.error("Unexpected error in checkAuth:", error);
+    return { authenticated: false, user: null, error: "check_failed", errorDetails: error.message };
   }
 }
 
@@ -145,165 +194,271 @@ function getMimeType(filePath) {
 
 // Serve static file
 function serveStaticFile(filePath, res, statusCode = 200) {
-  const fullPath = path.join(__dirname, "public", filePath);
-  
-  fs.readFile(fullPath, (err, data) => {
-    if (err) {
-      // If file not found and we're not already serving 404, try to serve 404.html
-      if (statusCode !== 404 && filePath !== "404.html") {
-        serveStaticFile("404.html", res, 404);
+  try {
+    const fullPath = path.join(__dirname, "public", filePath);
+    
+    fs.readFile(fullPath, (err, data) => {
+      if (err) {
+        console.error(`Error reading file ${filePath}:`, err.message);
+        // If file not found and we're not already serving 404, try to serve 404.html
+        if (statusCode !== 404 && filePath !== "404.html") {
+          serveStaticFile("404.html", res, 404);
+          return;
+        }
+        if (!res.headersSent) {
+          res.writeHead(404, { "Content-Type": "text/html" });
+          res.end("File not found");
+        }
         return;
       }
-      res.writeHead(404, { "Content-Type": "text/html" });
-      res.end("File not found");
-      return;
+      
+      try {
+        const mimeType = getMimeType(filePath);
+        if (!res.headersSent) {
+          res.writeHead(statusCode, { "Content-Type": mimeType });
+          res.end(data);
+        }
+      } catch (headerError) {
+        console.error("Error writing response headers:", headerError);
+      }
+    });
+  } catch (error) {
+    console.error("Error in serveStaticFile:", error);
+    if (!res.headersSent) {
+      res.writeHead(500, { "Content-Type": "text/html" });
+      res.end("Internal Server Error");
     }
-    
-    const mimeType = getMimeType(filePath);
-    res.writeHead(statusCode, { "Content-Type": mimeType });
-    res.end(data);
-  });
+  }
 }
 
 // Handle route with authentication check
 async function handleRoute(req, res, routePath) {
-  const route = routes[routePath];
-  
-  if (!route) {
-    res.writeHead(404, { "Content-Type": "text/html" });
-    res.end("Route not found");
-    return;
-  }
-
-  const cookies = req.headers.cookie || "";
-  
-  // Handle public routes
-  if (route.public) {
-    serveStaticFile(route.page, res);
-    return;
-  }
-
-  // Check authentication
-  const authResult = await checkAuth(cookies);
-  
-  // Handle routes that require guest (redirect if authenticated)
-  if (route.requiresGuest) {
-    if (authResult.authenticated) {
-      res.writeHead(302, {
-        "Location": route.redirectIfAuth || "/dashboard"
-      });
-      res.end();
-      return;
-    }
-    serveStaticFile(route.page, res);
-    return;
-  }
-
-  // Handle routes that require authentication
-  if (route.requiresAuth) {
-    if (!authResult.authenticated) {
-      res.writeHead(302, {
-        "Location": "/login"
-      });
-      res.end();
+  try {
+    const route = routes[routePath];
+    
+    if (!route) {
+      res.writeHead(404, { "Content-Type": "text/html" });
+      res.end("Route not found");
       return;
     }
 
-    // Check if route requires specific role
-    if (route.requiresRole) {
-      if (!authResult.user || authResult.user.role !== route.requiresRole) {
+    const cookies = req.headers.cookie || "";
+    const authHeader = req.headers.authorization || "";
+    
+    // Handle public routes
+    if (route.public) {
+      serveStaticFile(route.page, res);
+      return;
+    }
+
+  // Check authentication - server must validate before serving protected pages
+  let authResult;
+  try {
+    authResult = await checkAuth(cookies, authHeader);
+  } catch (error) {
+    console.error("Error checking authentication:", error);
+    // If auth check throws an error, treat as unauthenticated
+    authResult = { authenticated: false, user: null, error: "check_failed", errorDetails: error.message };
+  }
+  
+  // Check if there was an error contacting the backend
+  if (authResult.error && route.requiresAuth) {
+    // Backend is unreachable or timed out - don't allow access to protected pages
+    console.error(`Backend unavailable (${authResult.error}): Cannot serve protected route ${routePath}`);
+    if (!res.headersSent) {
+      res.writeHead(503, { "Content-Type": "text/html" });
+      res.end(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Service Unavailable</title></head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h1>Service Temporarily Unavailable</h1>
+          <p>The authentication service is currently unavailable. Please try again later.</p>
+          <p><a href="/login">Return to Login</a></p>
+        </body>
+        </html>
+      `);
+    }
+    return;
+  }
+    
+    // Handle routes that require guest (redirect if authenticated)
+    if (route.requiresGuest) {
+      if (authResult.authenticated) {
         res.writeHead(302, {
-          "Location": route.redirectIfUnauthorized || "/dashboard"
+          "Location": route.redirectIfAuth || "/dashboard"
         });
         res.end();
         return;
       }
+      serveStaticFile(route.page, res);
+      return;
     }
 
-    // All checks passed - serve the page
-    serveStaticFile(route.page, res);
-    return;
-  }
+    // Handle routes that require authentication
+    if (route.requiresAuth) {
+      // Server-side authentication is REQUIRED - don't serve page without valid auth
+      if (!authResult.authenticated) {
+        res.writeHead(302, {
+          "Location": "/login"
+        });
+        res.end();
+        return;
+      }
 
-  // Default: serve the page
-  serveStaticFile(route.page, res);
+      // Check if route requires specific role
+      if (route.requiresRole) {
+        if (!authResult.user || authResult.user.role !== route.requiresRole) {
+          // Serve 404 page instead of redirecting (security through obscurity)
+          serveStaticFile("404.html", res, 404);
+          return;
+        }
+      }
+
+      // All checks passed - serve the page
+      serveStaticFile(route.page, res);
+      return;
+    }
+
+    // Default: serve the page
+    serveStaticFile(route.page, res);
+  } catch (error) {
+    console.error("Error in handleRoute:", error);
+    // Send error response
+    if (!res.headersSent) {
+      res.writeHead(500, { "Content-Type": "text/html" });
+      res.end(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Internal Server Error</title></head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h1>Internal Server Error</h1>
+          <p>An error occurred while processing your request.</p>
+          <p><a href="/">Return to Home</a></p>
+        </body>
+        </html>
+      `);
+    }
+  }
 }
 
 // Create HTTP server
 const server = http.createServer(async (req, res) => {
-  // Handle CORS
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Cookie");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
+  try {
+    // Handle CORS
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Cookie, Authorization");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
 
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    res.writeHead(204);
-    res.end();
-    return;
-  }
-
-  const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname;
-
-  // Handle static assets (js, css, images, etc.)
-  if (pathname.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|json)$/)) {
-    serveStaticFile(pathname, res);
-    return;
-  }
-
-  // Handle API routes - proxy to backend
-  if (pathname.startsWith("/api/")) {
-    const backendUrl = new URL(BACKEND_URL + pathname + (parsedUrl.search || ""));
-    const httpModule = backendUrl.protocol === "https:" ? https : http;
-    
-    const options = {
-      hostname: backendUrl.hostname,
-      port: backendUrl.port || (backendUrl.protocol === "https:" ? 443 : 80),
-      path: backendUrl.pathname + (backendUrl.search || ""),
-      method: req.method,
-      headers: {
-        ...req.headers,
-        host: backendUrl.host
-      }
-    };
-
-    const proxyReq = httpModule.request(options, (proxyRes) => {
-      res.writeHead(proxyRes.statusCode, proxyRes.headers);
-      proxyRes.pipe(res);
-    });
-
-    proxyReq.on("error", (err) => {
-      res.writeHead(502, { "Content-Type": "text/html" });
-      res.end("Bad Gateway");
-    });
-
-    req.pipe(proxyReq);
-    return;
-  }
-
-  // Handle routes - check authentication and serve pages
-  if (req.method === "GET") {
-    // Normalize path (remove trailing slash, except root)
-    let routePath = pathname.replace(/\/$/, "") || "/";
-    
-    // Check if route exists
-    if (routes[routePath]) {
-      await handleRoute(req, res, routePath);
-    } else {
-      // Route not found - serve 404.html with 404 status code
-      serveStaticFile("404.html", res, 404);
+    // Handle CORS preflight
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
     }
-  } else {
-    res.writeHead(405, { "Content-Type": "text/html" });
-    res.end("Method not allowed");
+
+    const parsedUrl = url.parse(req.url, true);
+    const pathname = parsedUrl.pathname;
+
+    // Handle partials (header HTML files)
+    if (pathname.startsWith("/partials/")) {
+      serveStaticFile(pathname, res);
+      return;
+    }
+
+    // Handle static assets (js, css, images, etc.)
+    if (pathname.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|json)$/)) {
+      serveStaticFile(pathname, res);
+      return;
+    }
+
+    // Handle API routes - proxy to backend
+    if (pathname.startsWith("/api/")) {
+      if (!BACKEND_URL) {
+        res.writeHead(503, { "Content-Type": "text/html" });
+        res.end("Backend URL not configured");
+        return;
+      }
+      
+      try {
+        const backendUrl = new URL(BACKEND_URL + pathname + (parsedUrl.search || ""));
+        const httpModule = backendUrl.protocol === "https:" ? https : http;
+        
+        const options = {
+          hostname: backendUrl.hostname,
+          port: backendUrl.port || (backendUrl.protocol === "https:" ? 443 : 80),
+          path: backendUrl.pathname + (backendUrl.search || ""),
+          method: req.method,
+          headers: {
+            ...req.headers,
+            host: backendUrl.host
+          }
+        };
+
+        const proxyReq = httpModule.request(options, (proxyRes) => {
+          res.writeHead(proxyRes.statusCode, proxyRes.headers);
+          proxyRes.pipe(res);
+        });
+
+        proxyReq.on("error", (err) => {
+          console.error("Error proxying to backend:", err.message);
+          if (!res.headersSent) {
+            res.writeHead(502, { "Content-Type": "text/html" });
+            res.end("Bad Gateway");
+          }
+        });
+
+        req.pipe(proxyReq);
+      } catch (error) {
+        console.error("Error setting up proxy:", error);
+        if (!res.headersSent) {
+          res.writeHead(502, { "Content-Type": "text/html" });
+          res.end("Bad Gateway");
+        }
+      }
+      return;
+    }
+
+    // Handle routes - check authentication and serve pages
+    if (req.method === "GET") {
+      // Normalize path (remove trailing slash, except root)
+      let routePath = pathname.replace(/\/$/, "") || "/";
+      
+      // Check if route exists
+      if (routes[routePath]) {
+        await handleRoute(req, res, routePath);
+      } else {
+        // Route not found - serve 404.html with 404 status code
+        serveStaticFile("404.html", res, 404);
+      }
+    } else {
+      res.writeHead(405, { "Content-Type": "text/html" });
+      res.end("Method not allowed");
+    }
+  } catch (error) {
+    console.error("Unhandled error in server request handler:", error);
+    if (!res.headersSent) {
+      res.writeHead(500, { "Content-Type": "text/html" });
+      res.end(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Internal Server Error</title></head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h1>Internal Server Error</h1>
+          <p>An unexpected error occurred. Please try again later.</p>
+          <p><a href="/">Return to Home</a></p>
+        </body>
+        </html>
+      `);
+    }
   }
 });
 
 // Start server
 server.listen(PORT, () => {
   console.log(`\n🚀 Frontend server is running on port ${PORT}\n`);
+  console.log(`📡 Backend URL: ${BACKEND_URL || 'NOT SET - THIS WILL CAUSE ERRORS'}\n`);
   console.log("📋 Available Routes:\n");
   
   Object.keys(routes).forEach((route) => {
@@ -318,6 +473,21 @@ server.listen(PORT, () => {
   });
   
   console.log(`\n✅ Server ready!\n`);
+});
+
+// Handle server errors
+server.on("error", (error) => {
+  console.error("Server error:", error);
+  process.exit(1);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
 module.exports = server;

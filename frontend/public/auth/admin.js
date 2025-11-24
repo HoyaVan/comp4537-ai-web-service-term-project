@@ -78,24 +78,13 @@ async function isAuthenticated() {
 // Fetch all users from backend
 async function fetchAllUsers() {
   try {
-    const res = await fetch(window.getBackendUrl() + '/api/v1/auth/users', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      },
-      mode: 'cors',
-      credentials: 'omit'
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || adminMessages.failedToFetchUsers);
+    const { ok, data } = await apiRequest('/api/auth/users');
+    if (!ok || !data.success) {
+      throw new Error(data.message || adminMessages.failedToFetchUsers);
     }
-
-    const data = await res.json();
     return data.data || [];
   } catch (error) {
+    console.error('Error fetching users:', error);
     throw error;
   }
 }
@@ -208,11 +197,15 @@ async function loadUsers() {
 
 // Initialize admin page
 async function initAdmin() {
+  console.log('[Admin] initAdmin called');
   const refreshBtn = document.getElementById('refresh-btn');
 
   // Check authentication
+  console.log('[Admin] Checking authentication...');
   const auth = await isAuthenticated();
+  console.log('[Admin] Authentication result:', auth);
   if (!auth) {
+    console.log('[Admin] Not authenticated, redirecting to login');
     window.location.href = '/login';
     return;
   }
@@ -236,11 +229,48 @@ async function initAdmin() {
     return;
   }
 
+  console.log('[Admin] Checking headerUtils availability...');
+  console.log('[Admin] window.__headerUtilsReady:', window.__headerUtilsReady);
+  console.log('[Admin] window.initLoggedInHeader:', typeof window.initLoggedInHeader);
+  
+  // Wait for headerUtils to be ready if needed
+  let headerUtilsReady = false;
+  if (window.__headerUtilsReady && window.initLoggedInHeader) {
+    headerUtilsReady = true;
+    console.log('[Admin] headerUtils ready immediately');
+  } else {
+    console.log('[Admin] Waiting for headerUtils...');
+    // Wait up to 2 seconds for headerUtils
+    for (let i = 0; i < 40; i++) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      if (window.__headerUtilsReady && window.initLoggedInHeader) {
+        headerUtilsReady = true;
+        console.log('[Admin] headerUtils ready after', (i + 1) * 50, 'ms');
+        break;
+      }
+    }
+  }
+
   // Initialize header with navigation links
-  await initLoggedInHeader([
-    { href: '/dashboard', text: 'Dashboard' },
-    { href: '/profile', text: 'Profile' }
-  ]);
+  console.log('[Admin] Initializing header, headerUtilsReady:', headerUtilsReady);
+  if (headerUtilsReady && typeof window.initLoggedInHeader === 'function') {
+    try {
+      console.log('[Admin] Calling initLoggedInHeader...');
+      await window.initLoggedInHeader([
+        { href: '/dashboard', text: 'Dashboard' },
+        { href: '/profile', text: 'Profile' }
+      ]);
+      console.log('[Admin] Header initialized successfully');
+    } catch (error) {
+      console.error('[Admin] Error initializing header:', error);
+      console.error('[Admin] Error stack:', error.stack);
+    }
+  } else {
+    console.error('[Admin] initLoggedInHeader not available after waiting.');
+    console.error('[Admin] headerUtilsReady:', headerUtilsReady);
+    console.error('[Admin] window.__headerUtilsReady:', window.__headerUtilsReady);
+    console.error('[Admin] window.initLoggedInHeader type:', typeof window.initLoggedInHeader);
+  }
 
   // Setup refresh button (refresh all)
   if (refreshBtn) {
@@ -254,11 +284,21 @@ async function initAdmin() {
   }
 
   // Load all data on page load
-  await Promise.all([
-    loadUsers(),
-    loadEndpointStats(),
-    loadConsumptionStats()
-  ]);
+  try {
+    await Promise.all([
+      loadUsers(),
+      loadEndpointStats(),
+      loadConsumptionStats()
+    ]);
+    console.log('All admin data loaded successfully');
+  } catch (error) {
+    console.error('Error loading admin data:', error);
+    const errorEl = document.getElementById('error');
+    if (errorEl) {
+      errorEl.textContent = `Error loading data: ${error.message}`;
+      errorEl.classList.remove('hidden');
+    }
+  }
   
   // Setup refresh buttons
   const refreshEndpointsBtn = document.getElementById('refresh-endpoints-btn');
@@ -273,15 +313,38 @@ async function initAdmin() {
   }
 }
 
-// Fallback: Initialize if DOM is already loaded
+// Initialize admin when module loads
+console.log('[Admin] Module loaded, checking initialization...');
+console.log('[Admin] document.readyState:', document.readyState);
+console.log('[Admin] window.__adminInitialized:', window.__adminInitialized);
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAdmin);
-} else if (!window.__adminInitialized) {
-  setTimeout(() => {
+  console.log('[Admin] DOM still loading, waiting for DOMContentLoaded...');
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('[Admin] DOMContentLoaded fired, initializing...');
     if (!window.__adminInitialized) {
-      initAdmin();
+      initAdmin().then(() => {
+        window.__adminInitialized = true;
+        console.log('[Admin] Initialization complete, flag set');
+      }).catch(err => {
+        console.error('[Admin] Initialization failed:', err);
+      });
+    } else {
+      console.log('[Admin] Already initialized, skipping');
     }
-  }, 100);
+  });
+} else {
+  console.log('[Admin] DOM already loaded, initializing immediately...');
+  if (!window.__adminInitialized) {
+    initAdmin().then(() => {
+      window.__adminInitialized = true;
+      console.log('[Admin] Initialization complete, flag set');
+    }).catch(err => {
+      console.error('[Admin] Initialization failed:', err);
+    });
+  } else {
+    console.log('[Admin] Already initialized, skipping');
+  }
 }
 
 // Load endpoint statistics

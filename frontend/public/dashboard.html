@@ -11,7 +11,7 @@
     <script src="/config.js"></script>
     <script src="/js/authService.js"></script>
     <script src="/js/app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" onload="window.QRCodeLoaded = true"></script>
+    <!-- QR Code library removed - using fallback API instead -->
     <link rel="shortcut icon" href="#">
 </head>
 
@@ -102,10 +102,15 @@
     </div>
 
     <script src="/auth/headerUtils.js"></script>
+    <script>
+        console.log('[Dashboard] headerUtils.js loaded, checking availability...');
+        console.log('[Dashboard] window.__headerUtilsReady:', window.__headerUtilsReady);
+        console.log('[Dashboard] window.initLoggedInHeader:', typeof window.initLoggedInHeader);
+    </script>
     <script type="module" src="/auth/dashboard.js"></script>
     <script>
-        // Mark as initialized to prevent double initialization
-        window.__dashboardInitialized = true;
+        console.log('[Dashboard] Module script tag added');
+        // Don't set __dashboardInitialized here - let the module set it after initialization
     </script>
 </body>
 

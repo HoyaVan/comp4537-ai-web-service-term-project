@@ -1,6 +1,6 @@
 /**
  * Centralized authentication service
- * Uses httpOnly cookies for authentication
+ * Uses JWT tokens stored in localStorage for authentication
  */
 class AuthService {
   constructor() {
@@ -9,18 +9,44 @@ class AuthService {
   }
 
   /**
+   * Get token from localStorage
+   * @returns {string|null}
+   */
+  getToken() {
+    return localStorage.getItem('token');
+  }
+
+  /**
+   * Set token in localStorage
+   * @param {string} token
+   */
+  setToken(token) {
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
+  }
+
+  /**
    * Check if user is authenticated
    * @returns {Promise<boolean>}
    */
   async isAuthenticated() {
+    const token = this.getToken();
+    if (!token) {
+      this.currentUser = null;
+      return false;
+    }
+
     try {
       const response = await fetch(`${this.backendUrl}/api/auth/profile`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        credentials: 'include', // Include cookies
         mode: 'cors',
       });
 
@@ -31,10 +57,15 @@ class AuthService {
           return true;
         }
       }
+      
+      // If request failed, token might be invalid - clear it
+      if (response.status === 401 || response.status === 403) {
+        this.setToken(null);
+      }
+      
       this.currentUser = null;
       return false;
     } catch (error) {
-      console.error('Auth check failed:', error);
       this.currentUser = null;
       return false;
     }
@@ -62,7 +93,6 @@ class AuthService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        credentials: 'include', // Include cookies
         mode: 'cors',
         body: JSON.stringify({
           email: email.trim(),
@@ -73,6 +103,10 @@ class AuthService {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        const token = data.data?.token;
+        if (token) {
+          this.setToken(token);
+        }
         this.currentUser = data.data.user;
         return {
           success: true,
@@ -108,7 +142,6 @@ class AuthService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        credentials: 'include', // Include cookies
         mode: 'cors',
         body: JSON.stringify({
           name: name.trim(),
@@ -120,6 +153,10 @@ class AuthService {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        const token = data.data?.token;
+        if (token) {
+          this.setToken(token);
+        }
         this.currentUser = data.data.user;
         return {
           success: true,
@@ -146,16 +183,18 @@ class AuthService {
    */
   async logout() {
     try {
+      const token = this.getToken();
       const response = await fetch(`${this.backendUrl}/api/auth/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
-        credentials: 'include', // Include cookies
         mode: 'cors',
       });
 
+      this.setToken(null);
       this.currentUser = null;
 
       if (response.ok) {
@@ -170,6 +209,7 @@ class AuthService {
         };
       }
     } catch (error) {
+      this.setToken(null);
       this.currentUser = null;
       return {
         success: false,
@@ -185,13 +225,14 @@ class AuthService {
    * @returns {Promise<Response>}
    */
   async apiRequest(url, options = {}) {
+    const token = this.getToken();
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...(options.headers || {}),
       },
-      credentials: 'include', // Always include cookies
       mode: 'cors',
       ...options,
     };

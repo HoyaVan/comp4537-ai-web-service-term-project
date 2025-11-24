@@ -3,22 +3,36 @@ const partialCache = {};
 
 // Fetch partial HTML from the partials directory
 async function fetchPartial(partialName) {
+  console.log('[headerUtils] fetchPartial called for:', partialName);
   // Return cached version if available
   if (partialCache[partialName]) {
+    console.log('[headerUtils] Using cached partial:', partialName);
     return partialCache[partialName];
   }
 
   try {
-    const response = await fetch(`/partials/${partialName}`);
+    const url = `/partials/${partialName}`;
+    console.log('[headerUtils] Fetching partial from:', url);
+    const response = await fetch(url);
+    console.log('[headerUtils] Fetch response status:', response.status, response.statusText);
+    console.log('[headerUtils] Fetch response headers:', Object.fromEntries(response.headers.entries()));
+    
     if (!response.ok) {
-      throw new Error(`Failed to load partial: ${partialName}`);
+      const errorText = await response.text().catch(() => 'No error details');
+      console.error('[headerUtils] Failed to load partial. Status:', response.status);
+      console.error('[headerUtils] Error response:', errorText);
+      throw new Error(`Failed to load partial: ${partialName} (${response.status} ${response.statusText})`);
     }
+    
     const html = await response.text();
+    console.log('[headerUtils] Partial HTML received, length:', html.length, 'chars');
     // Cache the result
     partialCache[partialName] = html.trim();
     return partialCache[partialName];
   } catch (error) {
-    console.error(`Error loading partial ${partialName}:`, error);
+    console.error(`[headerUtils] Error loading partial ${partialName}:`, error);
+    console.error('[headerUtils] Error details:', error.message);
+    console.error('[headerUtils] Error stack:', error.stack);
     throw error;
   }
 }
@@ -42,6 +56,10 @@ async function logout() {
  * Fetches the header partial from /partials/logged-out-header.html
  */
 async function initLoggedOutHeader() {
+  // Make available on window immediately when function is called
+  if (typeof window !== 'undefined' && !window.initLoggedOutHeader) {
+    window.initLoggedOutHeader = initLoggedOutHeader;
+  }
   try {
     const html = await fetchPartial('logged-out-header.html');
     
@@ -74,8 +92,15 @@ async function initLoggedOutHeader() {
  * Fetches the header partial from /partials/logged-in-header.html
  */
 async function initLoggedInHeader(additionalLinks = []) {
+  console.log('[headerUtils] initLoggedInHeader called with links:', additionalLinks);
+  // Make available on window immediately when function is called
+  if (typeof window !== 'undefined' && !window.initLoggedInHeader) {
+    window.initLoggedInHeader = initLoggedInHeader;
+  }
   try {
+    console.log('[headerUtils] Fetching logged-in-header.html partial...');
     const html = await fetchPartial('logged-in-header.html');
+    console.log('[headerUtils] Partial fetched, length:', html.length);
     
     // Find or create header container
     const existingHeader = document.querySelector('header.header');
@@ -226,3 +251,24 @@ async function initLoggedInHeader(additionalLinks = []) {
     }
   }, 100);
 }
+
+// Make functions available globally for module access IMMEDIATELY
+// This must be done synchronously before modules execute
+(function() {
+  console.log('[headerUtils] Setting up window properties...');
+  if (typeof window !== 'undefined') {
+    window.initLoggedInHeader = initLoggedInHeader;
+    window.initLoggedOutHeader = initLoggedOutHeader;
+    window.logout = logout;
+    // Signal that headerUtils is ready
+    window.__headerUtilsReady = true;
+    console.log('[headerUtils] Window properties set. initLoggedInHeader type:', typeof window.initLoggedInHeader);
+    // Dispatch event for modules that might be waiting
+    if (typeof document !== 'undefined') {
+      document.dispatchEvent(new Event('headerUtilsReady'));
+      console.log('[headerUtils] Dispatched headerUtilsReady event');
+    }
+  } else {
+    console.error('[headerUtils] window is undefined!');
+  }
+})();
