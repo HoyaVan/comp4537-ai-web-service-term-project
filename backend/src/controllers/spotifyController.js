@@ -81,23 +81,30 @@ async function initiateOAuth(req, res) {
 async function handleOAuthCallback(req, res) {
   try {
     const { code, state, error } = req.query;
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:8080";
+    const redirectBase = `${frontendUrl}/dashboard.html`;
 
+    // Handle OAuth errors from Spotify
     if (error) {
-      return res.status(400).json({
-        success: false,
-        message: spotifyMessages.spotifyOAuthError(error),
-      });
+      console.error("Spotify OAuth error:", error);
+      const errorMessage = encodeURIComponent(
+        spotifyMessages.spotifyOAuthError(error) || "Spotify authorization failed"
+      );
+      return res.redirect(`${redirectBase}?spotify=error&message=${errorMessage}`);
     }
 
+    // Check if authorization code is present
     if (!code) {
-      return res.status(400).json({
-        success: false,
-        message: spotifyMessages.authorizationCodeRequired,
-      });
+      const errorMessage = encodeURIComponent(
+        spotifyMessages.authorizationCodeRequired || "Authorization code is required"
+      );
+      return res.redirect(`${redirectBase}?spotify=error&message=${errorMessage}`);
     }
 
+    // Exchange authorization code for access token
     const tokenData = await spotifyService.exchangeCodeForToken(code);
 
+    // Store tokens in service (in-memory for now)
     spotifyService.accessToken = tokenData.access_token;
     spotifyService.refreshToken = tokenData.refresh_token;
     spotifyService.expiresIn = tokenData.expires_in;
@@ -105,28 +112,17 @@ async function handleOAuthCallback(req, res) {
     spotifyService.scope = tokenData.scope;
     spotifyService.state = state || null;
 
-    console.log("Token data:", tokenData);
-    
+    console.log("Spotify OAuth successful - tokens stored");
 
-
-    return res.status(200).json({
-      success: true,
-      message: spotifyMessages.spotifyOAuthSuccessful,
-      data: {
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        expires_in: tokenData.expires_in,
-        token_type: tokenData.token_type,
-        scope: tokenData.scope,
-        state: state || null,
-      },
-    });
+    // Redirect to frontend with success indicator
+    return res.redirect(`${redirectBase}?spotify=connected`);
   } catch (error) {
     console.error("Error handling OAuth callback:", error);
-    return res.status(400).json({
-      success: false,
-      message: error.message || spotifyMessages.errorHandlingSpotifyOAuthCallback,
-    });
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:8080";
+    const errorMessage = encodeURIComponent(
+      error.message || spotifyMessages.errorHandlingSpotifyOAuthCallback || "Failed to connect to Spotify"
+    );
+    return res.redirect(`${frontendUrl}/dashboard.html?spotify=error&message=${errorMessage}`);
   }
 }
 
