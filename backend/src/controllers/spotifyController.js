@@ -134,7 +134,7 @@ async function handleOAuthCallback(req, res) {
     const errorMessage = encodeURIComponent(
       error.message || spotifyMessages.errorHandlingSpotifyOAuthCallback || "Failed to connect to Spotify"
     );
-    return res.redirect(`${frontendUrl}/dashboard.html?spotify=error&message=${errorMessage}`);
+    return res.redirect(`${frontendUrl}/dashboard?spotify=error&message=${errorMessage}`);
   }
 }
 

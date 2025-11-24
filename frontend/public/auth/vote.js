@@ -38,7 +38,7 @@ async function loadRound(roundId) {
         'Accept': 'application/json',
       },
       mode: 'cors',
-      credentials: 'include',
+      credentials: 'omit',
     });
 
     const data = await response.json();
@@ -57,7 +57,7 @@ async function getRoundCountdown(roundId) {
         'Accept': 'application/json',
       },
       mode: 'cors',
-      credentials: 'include',
+      credentials: 'omit',
     });
 
     const data = await response.json();
@@ -165,7 +165,7 @@ async function submitVote(roundId, songId) {
         'Accept': 'application/json',
       },
       mode: 'cors',
-      credentials: 'include',
+      credentials: 'omit',
       body: JSON.stringify({
         songId,
         participantToken: token,

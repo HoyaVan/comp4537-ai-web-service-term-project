@@ -102,16 +102,7 @@
     </div>
 
     <script src="/auth/headerUtils.js"></script>
-    <script>
-        console.log('[Dashboard] headerUtils.js loaded, checking availability...');
-        console.log('[Dashboard] window.__headerUtilsReady:', window.__headerUtilsReady);
-        console.log('[Dashboard] window.initLoggedInHeader:', typeof window.initLoggedInHeader);
-    </script>
     <script type="module" src="/auth/dashboard.js"></script>
-    <script>
-        console.log('[Dashboard] Module script tag added');
-        // Don't set __dashboardInitialized here - let the module set it after initialization
-    </script>
 </body>
 
 </html>

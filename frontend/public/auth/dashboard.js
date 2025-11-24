@@ -1,14 +1,8 @@
 import { dashboardMessages } from '/messages/dashboard.js';
+import { requireAuth, getCurrentUser } from './authGuard.js';
+import { updateBackendUrl } from './utils.js';
 
 const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
-
-// Check if user is authenticated using authService
-async function isAuthenticated() {
-  if (window.authService) {
-    return await window.authService.isAuthenticated();
-  }
-  return false;
-}
 
 // Display API limit warning
 function showApiLimitWarning(message) {
@@ -95,13 +89,9 @@ async function loadUserInfo() {
 
 async function loadSpotifyToken() {
   const auth = await apiRequest("/api/v1/spotify/auth");
-  console.log("auth: ", auth);
   const callback = await apiRequest("/api/v1/spotify/callback" + "?code=" + encodeURIComponent(auth.data.code));
-  console.log("callback: ", callback);
-
   
   const { ok, data } = await apiRequest("/api/v1/spotify/token");
-  console.log("data: ", data);
   if (ok && data.success) {
     localStorage.setItem("spotify_token", data.data.access_token);
     localStorage.setItem("spotify_refresh_token", data.data.refresh_token);
@@ -640,31 +630,25 @@ async function loadAndDisplayRounds() {
 
 // Initialize dashboard
 async function initDashboard() {
-  console.log('[Dashboard] initDashboard called');
   const backend = document.getElementById("backend-url");
   const createForm = document.getElementById("create-round-form");
   const createMessage = document.getElementById("create-message");
   const createBtn = document.getElementById("create-btn");
 
-  if (backend) backend.textContent = window.getBackendUrl();
+  // Update backend URL display
+  updateBackendUrl(backend);
 
   // Check if we're in the process of logging out - skip auth check to prevent redirect loops
   const isLoggingOut = window.__isLoggingOut || sessionStorage.getItem('__isLoggingOut') === 'true';
   if (isLoggingOut) {
-    console.log('[Dashboard] Logout in progress, skipping initialization');
-    // Clear the flag and redirect to home
     sessionStorage.removeItem('__isLoggingOut');
     window.location.replace('/');
     return;
   }
 
-  console.log('[Dashboard] Checking authentication...');
-  // Check authentication
-  const auth = await isAuthenticated();
-  console.log('[Dashboard] Authentication result:', auth);
-  if (!auth) {
-    console.log('[Dashboard] Not authenticated, redirecting to login');
-    window.location.replace("/login");
+  // Require authentication - will redirect if not authenticated
+  const isAuth = await requireAuth();
+  if (!isAuth) {
     return;
   }
 
@@ -702,32 +686,23 @@ async function initDashboard() {
     }
   }
 
-  console.log('[Dashboard] Checking headerUtils availability...');
-  console.log('[Dashboard] window.__headerUtilsReady:', window.__headerUtilsReady);
-  console.log('[Dashboard] window.initLoggedInHeader:', typeof window.initLoggedInHeader);
-  
-  // Wait for headerUtils to be ready if needed
+  // Wait for headerUtils to be ready
   let headerUtilsReady = false;
   if (window.__headerUtilsReady && window.initLoggedInHeader) {
     headerUtilsReady = true;
-    console.log('[Dashboard] headerUtils ready immediately');
   } else {
-    console.log('[Dashboard] Waiting for headerUtils...');
     // Wait up to 2 seconds for headerUtils
     for (let i = 0; i < 40; i++) {
       await new Promise(resolve => setTimeout(resolve, 50));
       if (window.__headerUtilsReady && window.initLoggedInHeader) {
         headerUtilsReady = true;
-        console.log('[Dashboard] headerUtils ready after', (i + 1) * 50, 'ms');
         break;
       }
     }
   }
 
   // Load user info
-  console.log('[Dashboard] Loading user info...');
   const user = await loadUserInfo();
-  console.log('[Dashboard] User loaded:', user ? 'yes' : 'no');
 
   // Initialize header with navigation links
   console.log('[Dashboard] Initializing header, headerUtilsReady:', headerUtilsReady);
@@ -901,35 +876,22 @@ async function initDashboard() {
 }
 
 // Initialize dashboard when module loads
-console.log('[Dashboard] Module loaded, checking initialization...');
-console.log('[Dashboard] document.readyState:', document.readyState);
-console.log('[Dashboard] window.__dashboardInitialized:', window.__dashboardInitialized);
-
 if (document.readyState === 'loading') {
-  console.log('[Dashboard] DOM still loading, waiting for DOMContentLoaded...');
   document.addEventListener("DOMContentLoaded", () => {
-    console.log('[Dashboard] DOMContentLoaded fired, initializing...');
     if (!window.__dashboardInitialized) {
       initDashboard().then(() => {
         window.__dashboardInitialized = true;
-        console.log('[Dashboard] Initialization complete, flag set');
       }).catch(err => {
         console.error('[Dashboard] Initialization failed:', err);
       });
-    } else {
-      console.log('[Dashboard] Already initialized, skipping');
     }
   });
 } else {
-  console.log('[Dashboard] DOM already loaded, initializing immediately...');
   if (!window.__dashboardInitialized) {
     initDashboard().then(() => {
       window.__dashboardInitialized = true;
-      console.log('[Dashboard] Initialization complete, flag set');
     }).catch(err => {
       console.error('[Dashboard] Initialization failed:', err);
     });
-  } else {
-    console.log('[Dashboard] Already initialized, skipping');
   }
 }

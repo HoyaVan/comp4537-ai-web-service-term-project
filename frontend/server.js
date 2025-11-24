@@ -102,7 +102,7 @@ async function checkAuth(cookies, authHeader) {
       const options = {
         hostname: hostname,
         port: backendUrl.port || (backendUrl.protocol === "https:" ? 443 : 80),
-        path: "/api/auth/profile",
+        path: "/api/v1/auth/profile",
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,

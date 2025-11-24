@@ -39,16 +39,7 @@
     </div>
 
     <script src="/auth/headerUtils.js"></script>
-    <script>
-        console.log('[Profile] headerUtils.js loaded, checking availability...');
-        console.log('[Profile] window.__headerUtilsReady:', window.__headerUtilsReady);
-        console.log('[Profile] window.initLoggedInHeader:', typeof window.initLoggedInHeader);
-    </script>
     <script type="module" src="/auth/profile.js"></script>
-    <script>
-        console.log('[Profile] Module script tag added');
-        // Don't set __profileInitialized here - let the module set it after initialization
-    </script>
 </body>
 
 </html>

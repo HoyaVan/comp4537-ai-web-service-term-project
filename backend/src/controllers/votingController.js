@@ -450,7 +450,7 @@ async function getQRCode(req, res) {
       }
     }
     
-    const votingUrl = `${frontendUrl}/vote.html?round=${roundId}`;
+    const votingUrl = `${frontendUrl}/vote?round=${roundId}`;
 
     // QR code data URL can be generated on frontend using a library like qrcode.js
     // Here we just return the URL to encode

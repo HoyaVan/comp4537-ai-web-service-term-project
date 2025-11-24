@@ -40,68 +40,7 @@
         </form>
     </div>
     <script src="/auth/headerUtils.js"></script>
-    <script type="module">
-        // Initialize signup page with new auth system
-        import { authMessages } from '/messages/auth.js';
-        
-        const form = document.getElementById('signup-form');
-        const msg = document.getElementById('message');
-        const btn = document.getElementById('submit-btn');
-        const backend = document.getElementById('backend-url');
-
-        if (backend) backend.textContent = window.getBackendUrl();
-
-        function setMessage(text, ok = false) {
-            if (msg) {
-                msg.textContent = text;
-                msg.className = 'msg ' + (ok ? 'ok' : 'err');
-            }
-        }
-
-        if (form) {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                setMessage('');
-                const name = document.getElementById('name').value || '';
-                const email = document.getElementById('email').value || '';
-                const password = document.getElementById('password').value || '';
-                const confirm = document.getElementById('confirm').value || '';
-
-                if (!name.trim()) return setMessage(authMessages.firstNameRequired);
-                if (!email.trim()) return setMessage(authMessages.emailRequired);
-                if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setMessage(authMessages.emailInvalid);
-                if (!password) return setMessage(authMessages.passwordRequired);
-                if (password.length < 6) return setMessage(authMessages.passwordMinLength);
-                if (password !== confirm) return setMessage(authMessages.passwordsNotMatch);
-
-                btn.disabled = true;
-                btn.textContent = authMessages.signingUp;
-                
-                try {
-                    const result = await window.authService.signup(name, email, password);
-                    if (result.success) {
-                        setMessage(authMessages.successPrefix + result.message, true);
-                        form.reset();
-                        setTimeout(() => {
-                            window.location.href = '/dashboard';
-                        }, 1000);
-                    } else {
-                        setMessage(authMessages.signupFailed + result.message, false);
-                    }
-                } catch (err) {
-                    setMessage(authMessages.networkError + err, false);
-                } finally {
-                    btn.disabled = false;
-                    btn.textContent = authMessages.signUp;
-                }
-            });
-        }
-
-        // Initialize header
-        if (typeof initLoggedOutHeader === 'function') {
-            initLoggedOutHeader();
-        }
-    </script>
+    <script type="module" src="/auth/signup.js"></script>
 </body>
 
 </html>

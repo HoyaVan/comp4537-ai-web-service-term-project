@@ -1,4 +1,5 @@
 import { adminMessages } from '/messages/admin.js';
+import { requireAdmin, getCurrentUser } from './authGuard.js';
 
 const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
@@ -66,14 +67,6 @@ async function apiRequest(url, options = {}) {
   return { ok: response.ok, status: response.status, data };
 }
 
-// Check if user is authenticated
-// Check if user is authenticated using authService
-async function isAuthenticated() {
-  if (window.authService) {
-    return await window.authService.isAuthenticated();
-  }
-  return false;
-}
 
 // Fetch all users from backend
 async function fetchAllUsers() {
@@ -197,79 +190,39 @@ async function loadUsers() {
 
 // Initialize admin page
 async function initAdmin() {
-  console.log('[Admin] initAdmin called');
   const refreshBtn = document.getElementById('refresh-btn');
 
-  // Check authentication
-  console.log('[Admin] Checking authentication...');
-  const auth = await isAuthenticated();
-  console.log('[Admin] Authentication result:', auth);
-  if (!auth) {
-    console.log('[Admin] Not authenticated, redirecting to login');
-    window.location.href = '/login';
+  // Require admin authentication - will redirect if not admin
+  const isAdmin = await requireAdmin();
+  if (!isAdmin) {
     return;
   }
 
-  // Get user from authService
-  const user = window.authService ? window.authService.getCurrentUser() : null;
-  if (!user) {
-    // Try to refresh
-    const isAuth = await window.authService.isAuthenticated();
-    if (!isAuth) {
-      window.location.href = '/login';
-      return;
-    }
-  }
-
-  // Check if user is admin - only admins can view API statistics
-  const currentUser = window.authService ? window.authService.getCurrentUser() : null;
-  if (!currentUser || currentUser.role !== 'admin') {
-    alert(adminMessages.accessDenied);
-    window.location.href = '/dashboard';
-    return;
-  }
-
-  console.log('[Admin] Checking headerUtils availability...');
-  console.log('[Admin] window.__headerUtilsReady:', window.__headerUtilsReady);
-  console.log('[Admin] window.initLoggedInHeader:', typeof window.initLoggedInHeader);
-  
-  // Wait for headerUtils to be ready if needed
+  // Wait for headerUtils to be ready
   let headerUtilsReady = false;
   if (window.__headerUtilsReady && window.initLoggedInHeader) {
     headerUtilsReady = true;
-    console.log('[Admin] headerUtils ready immediately');
   } else {
-    console.log('[Admin] Waiting for headerUtils...');
     // Wait up to 2 seconds for headerUtils
     for (let i = 0; i < 40; i++) {
       await new Promise(resolve => setTimeout(resolve, 50));
       if (window.__headerUtilsReady && window.initLoggedInHeader) {
         headerUtilsReady = true;
-        console.log('[Admin] headerUtils ready after', (i + 1) * 50, 'ms');
         break;
       }
     }
   }
 
   // Initialize header with navigation links
-  console.log('[Admin] Initializing header, headerUtilsReady:', headerUtilsReady);
   if (headerUtilsReady && typeof window.initLoggedInHeader === 'function') {
     try {
-      console.log('[Admin] Calling initLoggedInHeader...');
       await window.initLoggedInHeader([
         { href: '/dashboard', text: 'Dashboard' },
         { href: '/profile', text: 'Profile' }
       ]);
-      console.log('[Admin] Header initialized successfully');
     } catch (error) {
       console.error('[Admin] Error initializing header:', error);
-      console.error('[Admin] Error stack:', error.stack);
     }
-  } else {
-    console.error('[Admin] initLoggedInHeader not available after waiting.');
-    console.error('[Admin] headerUtilsReady:', headerUtilsReady);
-    console.error('[Admin] window.__headerUtilsReady:', window.__headerUtilsReady);
-    console.error('[Admin] window.initLoggedInHeader type:', typeof window.initLoggedInHeader);
   }
 
   // Setup refresh button (refresh all)
@@ -314,36 +267,23 @@ async function initAdmin() {
 }
 
 // Initialize admin when module loads
-console.log('[Admin] Module loaded, checking initialization...');
-console.log('[Admin] document.readyState:', document.readyState);
-console.log('[Admin] window.__adminInitialized:', window.__adminInitialized);
-
 if (document.readyState === 'loading') {
-  console.log('[Admin] DOM still loading, waiting for DOMContentLoaded...');
   document.addEventListener('DOMContentLoaded', () => {
-    console.log('[Admin] DOMContentLoaded fired, initializing...');
     if (!window.__adminInitialized) {
       initAdmin().then(() => {
         window.__adminInitialized = true;
-        console.log('[Admin] Initialization complete, flag set');
       }).catch(err => {
         console.error('[Admin] Initialization failed:', err);
       });
-    } else {
-      console.log('[Admin] Already initialized, skipping');
     }
   });
 } else {
-  console.log('[Admin] DOM already loaded, initializing immediately...');
   if (!window.__adminInitialized) {
     initAdmin().then(() => {
       window.__adminInitialized = true;
-      console.log('[Admin] Initialization complete, flag set');
     }).catch(err => {
       console.error('[Admin] Initialization failed:', err);
     });
-  } else {
-    console.log('[Admin] Already initialized, skipping');
   }
 }
 

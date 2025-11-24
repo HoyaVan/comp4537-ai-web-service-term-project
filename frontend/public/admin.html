@@ -63,16 +63,7 @@
         </section>
     </div>
     <script src="/auth/headerUtils.js"></script>
-    <script>
-        console.log('[Admin] headerUtils.js loaded, checking availability...');
-        console.log('[Admin] window.__headerUtilsReady:', window.__headerUtilsReady);
-        console.log('[Admin] window.initLoggedInHeader:', typeof window.initLoggedInHeader);
-    </script>
     <script type="module" src="/auth/admin.js"></script>
-    <script>
-        console.log('[Admin] Module script tag added');
-        // Don't set __adminInitialized here - let the module set it after initialization
-    </script>
 </body>
 
 </html>

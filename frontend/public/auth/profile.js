@@ -1,15 +1,8 @@
 import { profileMessages } from '/messages/profile.js';
 import { commonMessages } from '/messages/common.js';
+import { requireAuth, getCurrentUser } from './authGuard.js';
 
 const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
-
-// Check if user is authenticated using authService
-async function isAuthenticated() {
-  if (window.authService) {
-    return await window.authService.isAuthenticated();
-  }
-  return false;
-}
 
 // Display API limit warning
 function showApiLimitWarning(message) {
@@ -207,11 +200,9 @@ function displayApiConsumption(user) {
 
 // Initialize profile page
 async function initProfile() {
-  console.log('[Profile] initProfile called');
-  // Check authentication
-  const auth = await isAuthenticated();
-  if (!auth) {
-    window.location.href = '/login';
+  // Require authentication - will redirect if not authenticated
+  const isAuth = await requireAuth();
+  if (!isAuth) {
     return;
   }
 
@@ -230,7 +221,7 @@ async function initProfile() {
   // Display API consumption
   displayApiConsumption(user);
 
-  // Wait for headerUtils to be ready if needed
+  // Wait for headerUtils to be ready
   let headerUtilsReady = false;
   if (window.__headerUtilsReady && window.initLoggedInHeader) {
     headerUtilsReady = true;
@@ -258,48 +249,30 @@ async function initProfile() {
       }
       
       await window.initLoggedInHeader(additionalLinks);
-      console.log('Header initialized successfully');
     } catch (error) {
       console.error('Error initializing header:', error);
     }
-  } else {
-    console.error('initLoggedInHeader not available after waiting. headerUtils.js may not have loaded correctly.');
-    console.log('window.__headerUtilsReady:', window.__headerUtilsReady);
-    console.log('window.initLoggedInHeader:', typeof window.initLoggedInHeader);
   }
 }
 
 // Initialize profile when module loads
-console.log('[Profile] Module loaded, checking initialization...');
-console.log('[Profile] document.readyState:', document.readyState);
-console.log('[Profile] window.__profileInitialized:', window.__profileInitialized);
-
 if (document.readyState === 'loading') {
-  console.log('[Profile] DOM still loading, waiting for DOMContentLoaded...');
   document.addEventListener('DOMContentLoaded', () => {
-    console.log('[Profile] DOMContentLoaded fired, initializing...');
     if (!window.__profileInitialized) {
       initProfile().then(() => {
         window.__profileInitialized = true;
-        console.log('[Profile] Initialization complete, flag set');
       }).catch(err => {
         console.error('[Profile] Initialization failed:', err);
       });
-    } else {
-      console.log('[Profile] Already initialized, skipping');
     }
   });
 } else {
-  console.log('[Profile] DOM already loaded, initializing immediately...');
   if (!window.__profileInitialized) {
     initProfile().then(() => {
       window.__profileInitialized = true;
-      console.log('[Profile] Initialization complete, flag set');
     }).catch(err => {
       console.error('[Profile] Initialization failed:', err);
     });
-  } else {
-    console.log('[Profile] Already initialized, skipping');
   }
 }
 
