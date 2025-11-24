@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,18 +10,20 @@
             @page {
                 margin: 2cm;
             }
+
             body {
                 font-size: 11pt;
             }
+
             .code-block {
                 page-break-inside: avoid;
             }
         }
-        
+
         * {
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
@@ -30,7 +33,7 @@
             color: #333;
             background: #fff;
         }
-        
+
         h1 {
             color: #2c3e50;
             border-bottom: 3px solid #3498db;
@@ -40,7 +43,7 @@
             font-size: 2.5em;
             font-weight: 700;
         }
-        
+
         h2 {
             color: #34495e;
             margin-top: 30px;
@@ -50,7 +53,7 @@
             font-weight: 700;
             font-size: 1.8em;
         }
-        
+
         h2.subtitle {
             color: #555;
             margin-top: 10px;
@@ -60,10 +63,10 @@
             font-weight: 600;
             font-style: italic;
         }
-        
+
         /* Style for subtitle as bold text after h1 */
-        h1 + p strong,
-        h1 + strong {
+        h1+p strong,
+        h1+strong {
             display: block;
             font-size: 1.4em;
             font-weight: 600;
@@ -72,24 +75,24 @@
             margin-bottom: 30px;
             font-style: italic;
         }
-        
+
         h3 {
             color: #555;
             margin-top: 20px;
             page-break-after: avoid;
         }
-        
+
         h4 {
             color: #666;
             margin-top: 15px;
             page-break-after: avoid;
         }
-        
+
         p {
             margin: 10px 0;
             text-align: justify;
         }
-        
+
         code.inline-code {
             background-color: #f4f4f4;
             padding: 2px 6px;
@@ -98,7 +101,7 @@
             font-size: 0.9em;
             color: #c7254e;
         }
-        
+
         pre.code-block {
             background-color: #f8f8f8;
             padding: 15px;
@@ -113,7 +116,7 @@
             word-wrap: normal;
             overflow-wrap: normal;
         }
-        
+
         pre.code-block code {
             font-family: 'Courier New', 'Consolas', 'Monaco', monospace;
             font-size: inherit;
@@ -124,174 +127,186 @@
             white-space: pre;
             display: block;
         }
-        
-        ul, ol {
+
+        ul,
+        ol {
             margin: 15px 0;
             padding-left: 30px;
         }
-        
+
         li {
             margin: 5px 0;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
             page-break-inside: avoid;
         }
-        
-        th, td {
+
+        th,
+        td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
         }
-        
+
         th {
             background-color: #3498db;
             color: white;
         }
-        
+
         hr {
             border: none;
             border-top: 2px solid #ecf0f1;
             margin: 30px 0;
         }
-        
+
         a {
             color: #3498db;
             text-decoration: none;
         }
-        
+
         a:hover {
             text-decoration: underline;
         }
-        
+
         strong {
             font-weight: 600;
             color: #2c3e50;
         }
     </style>
 </head>
+
 <body>
-<p># DJ Clownfish - AI-Powered DJ Voting Application
-</p><p>
-<strong>Final Project Documentation</strong>
-</p><p>
-<strong>Course:</strong> COMP4537 - AI Web Service  
-<strong>Project:</strong> Term Project  
-<strong>Team:</strong> c1prj
-</p><p>
-<hr>
-</p><p>
-## Table of Contents
-</p><p>
-1. [Team Member Contributions](#team-member-contributions)
-2. [Application Description](#application-description)
-3. [Database Design](#database-design)
-4. [API Documentation](#api-documentation)
-5. [Architecture Overview](#architecture-overview)
-6. [Technology Stack](#technology-stack)
-7. [Setup Instructions](#setup-instructions)
-8. [Deployment Information](#deployment-information)
-9. [Testing Information](#testing-information)
-10. [Known Limitations](#known-limitations)
-11. [Future Enhancements](#future-enhancements)
-</p><p>
-<hr>
-</p><p>
-## Team Member Contributions
-</p><p>
-### Peter
-<strong>Responsibilities:</strong> AI integration, QR code setup, rounding functionality
-</p><p>
-<strong>Actual Contributions:</strong>
-- Implemented AI agent integration with Digital Ocean AI Agent API
-- Developed song recommendation generation system using AI
-- Created rounding logic for voting rounds (round progression, status management)
-- Implemented QR code generation for voting page access
-- Developed next round generation algorithm that learns from previous voting patterns
-- Integrated AI prompts and message handling for music recommendations
-</p><p>
-### Yuho
-<strong>Responsibilities:</strong> API calls tracking and authentication
-</p><p>
-<strong>Actual Contributions:</strong>
-- Implemented comprehensive API tracking middleware
-- Developed user API consumption tracking system (20 free calls limit)
-- Created endpoint statistics tracking for admin dashboard
-- Built API call logging system with detailed request/response tracking
-- Implemented JWT-based authentication system
-- Developed user authentication middleware and token validation
-- Created admin-only endpoints for API statistics and user management
-- Implemented API rate limiting system
-</p><p>
-### Joao
-<strong>Responsibilities:</strong> Routes setup (for frontend), database setup (not yet completed, but assigned to him)
-</p><p>
-<strong>Actual Contributions:</strong>
-- Set up all Express.js routes for frontend integration
-- Organized route structure (auth, voting, spotify, admin, jukebox, AI)
-- Created route middleware configuration
-- Designed route architecture for public and protected endpoints
-- Database schema design (pending implementation - currently using in-memory storage)
-- Frontend route integration and API endpoint mapping
-</p><p>
-### Abhi
-<strong>Responsibilities:</strong> Sync Spotify (calls and callbacks) and authentication
-</p><p>
-<strong>Actual Contributions:</strong>
-- Implemented Spotify OAuth authentication flow
-- Created Spotify API integration for track search and retrieval
-- Developed Spotify OAuth callback handling
-- Implemented Spotify token management and refresh logic
-- Created Spotify track information endpoints
-- Integrated Spotify player embeds in frontend
-- Developed authentication flow for Spotify account linking
-</p><p>
-<hr>
-</p><p>
-## Application Description
-</p><p>
-DJ Clownfish is an interactive music voting platform that combines real-time user engagement with artificial intelligence to create dynamic music experiences. Users participate in voting rounds where they select their preferred songs from AI-generated recommendations, and the system uses machine learning to generate intelligent recommendations for subsequent rounds.
-</p><p>
-### Key Features
-</p><p>
-#### Owner Features
-- **Authentication:** Secure login/signup with JWT tokens
-- **Create Voting Rounds:** Set up voting rounds with criteria like genre, BPM, artists, mood, and energy level
-- **QR Code Generation:** Generate QR codes for participants to easily access voting pages
-- **Round Management:**
-  - Pause/Resume voting rounds
-  - View real-time voting results
-  - Generate next rounds with AI based on voting patterns
-- **Spotify Integration:** View and play winning songs directly via Spotify embed player
-- **Dashboard:** Comprehensive dashboard to manage all voting rounds
-</p><p>
-#### Participant Features
-- **Easy Access:** Scan QR code to access voting page instantly
-- **Vote on Songs:** Vote for favorite songs from AI-generated recommendations (one vote per round)
-- **Real-time Results:** See live vote counts updating every 5 seconds
-- **Winner Display:** View current winner with Spotify player integration
-- **No Registration Required:** Participants can vote without creating an account
-</p><p>
-#### AI-Powered Recommendations
-- **Smart Song Generation:** AI agent analyzes voting patterns and generates 10 new song recommendations
-- **Learning System:** Each round learns from previous winners and voting preferences
-- **Criteria-Based:** Recommendations consider genre, BPM, artists, mood, and energy level
-</p><p>
-<hr>
-</p><p>
-## Database Design
-</p><p>
-### Design Principles
-</p><p>
-Following database normalization principles, each column serves only one purpose, and all primary keys are unique integer numbers (not codes or meaningful strings).
-</p><p>
-### Schema Design
-</p><p>
-#### Users Table
-<pre class="code-block"><code>CREATE TABLE user (
+    <h1>DJ Clownfish - AI-Powered DJ Voting Application</h1>
+    <p>
+        <strong>Final Project Documentation</strong>
+    </p>
+    <p>
+        <strong>Course:</strong> COMP4537 - AI Web Service<br>
+        <strong>Project:</strong> Term Project<br>
+        <strong>Team:</strong> c1prj
+    </p>
+    <hr>
+    <h2>Table of Contents</h2>
+    <ol>
+        <li>Team Member Contributions</li>
+        <li>Application Description</li>
+        <li>Database Design</li>
+        <li>API Documentation</li>
+        <li>Architecture Overview</li>
+        <li>Technology Stack</li>
+        <li>Setup Instructions</li>
+        <li>Deployment Information</li>
+        <li>Testing Information</li>
+        <li>Known Limitations</li>
+        <li>Future Enhancements</li>
+    </ol>
+    <p>
+        <hr>
+    </p>
+    <h2>Team Member Contributions</h2>
+    <h3>Peter</h3>
+    <p><strong>Responsibilities:</strong> AI integration, QR code setup, rounding functionality</p>
+    <p><strong>Actual Contributions:</strong></p>
+    <ul>
+        <li>Implemented AI agent integration with Digital Ocean AI Agent API</li>
+        <li>Developed song recommendation generation system using AI</li>
+        <li>Created rounding logic for voting rounds (round progression, status management)</li>
+        <li>Implemented QR code generation for voting page access</li>
+        <li>Developed next round generation algorithm that learns from previous voting patterns</li>
+        <li>Integrated AI prompts and message handling for music recommendations</li>
+    </ul>
+    <h3>Yuho</h3>
+    <p><strong>Responsibilities:</strong> API calls tracking and authentication</p>
+    <p><strong>Actual Contributions:</strong></p>
+    <ul>
+        <li>Implemented comprehensive API tracking middleware</li>
+        <li>Developed user API consumption tracking system (20 free calls limit)</li>
+        <li>Created endpoint statistics tracking for admin dashboard</li>
+        <li>Built API call logging system with detailed request/response tracking</li>
+        <li>Implemented JWT-based authentication system</li>
+        <li>Developed user authentication middleware and token validation</li>
+        <li>Created admin-only endpoints for API statistics and user management</li>
+        <li>Implemented API rate limiting system</li>
+    </ul>
+    <h3>Joao</h3>
+    <p><strong>Responsibilities:</strong> Routes setup (for frontend), database setup, bug fixing</p>
+    <p><strong>Actual Contributions:</strong></p>
+    <ul>
+        <li>Set up all http routes for frontend integration</li>
+        <li>Organized route structure (auth, voting, spotify, admin, jukebox, AI)</li>
+        <li>Created route middleware configuration</li>
+        <li>Designed route architecture for public and protected endpoints</li>
+        <li>Database design and implementation</li>
+        <li>General bug fixing on all front end pages and backend functionality</li>
+    </ul>
+    <h3>Abhi</h3>
+    <p><strong>Responsibilities:</strong> Sync Spotify (calls and callbacks) and authentication</p>
+    <p><strong>Actual Contributions:</strong></p>
+    <ul>
+        <li>Implemented Spotify OAuth authentication flow</li>
+        <li>Created Spotify API integration for track search and retrieval</li>
+        <li>Developed Spotify OAuth callback handling</li>
+        <li>Implemented Spotify token management and refresh logic</li>
+        <li>Created Spotify track information endpoints</li>
+        <li>Integrated Spotify player embeds in frontend</li>
+        <li>Developed authentication flow for Spotify account linking</li>
+    </ul>
+    <p>
+        <hr>
+    </p>
+    <h2>Application Description</h2>
+    <p>
+        DJ Clownfish is an interactive music voting platform that combines real-time user engagement with artificial
+        intelligence to create dynamic music experiences. Users participate in voting rounds where they select their
+        preferred songs from AI-generated recommendations, and the system uses machine learning to generate intelligent
+        recommendations for subsequent rounds.
+    </p>
+    <h3>Key Features</h3>
+    <h4>Owner Features</h4>
+    <ul>
+        <li><strong>Authentication:</strong> Secure login/signup with JWT tokens</li>
+        <li><strong>Create Voting Rounds:</strong> Set up voting rounds with criteria like genre, BPM, artists, mood, and energy level</li>
+        <li><strong>QR Code Generation:</strong> Generate QR codes for participants to easily access voting pages</li>
+        <li><strong>Round Management:</strong>
+            <ul>
+                <li>Pause/Resume voting rounds</li>
+                <li>View real-time voting results</li>
+                <li>Generate next rounds with AI based on voting patterns</li>
+            </ul>
+        </li>
+        <li><strong>Spotify Integration:</strong> View and play winning songs directly via Spotify embed player</li>
+        <li><strong>Dashboard:</strong> Comprehensive dashboard to manage all voting rounds</li>
+    </ul>
+    <h4>Participant Features</h4>
+    <ul>
+        <li><strong>Easy Access:</strong> Scan QR code to access voting page instantly</li>
+        <li><strong>Vote on Songs:</strong> Vote for favorite songs from AI-generated recommendations (one vote per round)</li>
+        <li><strong>Real-time Results:</strong> See live vote counts updating every 5 seconds</li>
+        <li><strong>Winner Display:</strong> View current winner with Spotify player integration</li>
+        <li><strong>No Registration Required:</strong> Participants can vote without creating an account</li>
+    </ul>
+    <h4>AI-Powered Recommendations</h4>
+    <ul>
+        <li><strong>Smart Song Generation:</strong> AI agent analyzes voting patterns and generates 10 new song recommendations</li>
+        <li><strong>Learning System:</strong> Each round learns from previous winners and voting preferences</li>
+        <li><strong>Criteria-Based:</strong> Recommendations consider genre, BPM, artists, mood, and energy level</li>
+    </ul>
+    <p>
+        <hr>
+    </p>
+    <h2>Database Design</h2>
+    <h3>Design Principles</h3>
+    <p>
+        Following database normalization principles, each column serves only one purpose, and all primary keys are
+        unique integer numbers (not codes or meaningful strings).
+    </p>
+    <h3>Schema Design</h3>
+    <h4>Users Table</h4>
+    <pre class="code-block"><code>CREATE TABLE user (
     user_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -300,113 +315,137 @@ Following database normalization principles, each column serves only one purpose
     api_calls INT(11) NOT NULL DEFAULT 0
 );
 </code></pre>
-</p><p>
-<strong>Notes:</strong>
-- `user_id` is a unique integer primary key (not email or other business identifier)
-- `email` is stored separately as a unique constraint for business logic
-- `password` stores the hashed password (hashed with bcrypt before storage)
-- `api_calls` tracks the number of API calls made by the user (for the 20 free calls limit)
-- `creation_date` automatically records when the user was created
-</p><p>
-#### Admin Table
-<pre class="code-block"><code>CREATE TABLE admin (
+    </p>
+    <p><strong>Notes:</strong></p>
+    <ul>
+        <li><code class="inline-code">user_id</code> is a unique integer primary key (not email or other business identifier)</li>
+        <li><code class="inline-code">email</code> is stored separately as a unique constraint for business logic</li>
+        <li><code class="inline-code">password</code> stores the hashed password (hashed with bcrypt before storage)</li>
+        <li><code class="inline-code">api_calls</code> tracks the number of API calls made by the user (for the 20 free calls limit)</li>
+        <li><code class="inline-code">creation_date</code> automatically records when the user was created</li>
+    </ul>
+    <h4>Admin Table</h4>
+    <pre class="code-block"><code>CREATE TABLE admin (
     admin_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     user_id INT(11) NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user(user_id)
 );
 </code></pre>
-</p><p>
-<strong>Notes:</strong>
-- `admin_id` is a unique integer primary key
-- `user_id` is a foreign key reference to the `user` table
-- This table establishes which users have admin privileges
-- A user becomes an admin by having a record in this table
-</p><p>
-### Database Design Principles Applied
-</p><p>
-1. **Single Purpose Per Column**: Each column serves only one purpose
-   - Primary keys are unique integers (not codes or meaningful strings)
-   - Business identifiers (like email) are stored in separate columns
-   - Example: `user_id` is the PK, `email` is a separate unique column
-</p><p>
-2. **Normalization**:
-   - Separate tables for different entities (users and admin privileges)
-   - Foreign keys maintain referential integrity
-   - Admin privileges are stored in a separate table linked to users
-</p><p>
-3. **Naming Conventions**:
-   - Primary keys follow pattern: `{table_name}_id` (e.g., `user_id`, `admin_id`)
-   - Foreign keys reference the primary key name (e.g., `user_id` in admin table references `user_id`)
-</p><p>
-### Current Implementation Status
-</p><p>
-<strong>Note:</strong> Currently, the application uses:
-- **In-memory storage** for all data (users, voting rounds, songs, votes, API tracking)
-- **Database tables** (`user` and `admin`) exist in the database but are **not currently connected** to the application code
-- The application code stores all data in memory arrays (data is lost on server restart)
-</p><p>
-<strong>Database Tables (Created Externally, Not Currently Used):</strong>
-- `user` table - Exists in database but application uses in-memory `users` array
-- `admin` table - Exists in database but application uses in-memory role checking
-</p><p>
-<strong>Future Implementation:</strong>
-The database design follows proper normalization principles with integer primary keys and separate tables for different entities. To connect the application to the database, you would need to:
-1. Install a database driver (e.g., `mysql2`, `pg`, `mongodb`)
-2. Create database connection configuration
-3. Replace in-memory storage with database queries in:
-   - `authService.js` - Replace `users` array with database queries
-   - `votingService.js` - Replace `votingRounds`, `songs`, `votes` arrays with database tables
-   - `apiTrackingMiddleware.js` - Replace in-memory tracking with database logging
-</p><p>
-<hr>
-</p><p>
-## API Documentation
-</p><p>
-### Documentation Location
-</p><p>
-The API documentation is available in two formats:
-</p><p>
-1. **Interactive Swagger UI:** Available at `/doc/` endpoint
-   - Example: `http://localhost:3000/doc/`
-   - Interactive interface to test endpoints
-   - Complete request/response schemas
-</p><p>
-2. **Static Documentation:** See `API_DOCUMENTATION.md` file
-   - Complete endpoint reference
-   - Request/response examples
-   - Authentication requirements
-</p><p>
-### API Overview
-</p><p>
-The API follows RESTful principles and includes:
-</p><p>
-- **Authentication Endpoints:** User registration, login, profile management
-- **AI Agent Endpoints:** Communication with Digital Ocean AI Agent
-- **Voting Endpoints:** Round creation, voting, results
-- **Spotify Endpoints:** Track search, OAuth, playback
-- **Admin Endpoints:** API statistics, user management
-- **Jukebox Endpoints:** Automated playlist management
-- **Health Endpoints:** Server status checks
-</p><p>
-### Key API Features
-</p><p>
-- JWT-based authentication for protected endpoints
-- API key authentication for AI agent endpoints
-- Rate limiting (20 free calls per user, unlimited for admins)
-- Comprehensive error handling
-- Detailed API tracking and logging
-</p><p>
-For complete API documentation, refer to:
-- Swagger UI at `/doc/` endpoint
-- `API_DOCUMENTATION.md` file
-</p><p>
-<hr>
-</p><p>
-## Architecture Overview
-</p><p>
-### Detailed System Architecture Diagram
-</p><p>
-<pre class="code-block"><code>┌─────────────────────────────────────────────────────────────────────────────┐
+    </p>
+    <p><strong>Notes:</strong></p>
+    <ul>
+        <li><code class="inline-code">admin_id</code> is a unique integer primary key</li>
+        <li><code class="inline-code">user_id</code> is a foreign key reference to the <code class="inline-code">user</code> table</li>
+        <li>This table establishes which users have admin privileges</li>
+        <li>A user becomes an admin by having a record in this table</li>
+    </ul>
+    <h3>Database Design Principles Applied</h3>
+    <ol>
+        <li><strong>Single Purpose Per Column:</strong> Each column serves only one purpose
+            <ul>
+                <li>Primary keys are unique integers (not codes or meaningful strings)</li>
+                <li>Business identifiers (like email) are stored in separate columns</li>
+                <li>Example: <code class="inline-code">user_id</code> is the PK, <code class="inline-code">email</code> is a separate unique column</li>
+            </ul>
+        </li>
+        <li><strong>Normalization:</strong>
+            <ul>
+                <li>Separate tables for different entities (users and admin privileges)</li>
+                <li>Foreign keys maintain referential integrity</li>
+                <li>Admin privileges are stored in a separate table linked to users</li>
+            </ul>
+        </li>
+        <li><strong>Naming Conventions:</strong>
+            <ul>
+                <li>Primary keys follow pattern: <code class="inline-code">{table_name}_id</code> (e.g., <code class="inline-code">user_id</code>, <code class="inline-code">admin_id</code>)</li>
+                <li>Foreign keys reference the primary key name (e.g., <code class="inline-code">user_id</code> in admin table references <code class="inline-code">user_id</code>)</li>
+            </ul>
+        </li>
+    </ol>
+    <h3>Current Implementation Status</h3>
+    <p><strong>Note:</strong> Currently, the application uses:</p>
+    <ul>
+        <li><strong>Database connection</strong> is configured (<code class="inline-code">backend/src/utils/db.js</code> using mysql2) and tested on server startup</li>
+        <li><strong>Database tables</strong> (<code class="inline-code">user</code> and <code class="inline-code">admin</code>) exist in the database but are <strong>not currently used</strong> by the application code</li>
+        <li>The application code stores all data in memory arrays (data is lost on server restart)</li>
+    </ul>
+    <p><strong>Database Connection:</strong></p>
+    <ul>
+        <li>MySQL connection pool is configured and tested</li>
+        <li>Connection is established on server startup</li>
+        <li>Database utility functions are available in <code class="inline-code">backend/src/utils/db.js</code></li>
+    </ul>
+    <p><strong>Database Tables (Created Externally, Not Currently Used):</strong></p>
+    <ul>
+        <li><code class="inline-code">user</code> table - Exists in database but application uses in-memory <code class="inline-code">users</code> array</li>
+        <li><code class="inline-code">admin</code> table - Exists in database but application uses in-memory role checking</li>
+    </ul>
+    <p><strong>Future Implementation:</strong></p>
+    <p>The database design follows proper normalization principles with integer primary keys and separate tables for different entities. To connect the application to the database, you would need to:</p>
+    <ol>
+        <li>The database driver (<code class="inline-code">mysql2</code>) is already installed and configured</li>
+        <li>Database connection configuration exists in <code class="inline-code">backend/src/utils/db.js</code></li>
+        <li>Replace in-memory storage with database queries in:
+            <ul>
+                <li><code class="inline-code">authService.js</code> - Replace <code class="inline-code">users</code> array with database queries using <code class="inline-code">db.query()</code></li>
+                <li><code class="inline-code">votingService.js</code> - Replace <code class="inline-code">votingRounds</code>, <code class="inline-code">songs</code>, <code class="inline-code">votes</code> arrays with database tables</li>
+                <li><code class="inline-code">apiTrackingMiddleware.js</code> - Replace in-memory tracking with database logging</li>
+            </ul>
+        </li>
+    </ol>
+    <p>
+        <hr>
+    </p>
+    <h2>API Documentation</h2>
+    <h3>Documentation Location</h3>
+    <p>The API documentation is available in two formats:</p>
+    <ol>
+        <li><strong>Interactive Swagger UI:</strong> Available at <code class="inline-code">/doc/</code> endpoint
+            <ul>
+                <li>Example: <code class="inline-code">http://localhost:3000/doc/</code></li>
+                <li>Interactive interface to test endpoints</li>
+                <li>Complete request/response schemas</li>
+            </ul>
+        </li>
+        <li><strong>Static Documentation:</strong> See <code class="inline-code">API_DOCUMENTATION.md</code> file
+            <ul>
+                <li>Complete endpoint reference</li>
+                <li>Request/response examples</li>
+                <li>Authentication requirements</li>
+            </ul>
+        </li>
+    </ol>
+    <h3>API Overview</h3>
+    <p>The API follows RESTful principles with versioning (<code class="inline-code">/api/v1/</code>) and includes:</p>
+    <ul>
+        <li><strong>Authentication Endpoints</strong> (<code class="inline-code">/api/v1/auth</code>): User registration, login, profile management</li>
+        <li><strong>AI Agent Endpoints</strong> (<code class="inline-code">/api/v1/ai</code>): Communication with Digital Ocean AI Agent</li>
+        <li><strong>Voting Endpoints</strong> (<code class="inline-code">/api/v1/voting</code>): Round creation, voting, results</li>
+        <li><strong>Spotify Endpoints</strong> (<code class="inline-code">/api/v1/spotify</code>): Track search, OAuth, playback</li>
+        <li><strong>Admin Endpoints</strong> (<code class="inline-code">/api/v1/admin</code>): API statistics, user management</li>
+        <li><strong>Jukebox Endpoints</strong> (<code class="inline-code">/api/v1/jukebox</code>): Automated playlist management</li>
+        <li><strong>Health Endpoints:</strong> Server status checks (<code class="inline-code">/health</code>, <code class="inline-code">/</code>)</li>
+    </ul>
+    <h3>Key API Features</h3>
+    <ul>
+        <li>JWT-based authentication for protected endpoints</li>
+        <li>API key authentication for AI agent endpoints</li>
+        <li>Rate limiting (20 free calls per user, unlimited for admins)</li>
+        <li>Comprehensive error handling</li>
+        <li>Detailed API tracking and logging</li>
+    </ul>
+    <p>For complete API documentation, refer to:</p>
+    <ul>
+        <li>Swagger UI at <code class="inline-code">/doc/</code> endpoint</li>
+        <li><code class="inline-code">API_DOCUMENTATION.md</code> file</li>
+    </ul>
+    <p>
+        <hr>
+    </p>
+    <h2>Architecture Overview</h2>
+    <h3>Detailed System Architecture Diagram</h3>
+    <p>
+    <pre class="code-block"><code>┌─────────────────────────────────────────────────────────────────────────────┐
 │                           CLIENT LAYER                                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
@@ -417,8 +456,9 @@ For complete API documentation, refer to:
 │  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘    │
 │                                                                              │
 │  Technology: Vanilla HTML/CSS/JavaScript                                    │
+│  Server: Node.js HTTP Server (server.js) with route protection              │
 │  Features: QR Code Generation, Real-time Polling, Spotify Player Embed     │
-│  Port: 8080 (Nginx Static File Serving)                                     │
+│  Port: 8080 (Node.js Server or Nginx in production)                         │
 └───────────────────────────────┬──────────────────────────────────────────────┘
                                 │
                                 │ HTTP/REST API
@@ -463,7 +503,7 @@ For complete API documentation, refer to:
 │  │  │                    Service Layer                             │  │    │
 │  │  │  • authService        • votingService                        │  │    │
 │  │  │  • aiService          • spotifyService                       │  │    │
-│  │  │  • jukeboxService     • (Database Service - Pending)         │  │    │
+│  │  │  • jukeboxService     • db.js (MySQL connection pool)        │  │    │
 │  │  └──────────────────────────────────────────────────────────────┘  │    │
 │  │                                                                     │    │
 │  │  ┌──────────────────────────────────────────────────────────────┐  │    │
@@ -499,10 +539,10 @@ For complete API documentation, refer to:
 │                               │  │            com/v1        │
 └───────────────────────────────┘  └──────────────────────────┘
 </code></pre>
-</p><p>
-### Database Entity Relationship Diagram (Current Implementation)
-</p><p>
-<pre class="code-block"><code>┌─────────────────┐
+    </p>
+    <h3>Database Entity Relationship Diagram (Current Implementation)</h3>
+    <p>
+    <pre class="code-block"><code>┌─────────────────┐
 │      user       │
 ├─────────────────┤
 │ PK user_id (INT(11)) AUTO_INCREMENT
@@ -526,45 +566,165 @@ For complete API documentation, refer to:
 └────────────────────────────────────┘
          References user.user_id
 </code></pre>
-</p><p>
-<strong>Relationship Explanation:</strong>
-- Each user can have at most one admin record (1:1 relationship)
-- A user becomes an admin by having a corresponding record in the `admin` table
-- The `user_id` in the `admin` table is a foreign key that references `user.user_id`
-- The `api_calls` column in the `user` table tracks API consumption (20 free calls limit)
-</p><p>
-### Component Structure
-</p><p>
-#### Frontend (Static Site)
-- **Technology:** Vanilla HTML/CSS/JavaScript
-- **Hosting:** Nginx static file serving
-- **Features:**
-  - Responsive design
-  - QR code generation (client-side)
-  - Real-time updates via polling
-  - Spotify player integration
-</p><p>
-#### Backend (Web Service)
-- **Technology:** Node.js with Express.js
-- **API:** RESTful API with JWT authentication
-- **Services:**
-  - Authentication service (JWT, bcrypt)
-  - Voting service (in-memory storage)
-  - AI service (Digital Ocean AI Agent integration)
-  - Spotify service (Web API integration)
-  - Jukebox service (automated playlist management)
-  - API tracking middleware
-</p><p>
-#### External Services
-- **Digital Ocean AI Agent:** For intelligent song recommendation generation
-- **Spotify Web API:** For track search and playback
-- **QR Code Library:** Client-side QR code generation (qrcode.js CDN)
-</p><p>
-### Detailed Data Flow Diagrams
-</p><p>
-#### 1. Authentication Flow
-</p><p>
-<pre class="code-block"><code>┌──────────┐                    ┌──────────────┐                    ┌─────────────┐
+    </p>
+    <p>
+        <strong>Relationship Explanation:</strong>
+        - Each user can have at most one admin record (1:1 relationship)
+        - A user becomes an admin by having a corresponding record in the `admin` table
+        - The `user_id` in the `admin` table is a foreign key that references `user.user_id`
+        - The `api_calls` column in the `user` table tracks API consumption (20 free calls limit)
+    </p>
+    <h3>Component Structure</h3>
+    <h4>Backend File Structure</h4>
+    <pre class="code-block"><code>backend/
+├── index.js                    Main server entry point
+├── package.json                Dependencies and scripts
+├── Dockerfile                  Docker configuration
+├── src/
+│   ├── config/
+│   │   └── swagger.js         Swagger API documentation configuration
+│   ├── controllers/            Request handlers
+│   │   ├── authController.js   Authentication endpoints
+│   │   ├── aiController.js     AI agent endpoints
+│   │   ├── votingController.js Voting round endpoints
+│   │   ├── spotifyController.js Spotify integration endpoints
+│   │   ├── adminController.js  Admin statistics endpoints
+│   │   └── jukeboxController.js Jukebox mode endpoints
+│   ├── services/               Business logic layer
+│   │   ├── authService.js      Authentication logic
+│   │   ├── aiService.js        AI agent integration
+│   │   ├── votingService.js    Voting round management
+│   │   ├── spotifyService.js   Spotify API integration
+│   │   └── jukeboxService.js   Jukebox automation
+│   ├── routes/                 Route definitions
+│   │   ├── authRoutes.js       Authentication routes
+│   │   ├── aiRoutes.js         AI agent routes
+│   │   ├── votingRoutes.js     Voting routes
+│   │   ├── spotifyRoutes.js    Spotify routes
+│   │   ├── adminRoutes.js      Admin routes
+│   │   └── jukeboxRoutes.js    Jukebox routes
+│   ├── middleware/             Express middleware
+│   │   ├── authMiddleware.js   JWT authentication
+│   │   ├── apiTrackingMiddleware.js API call tracking
+│   │   └── apiKeyMiddleware.js API key validation
+│   ├── messages/               Response message templates
+│   │   ├── auth.js
+│   │   ├── ai.js
+│   │   ├── voting.js
+│   │   ├── spotify.js
+│   │   ├── admin.js
+│   │   ├── apiTracking.js
+│   │   └── common.js
+│   └── utils/
+│       └── db.js               MySQL database connection pool
+└── scripts/
+    └── script.js               Utility scripts
+</code></pre>
+    </p>
+    <h4>Frontend File Structure</h4>
+    <pre class="code-block"><code>frontend/
+├── server.js                   Node.js server with auth routing
+├── package.json                Dependencies
+├── Dockerfile                  Docker configuration
+├── public/
+│   ├── index.html              Landing page
+│   ├── login.html              Login page
+│   ├── signup.html             Signup page
+│   ├── dashboard.html          Owner dashboard
+│   ├── vote.html               Voting page (public)
+│   ├── profile.html             User profile page
+│   ├── admin.html               Admin dashboard
+│   ├── 404.html                 Error page
+│   ├── config.js                Frontend configuration
+│   ├── auth/                    Authentication-related JavaScript
+│   │   ├── login.js             Login functionality
+│   │   ├── signup.js            Signup functionality
+│   │   ├── dashboard.js         Dashboard functionality
+│   │   ├── profile.js           Profile management
+│   │   ├── admin.js             Admin panel
+│   │   ├── vote.js              Voting functionality
+│   │   ├── headerUtils.js       Header utilities
+│   │   ├── authGuard.js         Route protection
+│   │   └── utils.js             Utility functions
+│   ├── js/                      General JavaScript
+│   │   ├── app.js               Main app logic
+│   │   └── authService.js       Auth service client
+│   ├── messages/                UI message templates
+│   │   ├── auth.js
+│   │   ├── dashboard.js
+│   │   ├── profile.js
+│   │   ├── vote.js
+│   │   ├── admin.js
+│   │   └── common.js
+│   ├── partials/                HTML partials
+│   │   ├── logged-in-header.html
+│   │   └── logged-out-header.html
+│   └── styles/                  CSS stylesheets
+│       ├── global.css           Global styles
+│       ├── index.css            Landing page styles
+│       ├── login.css            Login page styles
+│       ├── signup.css           Signup page styles
+│       ├── dashboard.css        Dashboard styles
+│       ├── vote.css             Voting page styles
+│       ├── profile.css          Profile page styles
+│       ├── admin.css            Admin panel styles
+│       └── header.css           Header styles
+└── src/
+    └── assets/                  Static assets
+</code></pre>
+    </p>
+    <h4>Frontend (Node.js Server with Static Files)</h4>
+    <ul>
+        <li><strong>Technology:</strong> Vanilla HTML5, CSS3, JavaScript (ES6+)</li>
+        <li><strong>Server:</strong> Custom Node.js HTTP server (<code class="inline-code">server.js</code>) with:
+            <ul>
+                <li>Server-side authentication checking</li>
+                <li>Route protection (guest-only, protected, admin-only)</li>
+                <li>API proxy to backend</li>
+                <li>Static file serving</li>
+            </ul>
+        </li>
+        <li><strong>Features:</strong>
+            <ul>
+                <li>Responsive design</li>
+                <li>QR code generation (client-side)</li>
+                <li>Real-time updates via polling</li>
+                <li>Spotify player integration</li>
+                <li>Server-side route protection</li>
+            </ul>
+        </li>
+    </ul>
+    <h4>Backend (Web Service)</h4>
+    <ul>
+        <li><strong>Technology:</strong> Node.js with Express.js</li>
+        <li><strong>API:</strong> RESTful API with <code class="inline-code">/api/v1/</code> prefix and JWT authentication</li>
+        <li><strong>Architecture:</strong> MVC pattern with separation of concerns</li>
+        <li><strong>Controllers:</strong> Handle HTTP requests/responses</li>
+        <li><strong>Services:</strong> Business logic layer</li>
+        <li><strong>Routes:</strong> Route definitions and middleware</li>
+        <li><strong>Middleware:</strong> Authentication, API tracking, CORS</li>
+        <li><strong>Services:</strong>
+            <ul>
+                <li>Authentication service (JWT, bcrypt)</li>
+                <li>Voting service (in-memory storage)</li>
+                <li>AI service (Digital Ocean AI Agent integration)</li>
+                <li>Spotify service (Web API integration)</li>
+                <li>Jukebox service (automated playlist management)</li>
+                <li>API tracking middleware</li>
+            </ul>
+        </li>
+        <li><strong>Database:</strong> MySQL connection pool (mysql2) - configured but using in-memory storage currently</li>
+    </ul>
+    <h4>External Services</h4>
+    <ul>
+        <li><strong>Digital Ocean AI Agent:</strong> For intelligent song recommendation generation</li>
+        <li><strong>Spotify Web API:</strong> For track search and playback</li>
+        <li><strong>QR Code Library:</strong> Client-side QR code generation (qrcode.js CDN)</li>
+    </ul>
+    <h3>Detailed Data Flow Diagrams</h3>
+    <h4>1. Authentication Flow</h4>
+    <p>
+    <pre class="code-block"><code>┌──────────┐                    ┌──────────────┐                    ┌─────────────┐
 │  Client  │                    │   Backend    │                    │   Database  │
 │          │                    │              │                    │  (Planned)  │
 └────┬─────┘                    └──────┬───────┘                    └──────┬──────┘
@@ -587,10 +747,10 @@ For complete API documentation, refer to:
      │ 6. Store token in localStorage  │                                   │
      │                                  │                                   │
 </code></pre>
-</p><p>
-#### 2. Voting Round Creation Flow
-</p><p>
-<pre class="code-block"><code>┌──────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+    </p>
+    <h4>2. Voting Round Creation Flow</h4>
+    <p>
+    <pre class="code-block"><code>┌──────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
 │  Owner   │    │   Frontend   │    │   Backend    │    │  AI Service  │    │  Spotify API │
 │ (Client) │    │              │    │              │    │              │    │              │
 └────┬─────┘    └──────┬───────┘    └──────┬───────┘    └──────┬───────┘    └──────┬───────┘
@@ -639,10 +799,10 @@ For complete API documentation, refer to:
      │     code        │                    │                   │                   │
      │&lt;────────────────│                    │                   │                   │
 </code></pre>
-</p><p>
-#### 3. Voting Flow (Participant)
-</p><p>
-<pre class="code-block"><code>┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+    </p>
+    <h4>3. Voting Flow (Participant)</h4>
+    <p>
+    <pre class="code-block"><code>┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
 │ Participant  │    │   Frontend   │    │   Backend    │    │ In-Memory    │
 │              │    │              │    │              │    │   Storage    │
 └──────┬───────┘    └──────┬───────┘    └──────┬───────┘    └──────┬───────┘
@@ -694,10 +854,10 @@ For complete API documentation, refer to:
        │     (every 5s)    │                    │                   │
        │───────────────────────────────────────────────────────────&gt;│
 </code></pre>
-</p><p>
-#### 4. Next Round Generation Flow (AI Learning)
-</p><p>
-<pre class="code-block"><code>┌──────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+    </p>
+    <h4>4. Next Round Generation Flow (AI Learning)</h4>
+    <p>
+    <pre class="code-block"><code>┌──────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
 │  Owner   │    │   Backend    │    │ In-Memory    │    │  AI Service  │    │  Spotify API │
 │          │    │              │    │   Storage    │    │              │    │              │
 └────┬─────┘    └──────┬───────┘    └──────┬───────┘    └──────┬───────┘    └──────┬───────┘
@@ -752,10 +912,10 @@ For complete API documentation, refer to:
      │                 │     {round, songs} │                   │                   │
      │&lt;────────────────│                    │                   │                   │
 </code></pre>
-</p><p>
-#### 5. Jukebox Mode Flow
-</p><p>
-<pre class="code-block"><code>┌──────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+    </p>
+    <h4>5. Jukebox Mode Flow</h4>
+    <p>
+    <pre class="code-block"><code>┌──────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
 │  Owner   │    │   Backend    │    │ Jukebox      │    │ Timer        │
 │          │    │              │    │ Service      │    │ System       │
 └────┬─────┘    └──────┬───────┘    └──────┬───────┘    └──────┬───────┘
@@ -799,10 +959,10 @@ For complete API documentation, refer to:
      │                 │    of update      │                   │                   │
      │&lt;────────────────│                    │                   │                   │
 </code></pre>
-</p><p>
-### API Request Flow Diagram
-</p><p>
-<pre class="code-block"><code>┌──────────────┐
+    </p>
+    <h3>API Request Flow Diagram</h3>
+    <p>
+    <pre class="code-block"><code>┌──────────────┐
 │   Client     │
 │  (Browser)   │
 └──────┬───────┘
@@ -867,311 +1027,347 @@ For complete API documentation, refer to:
 │    (Receives response)            │
 └───────────────────────────────────┘
 </code></pre>
-</p><p>
-### Component Structure
-</p><p>
-<hr>
-</p><p>
-## Technology Stack
-</p><p>
-### Backend
-- **Runtime:** Node.js (v14+)
-- **Framework:** Express.js
-- **Authentication:** JWT (jsonwebtoken), bcrypt
-- **API Documentation:** Swagger (swagger-jsdoc, swagger-ui-express)
-- **HTTP Client:** Axios
-- **Environment:** dotenv
-</p><p>
-### Frontend
-- **Core:** Vanilla HTML5, CSS3, JavaScript (ES6+)
-- **QR Code:** qrcode.js (CDN)
-- **HTTP Client:** Fetch API
-- **Styling:** Custom CSS with responsive design
-</p><p>
-### External APIs
-- **AI Agent:** Digital Ocean AI Agent API
-- **Music:** Spotify Web API
-- **Authentication:** JWT tokens
-</p><p>
-### Development Tools
-- **Package Manager:** npm
-- **Process Manager:** nodemon (development)
-- **Version Control:** Git
-</p><p>
-### Deployment
-- **Containerization:** Docker
-- **Web Server:** Nginx (frontend)
-- **Process Management:** Node.js (backend)
-</p><p>
-<hr>
-</p><p>
-## Setup Instructions
-</p><p>
-### Prerequisites
-- Node.js (v14 or higher)
-- npm or yarn
-- Spotify Developer Account (for Spotify API access)
-- Digital Ocean AI Agent API key
-- Nginx (for frontend hosting in production)
-</p><p>
-### Backend Setup
-</p><p>
-1. **Navigate to backend directory:**
-<pre class="code-block"><code>   cd backend
+    </p>
+    <p>
+        <hr>
+    </p>
+    <h2>Technology Stack</h2>
+    <h3>Backend</h3>
+    <ul>
+        <li><strong>Runtime:</strong> Node.js (v14+)</li>
+        <li><strong>Framework:</strong> Express.js</li>
+        <li><strong>Authentication:</strong> JWT (jsonwebtoken), bcrypt</li>
+        <li><strong>API Documentation:</strong> Swagger (swagger-jsdoc, swagger-ui-express)</li>
+        <li><strong>HTTP Client:</strong> Axios</li>
+        <li><strong>Database:</strong> MySQL (mysql2) - Connection pool configured</li>
+        <li><strong>Environment:</strong> dotenv</li>
+        <li><strong>Middleware:</strong> CORS, cookie-parser, JSON parser</li>
+    </ul>
+    <h3>Frontend</h3>
+    <ul>
+        <li><strong>Core:</strong> Vanilla HTML5, CSS3, JavaScript (ES6+)</li>
+        <li><strong>Server:</strong> Custom Node.js HTTP server (server.js)</li>
+        <li><strong>QR Code:</strong> qrcode.js (CDN)</li>
+        <li><strong>HTTP Client:</strong> Fetch API</li>
+        <li><strong>Styling:</strong> Custom CSS with responsive design</li>
+        <li><strong>Environment:</strong> dotenv (for backend URL configuration)</li>
+    </ul>
+    <h3>External APIs</h3>
+    <ul>
+        <li><strong>AI Agent:</strong> Digital Ocean AI Agent API</li>
+        <li><strong>Music:</strong> Spotify Web API</li>
+        <li><strong>Authentication:</strong> JWT tokens</li>
+    </ul>
+    <h3>Development Tools</h3>
+    <ul>
+        <li><strong>Package Manager:</strong> npm</li>
+        <li><strong>Process Manager:</strong> nodemon (development)</li>
+        <li><strong>Version Control:</strong> Git</li>
+    </ul>
+    <h3>Deployment</h3>
+    <ul>
+        <li><strong>Containerization:</strong> Docker</li>
+        <li><strong>Web Server:</strong> Nginx (frontend)</li>
+        <li><strong>Process Management:</strong> Node.js (backend)</li>
+    </ul>
+    <p>
+        <hr>
+    </p>
+    <h2>Setup Instructions</h2>
+    <h3>Prerequisites</h3>
+    <ul>
+        <li>Node.js (v14 or higher)</li>
+        <li>npm or yarn</li>
+        <li>Spotify Developer Account (for Spotify API access)</li>
+        <li>Digital Ocean AI Agent API key</li>
+        <li>MySQL database (optional - for future database integration)</li>
+        <li>Nginx (for frontend hosting in production, or use Node.js server.js)</li>
+    </ul>
+    <h3>Backend Setup</h3>
+    <p>1. <strong>Navigate to backend directory:</strong></p>
+    <pre class="code-block"><code>   cd backend
 </code></pre>
-</p><p>
-2. **Install dependencies:**
-<pre class="code-block"><code>   npm install
+    <p>2. <strong>Install dependencies:</strong></p>
+    <pre class="code-block"><code>   npm install
 </code></pre>
-</p><p>
-3. **Create `.env` file:**
-<pre class="code-block"><code>   PORT=3000
+    <p>3. <strong>Create `.env` file:</strong></p>
+    <pre class="code-block"><code>   PORT=3000
    JWT_SECRET=your_jwt_secret_here
    AI_AGENT_API_KEY=your_digital_ocean_ai_agent_api_key
    AI_AGENT_URL=https://api.digitalocean.com/v2/ai/agents
    SPOTIFY_CLIENT_ID=your_spotify_client_id
    SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
    FRONTEND_URL=http://localhost:8080
+   
+   # Database Configuration (optional - currently using in-memory storage)
+   DB_HOST=localhost
+   DB_NAME=your_database_name
+   DB_USER=your_database_user
+   DB_PASSWORD=your_database_password
+   DB_PORT=3306
 </code></pre>
-</p><p>
-4. **Start the server:**
-<pre class="code-block"><code>   npm start
+    </p>
+    <p>4. <strong>Start the server:</strong></p>
+    <pre class="code-block"><code>   npm start
    # Or for development with auto-reload:
    npm run dev
 </code></pre>
-</p><p>
-### Frontend Setup
-</p><p>
-1. **Navigate to frontend directory:**
-<pre class="code-block"><code>   cd frontend
+    <h3>Frontend Setup</h3>
+    <p>1. <strong>Navigate to frontend directory:</strong></p>
+    <pre class="code-block"><code>   cd frontend
 </code></pre>
-</p><p>
-2. **Update backend URL in HTML files:**
-   Edit the following files and update <code class="inline-code">BACKEND_URL</code>:
-   - `public/index.html`
-   - `public/login.html`
-   - `public/signup.html`
-   - `public/dashboard.html`
-   - `public/vote.html`
-</p><p>
-   Change:
-<pre class="code-block"><code>   window.BACKEND_URL = &#039;http://localhost:3000&#039;;
+    <p>2. <strong>Install dependencies:</strong></p>
+    <pre class="code-block"><code>   npm install
 </code></pre>
-</p><p>
-3. **For local development, serve static files:**
-<pre class="code-block"><code>   # Using Python
+    <p>3. <strong>Create `.env` file:</strong></p>
+    <pre class="code-block"><code>   PORT=8080
+   BACKEND_URL=http://localhost:3000
+</code></pre>
+    </p>
+    <p>4. <strong>Start the server:</strong></p>
+    <pre class="code-block"><code>   npm start
+   # Or for development:
+   npm run dev
+</code></pre>
+    <p>The frontend server (<code class="inline-code">server.js</code>) provides:</p>
+    <ul>
+        <li>Server-side authentication checking</li>
+        <li>Route protection (redirects unauthenticated users)</li>
+        <li>API proxy to backend</li>
+        <li>Static file serving</li>
+    </ul>
+    <p>5. <strong>Alternative: For simple static file serving (development only):</strong></p>
+    <pre class="code-block"><code>   # Using Python
    python -m http.server 8080
    
    # Or using Node.js http-server
    npx http-server public -p 8080
 </code></pre>
-</p><p>
-4. **For production, use Nginx:**
-   - See `frontend/nginx.conf` for configuration
-   - Deploy using Docker (see `frontend/Dockerfile`)
-</p><p>
-### Docker Deployment
-</p><p>
-#### Backend
-<pre class="code-block"><code>cd backend
+    <p>Note: This method won't provide server-side route protection.</p>
+    <p>6. <strong>For production, use Docker:</strong></p>
+    <ul>
+        <li>Deploy using Docker (see <code class="inline-code">frontend/Dockerfile</code>)</li>
+        <li>The Dockerfile uses Nginx for static file serving</li>
+    </ul>
+    <h3>Docker Deployment</h3>
+    <h4>Backend</h4>
+    <pre class="code-block"><code>cd backend
 docker build -t dj-clownfish-backend .
 docker run -p 3000:3000 --env-file .env dj-clownfish-backend
 </code></pre>
-</p><p>
-#### Frontend
-<pre class="code-block"><code>cd frontend
+    <h4>Frontend</h4>
+    <pre class="code-block"><code>cd frontend
 docker build -t dj-clownfish-frontend .
 docker run -p 8080:80 dj-clownfish-frontend
 </code></pre>
-</p><p>
-### Verification
-</p><p>
-1. **Check backend health:**
-<pre class="code-block"><code>   curl http://localhost:3000/health
+    <h3>Verification</h3>
+    <p>1. <strong>Check backend health:</strong></p>
+    <pre class="code-block"><code>   curl http://localhost:3000/health
 </code></pre>
-</p><p>
-2. **Check API documentation:**
-   Open browser: <code class="inline-code">http://localhost:3000/doc/</code>
-</p><p>
-3. **Check frontend:**
-   Open browser: <code class="inline-code">http://localhost:8080</code>
-</p><p>
-<hr>
-</p><p>
-## Deployment Information
-</p><p>
-### Production Environment
-</p><p>
-- **Backend:** Deployed on [Your Production Server]
-- **Frontend:** Deployed on [Your Production Server]
-- **Domain:** [Your Domain]
-</p><p>
-### Environment Variables
-</p><p>
-All sensitive configuration is managed through environment variables:
-- JWT secrets
-- API keys
-- Database credentials (when implemented)
-- CORS allowed origins
-</p><p>
-### Security Considerations
-</p><p>
-- JWT tokens for authentication
-- Password hashing with bcrypt
-- CORS configuration for allowed origins
-- API rate limiting
-- Input validation on all endpoints
-- Secure cookie handling for participant tokens
-</p><p>
-<hr>
-</p><p>
-## Testing Information
-</p><p>
-### Manual Testing
-</p><p>
-1. **Authentication Flow:**
-   - Test user registration
-   - Test user login
-   - Test protected endpoints with/without tokens
-</p><p>
-2. **Voting Flow:**
-   - Create voting round
-   - Generate QR code
-   - Submit votes
-   - View results
-   - Generate next round
-</p><p>
-3. **AI Integration:**
-   - Test AI agent health check
-   - Test song generation
-   - Test next round generation
-</p><p>
-4. **Spotify Integration:**
-   - Test OAuth flow
-   - Test track search
-   - Test track information retrieval
-</p><p>
-### API Testing
-</p><p>
-Use Swagger UI at <code class="inline-code">/doc/</code> endpoint for interactive API testing:
-- Test all endpoints
-- View request/response formats
-- Test authentication flows
-</p><p>
-### Known Test Cases
-</p><p>
-- ✅ User registration and login
-- ✅ Voting round creation
-- ✅ AI song generation
-- ✅ Vote submission
-- ✅ Results retrieval
-- ✅ QR code generation
-- ✅ Spotify integration
-- ✅ Admin statistics
-- ✅ Jukebox mode
-</p><p>
-<hr>
-</p><p>
-## Known Limitations
-</p><p>
-### Current Limitations
-</p><p>
-1. **In-Memory Storage:**
-   - All data is stored in memory
-   - Data is lost on server restart
-   - Not suitable for production scale
-</p><p>
-2. **Single Server:**
-   - Not designed for horizontal scaling
-   - State stored in memory (not shared across instances)
-</p><p>
-3. **No Database:**
-   - Database implementation is pending
-   - Currently using in-memory data structures
-</p><p>
-4. **Rate Limiting:**
-   - Simple in-memory rate limiting
-   - Not persistent across restarts
-</p><p>
-5. **Real-time Updates:**
-   - Uses polling instead of WebSockets
-   - Not true real-time updates
-</p><p>
-### Planned Improvements
-</p><p>
-- Database integration (assigned to Joao)
-- Persistent storage for all data
-- WebSocket support for real-time updates
-- Horizontal scaling support
-- Redis for rate limiting
-- Database-backed session management
-</p><p>
-<hr>
-</p><p>
-## Future Enhancements
-</p><p>
-### Short-term Goals
-</p><p>
-- [ ] Database integration (MongoDB/PostgreSQL)
-- [ ] Persistent data storage
-- [ ] User profile management
-- [ ] Voting history tracking
-</p><p>
-### Medium-term Goals
-</p><p>
-- [ ] WebSocket support for real-time updates
-- [ ] Advanced analytics and insights
-- [ ] Multi-round tournaments
-- [ ] Social sharing features
-- [ ] Mobile app (React Native/Flutter)
-</p><p>
-### Long-term Goals
-</p><p>
-- [ ] Machine learning model training on voting patterns
-- [ ] Personalized recommendations per user
-- [ ] Integration with multiple music platforms
-- [ ] Advanced admin panel
-- [ ] Multi-language support
-- [ ] Internationalization
-</p><p>
-<hr>
-</p><p>
-## Conclusion
-</p><p>
-DJ Clownfish is a comprehensive AI-powered music voting platform that successfully integrates multiple technologies to create an engaging user experience. The application demonstrates:
-</p><p>
-- RESTful API design
-- AI integration for intelligent recommendations
-- Real-time voting and results
-- Secure authentication and authorization
-- Comprehensive API documentation
-- Scalable architecture (pending database implementation)
-</p><p>
-The project successfully meets the requirements for the COMP4537 term project, providing a solid foundation for future enhancements and production deployment.
-</p><p>
-<hr>
-</p><p>
-## Appendix
-</p><p>
-### API Documentation
-- Swagger UI: `/doc/` endpoint
-- Static Documentation: `API_DOCUMENTATION.md`
-</p><p>
-### Additional Resources
-- README.md - General project information
-- API_CALLS_GUIDE.md - API tracking usage guide
-- JUKEBOX_GUIDE.md - Jukebox mode guide
-- SETUP_CHECKLIST.md - Setup verification checklist
-</p><p>
-### Contact Information
-For questions or issues, please contact the development team.
-</p><p>
-<hr>
-</p><p>
-<strong>Document Version:</strong> 1.0  
-<strong>Last Updated:</strong> 11/23/2025
-<strong>Project Status:</strong> Active Development
-</p><p>
-</p>
+    <p>2. <strong>Check API documentation:</strong><br>
+    Open browser: <code class="inline-code">http://localhost:3000/doc/</code></p>
+    <p>3. <strong>Check frontend:</strong><br>
+    Open browser: <code class="inline-code">http://localhost:8080</code></p>
+    <p>
+        <hr>
+    </p>
+    <h2>Deployment Information</h2>
+    <h3>Production Environment</h3>
+    <ul>
+        <li><strong>Backend:</strong> Deployed on [Your Production Server]</li>
+        <li><strong>Frontend:</strong> Deployed on [Your Production Server]</li>
+        <li><strong>Domain:</strong> [Your Domain]</li>
+    </ul>
+    <h3>Environment Variables</h3>
+    <p>All sensitive configuration is managed through environment variables:</p>
+    <ul>
+        <li>JWT secrets</li>
+        <li>API keys</li>
+        <li>Database credentials (when implemented)</li>
+        <li>CORS allowed origins</li>
+    </ul>
+    <h3>Security Considerations</h3>
+    <ul>
+        <li>JWT tokens for authentication</li>
+        <li>Password hashing with bcrypt</li>
+        <li>CORS configuration for allowed origins</li>
+        <li>API rate limiting</li>
+        <li>Input validation on all endpoints</li>
+        <li>Secure cookie handling for participant tokens</li>
+    </ul>
+    <p>
+        <hr>
+    </p>
+    <h2>Testing Information</h2>
+    <h3>Manual Testing</h3>
+    <ol>
+        <li><strong>Authentication Flow:</strong>
+            <ul>
+                <li>Test user registration</li>
+                <li>Test user login</li>
+                <li>Test protected endpoints with/without tokens</li>
+            </ul>
+        </li>
+        <li><strong>Voting Flow:</strong>
+            <ul>
+                <li>Create voting round</li>
+                <li>Generate QR code</li>
+                <li>Submit votes</li>
+                <li>View results</li>
+                <li>Generate next round</li>
+            </ul>
+        </li>
+        <li><strong>AI Integration:</strong>
+            <ul>
+                <li>Test AI agent health check</li>
+                <li>Test song generation</li>
+                <li>Test next round generation</li>
+            </ul>
+        </li>
+        <li><strong>Spotify Integration:</strong>
+            <ul>
+                <li>Test OAuth flow</li>
+                <li>Test track search</li>
+                <li>Test track information retrieval</li>
+            </ul>
+        </li>
+    </ol>
+    <h3>API Testing</h3>
+    <p>Use Swagger UI at <code class="inline-code">/doc/</code> endpoint for interactive API testing:</p>
+    <ul>
+        <li>Test all endpoints</li>
+        <li>View request/response formats</li>
+        <li>Test authentication flows</li>
+    </ul>
+    <h3>Known Test Cases</h3>
+    <ul>
+        <li>✅ User registration and login</li>
+        <li>✅ Voting round creation</li>
+        <li>✅ AI song generation</li>
+        <li>✅ Vote submission</li>
+        <li>✅ Results retrieval</li>
+        <li>✅ QR code generation</li>
+        <li>✅ Spotify integration</li>
+        <li>✅ Admin statistics</li>
+        <li>✅ Jukebox mode</li>
+    </ul>
+    <p>
+        <hr>
+    </p>
+    <h2>Known Limitations</h2>
+    <h3>Current Limitations</h3>
+    <ol>
+        <li><strong>In-Memory Storage:</strong>
+            <ul>
+                <li>All data is stored in memory</li>
+                <li>Data is lost on server restart</li>
+                <li>Not suitable for production scale</li>
+            </ul>
+        </li>
+        <li><strong>Single Server:</strong>
+            <ul>
+                <li>Not designed for horizontal scaling</li>
+                <li>State stored in memory (not shared across instances)</li>
+            </ul>
+        </li>
+        <li><strong>No Database:</strong>
+            <ul>
+                <li>Database implementation is pending</li>
+                <li>Currently using in-memory data structures</li>
+            </ul>
+        </li>
+        <li><strong>Rate Limiting:</strong>
+            <ul>
+                <li>Simple in-memory rate limiting</li>
+                <li>Not persistent across restarts</li>
+            </ul>
+        </li>
+        <li><strong>Real-time Updates:</strong>
+            <ul>
+                <li>Uses polling instead of WebSockets</li>
+                <li>Not true real-time updates</li>
+            </ul>
+        </li>
+    </ol>
+    <h3>Planned Improvements</h3>
+    <ul>
+        <li>Database integration (assigned to Joao)</li>
+        <li>Persistent storage for all data</li>
+        <li>WebSocket support for real-time updates</li>
+        <li>Horizontal scaling support</li>
+        <li>Redis for rate limiting</li>
+        <li>Database-backed session management</li>
+    </ul>
+    <p>
+        <hr>
+    </p>
+    <h2>Future Enhancements</h2>
+    <h3>Short-term Goals</h3>
+    <ul>
+        <li>[ ] Database integration (MongoDB/PostgreSQL)</li>
+        <li>[ ] Persistent data storage</li>
+        <li>[ ] User profile management</li>
+        <li>[ ] Voting history tracking</li>
+    </ul>
+    <h3>Medium-term Goals</h3>
+    <ul>
+        <li>[ ] WebSocket support for real-time updates</li>
+        <li>[ ] Advanced analytics and insights</li>
+        <li>[ ] Multi-round tournaments</li>
+        <li>[ ] Social sharing features</li>
+        <li>[ ] Mobile app (React Native/Flutter)</li>
+    </ul>
+    <h3>Long-term Goals</h3>
+    <ul>
+        <li>[ ] Machine learning model training on voting patterns</li>
+        <li>[ ] Personalized recommendations per user</li>
+        <li>[ ] Integration with multiple music platforms</li>
+        <li>[ ] Advanced admin panel</li>
+        <li>[ ] Multi-language support</li>
+        <li>[ ] Internationalization</li>
+    </ul>
+    <p>
+        <hr>
+    </p>
+    <h2>Conclusion</h2>
+    <p>DJ Clownfish is a comprehensive AI-powered music voting platform that successfully integrates multiple technologies to create an engaging user experience. The application demonstrates:</p>
+    <ul>
+        <li>RESTful API design</li>
+        <li>AI integration for intelligent recommendations</li>
+        <li>Real-time voting and results</li>
+        <li>Secure authentication and authorization</li>
+        <li>Comprehensive API documentation</li>
+        <li>Scalable architecture (pending database implementation)</li>
+    </ul>
+    <p>
+        The project successfully meets the requirements for the COMP4537 term project, providing a solid foundation for
+        future enhancements and production deployment.
+    </p>
+    <p>
+        <hr>
+    </p>
+    <h2>Appendix</h2>
+    <h3>API Documentation</h3>
+    <ul>
+        <li>Swagger UI: <code class="inline-code">/doc/</code> endpoint</li>
+        <li>Static Documentation: <code class="inline-code">API_DOCUMENTATION.md</code></li>
+    </ul>
+    <h3>Additional Resources</h3>
+    <ul>
+        <li>README.md - General project information</li>
+        <li>API_CALLS_GUIDE.md - API tracking usage guide</li>
+        <li>JUKEBOX_GUIDE.md - Jukebox mode guide</li>
+        <li>SETUP_CHECKLIST.md - Setup verification checklist</li>
+    </ul>
+    <h3>Contact Information</h3>
+    <p>For questions or issues, please contact the development team.</p>
+    <hr>
+    <p><strong>Document Version:</strong> 1.0
+        <strong>Last Updated:</strong> 11/23/2025
+        <strong>Project Status:</strong> Active Development
+    </p>
+    <p>
+    </p>
 </body>
+
 </html>
