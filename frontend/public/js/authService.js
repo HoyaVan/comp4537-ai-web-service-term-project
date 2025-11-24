@@ -33,6 +33,13 @@ class AuthService {
    * @returns {Promise<boolean>}
    */
   async isAuthenticated() {
+    // If we're in the process of logging out, return false immediately
+    const isLoggingOut = window.__isLoggingOut || sessionStorage.getItem('__isLoggingOut') === 'true';
+    if (isLoggingOut) {
+      this.currentUser = null;
+      return false;
+    }
+    
     const token = this.getToken();
     if (!token) {
       this.currentUser = null;

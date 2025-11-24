@@ -58,6 +58,12 @@
     <script src="/js/app.js"></script>
     <script src="/auth/headerUtils.js"></script>
     <script>
+        // Clear logout flag if present (logout completed successfully)
+        if (sessionStorage.getItem('__isLoggingOut') === 'true') {
+            sessionStorage.removeItem('__isLoggingOut');
+            window.__isLoggingOut = false;
+        }
+        
         // Initialize header when DOM is ready
         async function initHeader() {
             if (typeof initLoggedOutHeader === 'function') {

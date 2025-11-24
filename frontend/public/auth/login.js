@@ -19,6 +19,12 @@ async function submitLogin(payload) {
 }
 
 async function initLogin() {
+  // Clear logout flag if present (logout completed successfully)
+  if (sessionStorage.getItem('__isLoggingOut') === 'true') {
+    sessionStorage.removeItem('__isLoggingOut');
+    window.__isLoggingOut = false;
+  }
+  
   // Initialize header first (if headerUtils is loaded)
   if (typeof initLoggedOutHeader === 'function') {
     try {

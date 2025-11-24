@@ -648,13 +648,23 @@ async function initDashboard() {
 
   if (backend) backend.textContent = window.getBackendUrl();
 
+  // Check if we're in the process of logging out - skip auth check to prevent redirect loops
+  const isLoggingOut = window.__isLoggingOut || sessionStorage.getItem('__isLoggingOut') === 'true';
+  if (isLoggingOut) {
+    console.log('[Dashboard] Logout in progress, skipping initialization');
+    // Clear the flag and redirect to home
+    sessionStorage.removeItem('__isLoggingOut');
+    window.location.replace('/');
+    return;
+  }
+
   console.log('[Dashboard] Checking authentication...');
   // Check authentication
   const auth = await isAuthenticated();
   console.log('[Dashboard] Authentication result:', auth);
   if (!auth) {
     console.log('[Dashboard] Not authenticated, redirecting to login');
-    window.location.href = "/login";
+    window.location.replace("/login");
     return;
   }
 
