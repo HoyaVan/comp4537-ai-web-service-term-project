@@ -88,10 +88,10 @@ async function loadUserInfo() {
 }
 
 async function loadSpotifyToken() {
-  const auth = await apiRequest("/api/v1/spotify/auth");
-  const callback = await apiRequest("/api/v1/spotify/callback" + "?code=" + encodeURIComponent(auth.data.code));
+  const auth = await apiRequest("/api/v1/spotify/oauth/authorize");
+  const callback = await apiRequest("/api/v1/spotify/oauth/callback" + "?code=" + encodeURIComponent(auth.data.code));
   
-  const { ok, data } = await apiRequest("/api/v1/spotify/token");
+  const { ok, data } = await apiRequest("/api/v1/spotify/me/token");
   if (ok && data.success) {
     localStorage.setItem("spotify_token", data.data.access_token);
     localStorage.setItem("spotify_refresh_token", data.data.refresh_token);
@@ -237,7 +237,7 @@ async function getResults(roundId) {
 
 // Initiate Spotify OAuth
 async function initiateSpotifyOAuth() {
-  const { ok, data } = await apiRequest("/api/v1/spotify/auth");
+  const { ok, data } = await apiRequest("/api/v1/spotify/oauth/authorize");
   if (ok && data.success) {
     return data.data;
   }
@@ -246,7 +246,7 @@ async function initiateSpotifyOAuth() {
 
 // Handle Spotify OAuth callback
 async function handleSpotifyOAuthCallback() {
-  const { ok, data } = await apiRequest("/api/v1/spotify/callback");
+  const { ok, data } = await apiRequest("/api/v1/spotify/oauth/callback");
   if (ok && data.success) {
     return data.data;
   }

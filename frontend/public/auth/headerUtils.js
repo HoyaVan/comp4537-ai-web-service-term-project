@@ -246,7 +246,7 @@ async function initLoggedInHeader(additionalLinks = []) {
       spotifyBtn.style.cursor = 'pointer';
       spotifyBtn.addEventListener('click', function() {
         const backendUrl = window.getBackendUrl ? window.getBackendUrl() : (window.BACKEND_URL || 'http://localhost:3000');
-        window.location.href = backendUrl + '/api/v1/spotify/auth';
+        window.location.href = backendUrl + '/api/v1/spotify/oauth/authorize';
       });
       
       // Insert right after Profile link if it exists, otherwise before user email
