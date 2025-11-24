@@ -688,23 +688,45 @@ async function initDashboard() {
     }
   }
 
+  // Wait for headerUtils to be ready if needed
+  let headerUtilsReady = false;
+  if (window.__headerUtilsReady && window.initLoggedInHeader) {
+    headerUtilsReady = true;
+  } else {
+    // Wait up to 2 seconds for headerUtils
+    for (let i = 0; i < 40; i++) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      if (window.__headerUtilsReady && window.initLoggedInHeader) {
+        headerUtilsReady = true;
+        break;
+      }
+    }
+  }
+
   // Load user info
   const user = await loadUserInfo();
 
   // Initialize header with navigation links
-  if (typeof window.initLoggedInHeader === 'function') {
-    const additionalLinks = [
-      { href: '/profile', text: 'Profile' }
-    ];
-    
-    // Only add Admin link if user is an admin
-    if (user && user.role === 'admin') {
-      additionalLinks.push({ href: '/admin', text: 'Admin' });
+  if (headerUtilsReady && typeof window.initLoggedInHeader === 'function') {
+    try {
+      const additionalLinks = [
+        { href: '/profile', text: 'Profile' }
+      ];
+      
+      // Only add Admin link if user is an admin
+      if (user && user.role === 'admin') {
+        additionalLinks.push({ href: '/admin', text: 'Admin' });
+      }
+      
+      await window.initLoggedInHeader(additionalLinks);
+      console.log('Header initialized successfully');
+    } catch (error) {
+      console.error('Error initializing header:', error);
     }
-    
-    await window.initLoggedInHeader(additionalLinks);
   } else {
-    console.error('initLoggedInHeader not available. Make sure headerUtils.js is loaded.');
+    console.error('initLoggedInHeader not available after waiting. headerUtils.js may not have loaded correctly.');
+    console.log('window.__headerUtilsReady:', window.__headerUtilsReady);
+    console.log('window.initLoggedInHeader:', typeof window.initLoggedInHeader);
   }
 
   // Load rounds

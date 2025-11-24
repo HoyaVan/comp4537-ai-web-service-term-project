@@ -102,7 +102,39 @@
     </div>
 
     <script src="/auth/headerUtils.js"></script>
-    <script type="module" src="/auth/dashboard.js"></script>
+    <script>
+        // Ensure headerUtils is loaded before modules execute
+        // Wait for headerUtils to be ready if needed
+        (function() {
+            if (!window.__headerUtilsReady) {
+                // If headerUtils hasn't set the flag yet, wait a bit
+                const checkReady = setInterval(function() {
+                    if (window.__headerUtilsReady && window.initLoggedInHeader) {
+                        clearInterval(checkReady);
+                        // Now safe to load module
+                        loadDashboardModule();
+                    }
+                }, 10);
+                // Timeout after 1 second
+                setTimeout(function() {
+                    clearInterval(checkReady);
+                    if (!window.__headerUtilsReady) {
+                        console.error('headerUtils.js failed to load');
+                    }
+                    loadDashboardModule();
+                }, 1000);
+            } else {
+                loadDashboardModule();
+            }
+            
+            function loadDashboardModule() {
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.src = '/auth/dashboard.js';
+                document.body.appendChild(script);
+            }
+        })();
+    </script>
     <script>
         // Mark as initialized to prevent double initialization
         window.__dashboardInitialized = true;

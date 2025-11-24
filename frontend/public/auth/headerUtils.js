@@ -42,6 +42,10 @@ async function logout() {
  * Fetches the header partial from /partials/logged-out-header.html
  */
 async function initLoggedOutHeader() {
+  // Make available on window immediately when function is called
+  if (typeof window !== 'undefined' && !window.initLoggedOutHeader) {
+    window.initLoggedOutHeader = initLoggedOutHeader;
+  }
   try {
     const html = await fetchPartial('logged-out-header.html');
     
@@ -74,6 +78,10 @@ async function initLoggedOutHeader() {
  * Fetches the header partial from /partials/logged-in-header.html
  */
 async function initLoggedInHeader(additionalLinks = []) {
+  // Make available on window immediately when function is called
+  if (typeof window !== 'undefined' && !window.initLoggedInHeader) {
+    window.initLoggedInHeader = initLoggedInHeader;
+  }
   try {
     const html = await fetchPartial('logged-in-header.html');
     
@@ -227,9 +235,18 @@ async function initLoggedInHeader(additionalLinks = []) {
   }, 100);
 }
 
-// Make functions available globally for module access
-if (typeof window !== 'undefined') {
-  window.initLoggedInHeader = initLoggedInHeader;
-  window.initLoggedOutHeader = initLoggedOutHeader;
-  window.logout = logout;
-}
+// Make functions available globally for module access IMMEDIATELY
+// This must be done synchronously before modules execute
+(function() {
+  if (typeof window !== 'undefined') {
+    window.initLoggedInHeader = initLoggedInHeader;
+    window.initLoggedOutHeader = initLoggedOutHeader;
+    window.logout = logout;
+    // Signal that headerUtils is ready
+    window.__headerUtilsReady = true;
+    // Dispatch event for modules that might be waiting
+    if (typeof document !== 'undefined') {
+      document.dispatchEvent(new Event('headerUtilsReady'));
+    }
+  }
+})();

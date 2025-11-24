@@ -225,14 +225,36 @@ async function initAdmin() {
     return;
   }
 
-  // Initialize header with navigation links
-  if (typeof window.initLoggedInHeader === 'function') {
-    await window.initLoggedInHeader([
-      { href: '/dashboard', text: 'Dashboard' },
-      { href: '/profile', text: 'Profile' }
-    ]);
+  // Wait for headerUtils to be ready if needed
+  let headerUtilsReady = false;
+  if (window.__headerUtilsReady && window.initLoggedInHeader) {
+    headerUtilsReady = true;
   } else {
-    console.error('initLoggedInHeader not available. Make sure headerUtils.js is loaded.');
+    // Wait up to 2 seconds for headerUtils
+    for (let i = 0; i < 40; i++) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      if (window.__headerUtilsReady && window.initLoggedInHeader) {
+        headerUtilsReady = true;
+        break;
+      }
+    }
+  }
+
+  // Initialize header with navigation links
+  if (headerUtilsReady && typeof window.initLoggedInHeader === 'function') {
+    try {
+      await window.initLoggedInHeader([
+        { href: '/dashboard', text: 'Dashboard' },
+        { href: '/profile', text: 'Profile' }
+      ]);
+      console.log('Header initialized successfully');
+    } catch (error) {
+      console.error('Error initializing header:', error);
+    }
+  } else {
+    console.error('initLoggedInHeader not available after waiting. headerUtils.js may not have loaded correctly.');
+    console.log('window.__headerUtilsReady:', window.__headerUtilsReady);
+    console.log('window.initLoggedInHeader:', typeof window.initLoggedInHeader);
   }
 
   // Setup refresh button (refresh all)
@@ -247,11 +269,21 @@ async function initAdmin() {
   }
 
   // Load all data on page load
-  await Promise.all([
-    loadUsers(),
-    loadEndpointStats(),
-    loadConsumptionStats()
-  ]);
+  try {
+    await Promise.all([
+      loadUsers(),
+      loadEndpointStats(),
+      loadConsumptionStats()
+    ]);
+    console.log('All admin data loaded successfully');
+  } catch (error) {
+    console.error('Error loading admin data:', error);
+    const errorEl = document.getElementById('error');
+    if (errorEl) {
+      errorEl.textContent = `Error loading data: ${error.message}`;
+      errorEl.classList.remove('hidden');
+    }
+  }
   
   // Setup refresh buttons
   const refreshEndpointsBtn = document.getElementById('refresh-endpoints-btn');
