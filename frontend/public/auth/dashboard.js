@@ -1,5 +1,6 @@
-const BACKEND_URL = window.BACKEND_URL;
-console.log("BACKEND_URL: ", BACKEND_URL);
+import { dashboardMessages } from '/messages/dashboard.js';
+
+const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 // Check if user is authenticated
 function isAuthenticated() {
@@ -21,205 +22,26 @@ function getToken() {
   }
 }
 
-
-
-// //Set spotify token in localStorage
-// function setSpotifyToken(token) {
-//   try {
-//     localStorage.setItem("spotify_token", token);
-//   } catch (_) {
-//     return null;
-//   }
-// }
-
-// //get spotify token from localStorage
-// function getSpotifyToken() {
-//   try {
-//     return localStorage.getItem("spotify_token");
-//   } catch (_) {
-//     return null;
-//   }
-// }
-// // Initiate Spotify OAuth - redirects browser to Spotify
-// function initiateSpotifyOAuth() {
-//   window.location.href = BACKEND_URL + "/api/spotify/auth";
-// }
-
-// // Handle Spotify OAuth callback - exchange code for token
-// async function handleSpotifyCallback(code) {
-//   try {
-//     const response = await fetch(
-//       BACKEND_URL + "/api/spotify/callback?code=" + encodeURIComponent(code),
-//       {
-//         method: "GET",
-//         headers: {
-//           "Content-Type": "application/json",
-//           Accept: "application/json",
-//         },
-//         mode: "cors",
-//         credentials: "include",
-//       }
-//     );
-//     const data = await response.json();
-//     if (response.ok && data.success && data.data.access_token) {
-//       setSpotifyToken(data.data.access_token);
-//       // Remove code from URL
-//       const url = new URL(window.location.href);
-//       url.searchParams.delete("code");
-//       url.searchParams.delete("state");
-//       window.history.replaceState({}, "", url.toString());
-//       return data.data.access_token;
-//     }
-//     throw new Error(data.message || "Failed to get access token");
-//   } catch (error) {
-//     console.error("Error handling Spotify callback:", error);
-//     throw error;
-//   }
-// }
-
-// // Setup Spotify authentication - checks for token or handles callback
-// async function spotifyApiRequest(url, options = {}) {
-//   const token = getSpotifyToken();
-//   const headers = {
-//     "Content-Type": "application/json",
-//     Accept: "application/json",
-//     ...(options.headers || {}),
-//   };
-
-//   if (token) {
-//     headers["Authorization"] = `Bearer ${token}`;
-//   } else {
-//     // Check if we have a code in the URL (from callback)
-//     const urlParams = new URLSearchParams(window.location.search);
-//     const code = urlParams.get("code");
-
-//     if (code) {
-//       // Exchange code for token
-//       const accessToken = await handleSpotifyCallback(code);
-//       headers["Authorization"] = `Bearer ${accessToken}`;
-//     } else {
-//       // No token and no code - redirect to OAuth
-//       initiateSpotifyOAuth();
-//       return null; // Will redirect, so return early
-//     }
-//   }
-
-//   const response = await fetch(BACKEND_URL + url, {
-//     ...options,
-//     headers,
-//     mode: "cors",
-//     credentials: "include",
-//   });
-//   return {
-//     ok: response.ok,
-//     status: response.status,
-//     data: await response.json(),
-//   };
-// }
-
-// async function spotifytTrackTest() {
-//   let data = await apiRequest("/api/spotify/tracks/2kmgtoTuRdUSvL4LJFOYUI");
-//   return data;
-// }
-
-// console.log("spotifytTrackTest: ", await spotifytTrackTest());
-
-// Set spotify token in localStorage
-// function setSpotifyToken(token) {
-//   try {
-//     localStorage.setItem("spotify_token", token);
-//   } catch (_) {
-//     return null;
-//   }
-// }
-
-// get spotify token from localStorage
-// function getSpotifyToken() {
-//   try {
-//     return localStorage.getItem("spotify_token");
-//   } catch (_) {
-//     return null;
-//   }
-// }
-// // Initiate Spotify OAuth - redirects browser to Spotify
-// function initiateSpotifyOAuth() {
-//   window.location.href = BACKEND_URL + "/api/spotify/auth";
-// }
-
-// Handle Spotify OAuth callback - exchange code for token
-// async function handleSpotifyCallback(code) {
-//   try {
-//     const response = await fetch(
-//       BACKEND_URL + "/api/spotify/callback?code=" + encodeURIComponent(code),
-//       {
-//         method: "GET",
-//         headers: {
-//           "Content-Type": "application/json",
-//           Accept: "application/json",
-//         },
-//         mode: "cors",
-//         credentials: "include",
-//       }
-//     );
-//     const data = await response.json();
-//     if (response.ok && data.success && data.data.access_token) {
-//       setSpotifyToken(data.data.access_token);
-//       // Remove code from URL
-//       const url = new URL(window.location.href);
-//       url.searchParams.delete("code");
-//       url.searchParams.delete("state");
-//       window.history.replaceState({}, "", url.toString());
-//       return data.data.access_token;
-//     }
-//     throw new Error(data.message || "Failed to get access token");
-//   } catch (error) {
-//     console.error("Error handling Spotify callback:", error);
-//     throw error;
-//   }
-// }
-
-// Setup Spotify authentication - checks for token or handles callback
-// async function spotifyApiRequest(url, options = {}) {
-//   const token = getSpotifyToken();
-//   const headers = {
-//     "Content-Type": "application/json",
-//     Accept: "application/json",
-//     ...(options.headers || {}),
-//   };
-
-//   if (token) {
-//     headers["Authorization"] = `Bearer ${token}`;
-//   } else {
-//     // Check if we have a code in the URL (from callback)
-//     const urlParams = new URLSearchParams(window.location.search);
-//     const code = urlParams.get("code");
-
-//     if (code) {
-//       // Exchange code for token
-//       const accessToken = await handleSpotifyCallback(code);
-//       headers["Authorization"] = `Bearer ${accessToken}`;
-//     } else {
-//       // No token and no code - redirect to OAuth
-//       initiateSpotifyOAuth();
-//       return null; // Will redirect, so return early
-//     }
-//   }
-
-//   const response = await fetch(BACKEND_URL + url, {
-//     ...options,
-//     headers,
-//     mode: "cors",
-//     credentials: "include",
-//   });
-//   return {
-//     ok: response.ok,
-//     status: response.status,
-//     data: await response.json(),
-//   };
-// }
-
-
-
+// Display API limit warning
+function showApiLimitWarning(message) {
+  // Check if warning already exists to avoid duplicates
+  let warningEl = document.getElementById('api-limit-warning');
+  if (!warningEl) {
+    warningEl = document.createElement('div');
+    warningEl.id = 'api-limit-warning';
+    warningEl.className = 'api-limit-warning';
+    document.body.appendChild(warningEl);
+  }
+  warningEl.textContent = message;
+  warningEl.classList.remove('hidden');
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    if (warningEl) {
+      warningEl.classList.add('hidden');
+    }
+  }, 5000);
+}
 
 // Make authenticated API request
 async function apiRequest(url, options = {}) {
@@ -242,12 +64,21 @@ async function apiRequest(url, options = {}) {
     credentials: "include",
   });
 
+  // Check for API limit warning headers
+  const limitExceeded = response.headers.get('X-API-Limit-Exceeded');
+  const limitMessage = response.headers.get('X-API-Limit-Message');
+  
+  if (limitExceeded === 'true' && limitMessage) {
+    // Display warning but continue with the request
+    showApiLimitWarning(limitMessage);
+  }
+
   const data = await response.json();
 
   return { ok: response.ok, status: response.status, data };
 }
 
-// Load user info
+// Load user info and return user object
 async function loadUserInfo() {
   const { ok, data } = await apiRequest("/api/auth/profile");
   if (ok && data.success) {
@@ -314,6 +145,12 @@ function displayApiConsumption(consumption) {
       }
     </div>
   `;
+    const userEmail = document.getElementById('user-email');
+    if (userEmail) userEmail.textContent = user.email || dashboardMessages.user;
+    
+    return user; // Return user object for role checking
+  }
+  return null;
 }
 
 // Create new voting round
@@ -363,8 +200,8 @@ async function getQRCode(roundId) {
 // Generate QR code image
 function generateQRCode(url, containerId) {
   const container = document.getElementById(containerId);
-  container.innerHTML = "<p>Generating QR code...</p>";
-
+  container.innerHTML = `<p>${dashboardMessages.generatingQrCode}</p>`;
+  
   // Function to try generating QR code
   const tryGenerateQR = () => {
     // Check if QRCode library is available (try multiple possible names)
@@ -515,8 +352,7 @@ function displayRounds(rounds) {
   if (!container) return;
 
   if (rounds.length === 0) {
-    container.innerHTML =
-      '<p class="no-rounds">No voting rounds yet. Create one above!</p>';
+    container.innerHTML = `<p class="no-rounds">${dashboardMessages.noRoundsYet}</p>`;
     return;
   }
 
@@ -583,7 +419,7 @@ function displayRounds(rounds) {
 window.showQRCode = async function (roundId) {
   const qrData = await getQRCode(roundId);
   if (!qrData) {
-    alert("Failed to get QR code");
+    alert(dashboardMessages.failedToGetQrCode);
     return;
   }
 
@@ -600,17 +436,14 @@ window.showQRCode = async function (roundId) {
 window.viewResults = async function (roundId) {
   const results = await getResults(roundId);
   if (!results) {
-    alert("Failed to load results");
+    alert(dashboardMessages.failedToLoadResults);
     return;
   }
 
-  let spotifyTrackInfo = null;
-  if (results.winner && results.winner.spotifyId) {
-    try {
-      spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
-    } catch (error) {
-      // Continue without Spotify info
-    }
+  const spotifyTrackInfo = await getSpotifyTrackInfo(results.winner.spotifyId);
+  if (!spotifyTrackInfo) {
+    alert(dashboardMessages.failedToLoadSpotifyTrack);
+    return;
   }
 
   const countdownData = await getRoundCountdown(roundId);
@@ -765,7 +598,7 @@ window.pauseRound = async function (roundId) {
   if (ok && data.success) {
     await loadAndDisplayRounds();
   } else {
-    alert("Failed to pause round: " + (data.message || "Unknown error"));
+    alert(dashboardMessages.failedToPauseRound + (data.message || dashboardMessages.unknownError));
   }
 };
 
@@ -776,6 +609,7 @@ window.resumeRound = async function (roundId) {
   if (ok && data.success) {
     await loadAndDisplayRounds();
   } else {
+    alert(dashboardMessages.failedToResumeRound + (data.message || dashboardMessages.unknownError));
     alert("Failed to resume round: " + (data.message || "Unknown error"));
   }
 };
@@ -828,28 +662,26 @@ window.generateNext = async function (roundId) {
 
   const btn = event.target;
   btn.disabled = true;
-  btn.textContent = "Generating...";
+  btn.textContent = dashboardMessages.generating;
 
   const { ok, data } = await generateNextRound(roundId);
 
   if (ok && data.success) {
-    alert("Next round generated successfully!");
+    alert(dashboardMessages.nextRoundGenerated);
     loadAndDisplayRounds();
   } else {
-    alert(
-      "Failed to generate next round: " + (data.message || "Unknown error")
-    );
+    alert(dashboardMessages.failedToGenerateNextRound + (data.message || dashboardMessages.unknownError));
   }
 
   btn.disabled = false;
-  btn.textContent = "Generate Next Round";
+  btn.textContent = dashboardMessages.generateNextRound;
 };
 
 // Load and display rounds
 async function loadAndDisplayRounds() {
   const container = document.getElementById("rounds-container");
   if (container) {
-    container.innerHTML = '<p class="loading">Loading rounds...</p>';
+    container.innerHTML = `<p class="loading">${dashboardMessages.loadingRounds}</p>`;
   }
   const rounds = await loadRounds();
   displayRounds(rounds);
@@ -871,12 +703,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Load user info
-  await loadUserInfo();
-  // await loadSpotifyToken();
+  const user = await loadUserInfo();
 
-  // Initialize header with Admin link (if headerUtils.js is available)
-  if (typeof initLoggedInHeader === "function") {
-    await initLoggedInHeader([{ href: "/admin.html", text: "Admin" }]);
+  // Initialize header with navigation links
+  if (typeof initLoggedInHeader === 'function') {
+    const additionalLinks = [
+      { href: '/profile.html', text: 'Profile' }
+    ];
+    
+    // Only add Admin link if user is an admin
+    if (user && user.role === 'admin') {
+      additionalLinks.push({ href: '/admin.html', text: 'Admin' });
+    }
+    
+    await initLoggedInHeader(additionalLinks);
   }
 
   // Load rounds
@@ -890,9 +730,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     healthCheckBtn.addEventListener("click", async () => {
       // Disable button during check
       healthCheckBtn.disabled = true;
-      healthCheckBtn.textContent = "Checking...";
-      healthStatus.classList.add("hidden");
-
+      healthCheckBtn.textContent = dashboardMessages.checking;
+      healthStatus.classList.add('hidden');
+      
       try {
         const response = await fetch(
           window.getBackendUrl() + "/api/ai/health",
@@ -939,7 +779,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       } finally {
         // Re-enable button
         healthCheckBtn.disabled = false;
-        healthCheckBtn.textContent = "Check AI Health";
+        healthCheckBtn.textContent = dashboardMessages.checkAiHealth;
       }
     });
   }
@@ -951,7 +791,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       createMessage.textContent = "";
       createMessage.className = "msg";
       createBtn.disabled = true;
-      createBtn.textContent = "Creating...";
+      createBtn.textContent = dashboardMessages.creating;
 
       const formData = new FormData(createForm);
       const roundData = {
@@ -965,23 +805,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       const { ok, data } = await createRound(roundData);
 
       if (ok && data.success) {
-        // Use the message from the server, which includes the song name if available
-        createMessage.textContent =
-          data.message || "Voting round created successfully!";
-        createMessage.className = "msg ok";
+        createMessage.textContent = dashboardMessages.votingRoundCreated;
+        createMessage.className = 'msg ok';
         createForm.reset();
 
         // Log the created round info
 
         await loadAndDisplayRounds();
       } else {
-        createMessage.textContent =
-          "Failed to create round: " + (data.message || "Unknown error");
-        createMessage.className = "msg err";
+        createMessage.textContent = dashboardMessages.failedToCreateRound + (data.message || dashboardMessages.unknownError);
+        createMessage.className = 'msg err';
       }
 
       createBtn.disabled = false;
-      createBtn.textContent = "Create Voting Round";
+      createBtn.textContent = dashboardMessages.createVotingRound;
     });
   }
 

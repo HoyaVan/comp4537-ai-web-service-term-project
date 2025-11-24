@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 const authRoutes = require("./src/routes/authRoutes");
 const aiRoutes = require("./src/routes/aiRoutes");
 const votingRoutes = require("./src/routes/votingRoutes");
+
 const spotifyRoutes = require("./src/routes/spotifyRoutes");
 const adminRoutes = require("./src/routes/adminRoutes");
 const jukeboxRoutes = require("./src/routes/jukeboxRoutes");
@@ -123,10 +124,10 @@ app.listen(PORT, () => {
   console.log("   GET    /api/voting/spotify/tracks/:trackId    - Get Spotify track (public)");
   
   console.log("\n🎵 Spotify (/api/spotify):");
-  console.log("   GET    /api/spotify/search                     - Search Spotify tracks (public)");
-  console.log("   GET    /api/spotify/tracks/:trackId            - Get Spotify track (public)");
-  console.log("   GET    /api/spotify/auth                       - Initiate OAuth (public)");
-  console.log("   GET    /api/spotify/callback                   - OAuth callback (public)");
+  console.log("   GET    /api/spotify/search                    - Search Spotify tracks (public)");
+  console.log("   GET    /api/spotify/tracks/:trackId           - Get Spotify track (public)");
+  console.log("   GET    /api/spotify/auth                      - Initiate OAuth (public)");
+  console.log("   GET    /api/spotify/callback                 - OAuth callback (public)");
   
   console.log("\n👑 Admin (/api/admin):");
   console.log("   GET    /api/admin/stats/endpoints             - Get endpoint stats (admin)");

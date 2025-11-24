@@ -1,3 +1,5 @@
+const commonMessages = require("../messages/common");
+
 /**
  * Middleware to verify API key authentication
  * Uses AI_AGENT_API_KEY for backend authentication (same key as Digital Ocean agent)
@@ -22,7 +24,7 @@ function authenticateApiKey(req, res, next) {
   if (!headerApiKey) {
     return res.status(401).json({
       success: false,
-      message: "API key is required. Provide it in 'Authorization: Bearer <key>' header or 'x-api-key' header",
+      message: commonMessages.apiKeyRequired,
       hint: "Use your AI_AGENT_API_KEY for authentication",
     });
   }
@@ -30,7 +32,7 @@ function authenticateApiKey(req, res, next) {
   if (headerApiKey !== apiKey) {
     return res.status(403).json({
       success: false,
-      message: "Invalid API key",
+      message: commonMessages.invalidApiKey,
     });
   }
 

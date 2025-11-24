@@ -240,9 +240,32 @@ h1 {
   letter-spacing: 0.5px;
 }
 
+/* Endpoint stats table - Total Requests is 3rd column */
+.stats-table:not(.consumption-table) th:nth-child(3) {
+  text-align: right; /* Align "Total Requests" header to right */
+}
+
+.stats-table th:nth-child(4),
+.stats-table th:nth-child(5),
+.stats-table th:nth-child(6),
+.stats-table th:nth-child(7) {
+  text-align: left; /* Align new columns to left */
+}
+
+/* Consumption table - align Total Requests header to right */
+.stats-table thead tr th:last-child {
+  text-align: right;
+}
+
 .stats-table td {
   padding: 12px 16px;
   border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+  word-wrap: break-word;
+}
+
+.stats-table td:last-child {
+  padding-right: 16px; /* Ensure consistent padding on right edge */
 }
 
 .stats-table tbody tr:hover {
@@ -270,6 +293,9 @@ h1 {
   font-weight: 600;
   color: var(--brand);
   text-align: right;
+  font-variant-numeric: tabular-nums; /* Ensures numbers align properly */
+  white-space: nowrap; /* Prevents wrapping */
+  padding-right: 16px; /* Consistent padding with other cells */
 }
 
 .name-cell {
@@ -279,4 +305,65 @@ h1 {
 
 .email-cell {
   color: #475569;
+}
+
+.user-id-cell {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  color: #475569;
+  text-align: left;
+  word-break: break-all; /* Prevent overflow */
+  max-width: 200px; /* Limit width for better alignment */
+}
+
+/* Consumption table - User ID is 3rd column, align header with cell */
+.consumption-table th:nth-child(3) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 0; /* Remove letter spacing for monospace alignment */
+  text-align: left; /* Match cell alignment */
+}
+
+.users-cell {
+  max-width: 400px;
+}
+
+.users-list-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.user-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background-color: #e0e7ff;
+  color: #3730a3;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: help;
+}
+
+.user-count-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.muted-text {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.timestamp-cell {
+  font-size: 13px;
+  color: #475569;
+  white-space: nowrap;
 }

@@ -1,5 +1,6 @@
 const axios = require("axios");
 const dotenv = require("dotenv");
+const spotifyMessages = require("../messages/spotify");
 
 class SpotifyService {
   constructor() {
@@ -28,9 +29,7 @@ class SpotifyService {
     }
 
     if (!this.clientId || !this.clientSecret) {
-      throw new Error(
-        "Spotify credentials not configured. Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET"
-      );
+      throw new Error(spotifyMessages.spotifyCredentialsNotConfigured);
     }
 
     try {
@@ -58,7 +57,7 @@ class SpotifyService {
         "Error getting Spotify access token:",
         error.response?.data || error.message
       );
-      throw new Error("Failed to authenticate with Spotify");
+      throw new Error(spotifyMessages.failedToAuthenticateWithSpotify);
     }
   }
 
@@ -96,7 +95,7 @@ class SpotifyService {
         "Error searching Spotify tracks:",
         error.response?.data || error.message
       );
-      throw new Error("Failed to search Spotify tracks");
+      throw new Error(spotifyMessages.failedToSearchSpotifyTracks);
     }
   }
 
@@ -130,7 +129,7 @@ class SpotifyService {
         "Error getting Spotify track:",
         error.response?.data || error.message
       );
-      throw new Error("Failed to get Spotify track");
+      throw new Error(spotifyMessages.failedToGetSpotifyTrack);
     }
   }
 
@@ -165,7 +164,7 @@ class SpotifyService {
         "Error getting Spotify tracks:",
         error.response?.data || error.message
       );
-      throw new Error("Failed to get Spotify tracks");
+      throw new Error(spotifyMessages.failedToGetSpotifyTracks);
     }
   }
 
@@ -177,13 +176,11 @@ class SpotifyService {
     scopes = ["user-read-private", "user-read-email"]
   ) {
     if (!this.clientId) {
-      throw new Error("Spotify client ID not configured");
+      throw new Error(spotifyMessages.spotifyClientIdNotConfigured);
     }
 
     if (!this.callbackURI) {
-      throw new Error(
-        "Spotify callback URI not configured. Set SPOTIFY_CALLBACK_URI"
-      );
+      throw new Error(spotifyMessages.spotifyCallbackUriNotConfigured);
     }
 
     const params = new URLSearchParams({
@@ -205,11 +202,11 @@ class SpotifyService {
    */
   async exchangeCodeForToken(code) {
     if (!this.clientId || !this.clientSecret) {
-      throw new Error("Spotify credentials not configured");
+      throw new Error(spotifyMessages.spotifyCredentialsNotConfigured);
     }
 
     if (!this.callbackURI) {
-      throw new Error("Spotify callback URI not configured");
+      throw new Error(spotifyMessages.spotifyCallbackUriNotConfigured);
     }
 
     try {
@@ -242,7 +239,7 @@ class SpotifyService {
         "Error exchanging code for token:",
         error.response?.data || error.message
       );
-      throw new Error("Failed to exchange authorization code for token");
+      throw new Error(spotifyMessages.failedToExchangeCodeForToken);
     }
   }
 
@@ -251,7 +248,7 @@ class SpotifyService {
    */
   async refreshAccessToken(refreshToken) {
     if (!this.clientId || !this.clientSecret) {
-      throw new Error("Spotify credentials not configured");
+      throw new Error(spotifyMessages.spotifyCredentialsNotConfigured);
     }
 
     try {
@@ -283,7 +280,7 @@ class SpotifyService {
         "Error refreshing access token:",
         error.response?.data || error.message
       );
-      throw new Error("Failed to refresh access token");
+      throw new Error(spotifyMessages.failedToRefreshAccessToken);
     }
   }
 }

@@ -20,3 +20,37 @@ body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
 }
 .status.ok { color: var(--ok); }
 .status.err { color: var(--err); }
+
+/* API Limit Warning */
+.api-limit-warning {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fef3c7;
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  padding: 12px 20px;
+  color: #92400e;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1000;
+  max-width: 600px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: slideDown 0.3s ease-out;
+}
+
+.api-limit-warning.hidden {
+  display: none;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}

@@ -1,0 +1,255 @@
+.wrap {
+  max-width: 900px;
+  margin: 48px auto;
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+h2 {
+  margin: 32px 0 16px;
+  font-size: 20px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 8px;
+}
+
+.sub {
+  color: var(--muted);
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+/* Profile Section */
+.profile-section {
+  margin-bottom: 32px;
+}
+
+.profile-card {
+  padding: 24px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.user-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.user-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.info-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.info-value-monospace {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 14px;
+  color: #475569;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-badge-admin {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.role-badge-user {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+/* API Consumption Section */
+.api-consumption-section {
+  margin-bottom: 32px;
+}
+
+.api-consumption-card {
+  padding: 24px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.api-stats {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.api-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.api-stat-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.api-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.api-stat-unlimited {
+  color: #10b981;
+}
+
+/* Endpoint Table */
+.endpoint-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  background: #fff;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.endpoint-table thead {
+  background: #f8fafc;
+}
+
+.endpoint-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.endpoint-table th:last-child {
+  text-align: right;
+}
+
+.endpoint-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.endpoint-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.endpoint-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.method-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.method-badge-get {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.method-badge-post {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.method-badge-put {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.method-badge-patch {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.method-badge-delete {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.endpoint-cell {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  color: #475569;
+  word-break: break-all;
+}
+
+.requests-cell {
+  text-align: right;
+  font-weight: 600;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.loading {
+  text-align: center;
+  padding: 24px;
+  color: var(--muted);
+}
+
+.muted-text {
+  color: var(--muted);
+  font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .user-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .api-stats {
+    flex-direction: column;
+  }
+  
+  .endpoint-table {
+    font-size: 12px;
+  }
+  
+  .endpoint-table th,
+  .endpoint-table td {
+    padding: 8px 12px;
+  }
+}
+

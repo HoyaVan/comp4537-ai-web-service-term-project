@@ -1,5 +1,6 @@
 const authService = require("../services/authService");
-const { getUserApiCount } = require("../middleware/apiTrackingMiddleware");
+const { getUserApiCount, getUserEndpointStats, hasExceededLimit, getRemainingCalls, FREE_API_CALLS_LIMIT } = require("../middleware/apiTrackingMiddleware");
+const authMessages = require("../messages/auth");
 
 /**
  * Sign up controller
@@ -12,7 +13,7 @@ async function signup(req, res) {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required",
+        message: authMessages.emailPasswordRequired,
       });
     }
 
@@ -21,13 +22,13 @@ async function signup(req, res) {
 
     return res.status(201).json({
       success: true,
-      message: "User created successfully",
+      message: authMessages.userCreatedSuccessfully,
       data: result,
     });
   } catch (error) {
     return res.status(400).json({
       success: false,
-      message: error.message || "Error creating user",
+      message: error.message || authMessages.errorCreatingUser,
     });
   }
 }
@@ -43,7 +44,7 @@ async function login(req, res) {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required",
+        message: authMessages.emailPasswordRequired,
       });
     }
 
@@ -52,43 +53,54 @@ async function login(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: "Login successful",
+      message: authMessages.loginSuccessful,
       data: result,
     });
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: error.message || "Invalid credentials",
+      message: error.message || authMessages.invalidCredentials,
     });
   }
 }
 
 /**
  * Get current user profile
+ * API consumption stats are included for all authenticated users
  */
 async function getProfile(req, res) {
   try {
     // User is attached to req by authMiddleware
     const user = req.user;
     
-    // Get API consumption stats (unlimited calls)
+    const responseData = { ...user };
+    
+    // Include API consumption for all users
     const apiCallsUsed = getUserApiCount(user.id);
+    const endpointStats = getUserEndpointStats(user.id);
+    const remainingCalls = getRemainingCalls(user.id, user.role);
+    const exceeded = hasExceededLimit(user.id, user.role);
+    
+    // For admin users, show unlimited calls
+    const isAdmin = user.role === 'admin';
+    
+    responseData.apiConsumption = {
+      callsUsed: apiCallsUsed,
+      callsLimit: isAdmin ? 'unlimited' : FREE_API_CALLS_LIMIT,
+      remainingCalls: remainingCalls,
+      hasExceededLimit: exceeded,
+      hasUnlimitedCalls: isAdmin,
+      endpointBreakdown: endpointStats, // Per-endpoint breakdown
+    };
 
     return res.status(200).json({
       success: true,
-      data: {
-        ...user,
-        apiConsumption: {
-          callsUsed: apiCallsUsed,
-          callsLimit: 'unlimited',
-          hasUnlimitedCalls: true,
-        },
-      },
+      data: responseData,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Error fetching profile",
+      message: authMessages.errorFetchingProfile,
     });
   }
 }
@@ -108,7 +120,7 @@ async function getAllUsers(req, res) {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Error fetching users",
+      message: authMessages.errorFetchingUsers,
     });
   }
 }

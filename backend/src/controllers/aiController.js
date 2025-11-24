@@ -1,4 +1,5 @@
 const aiService = require("../services/aiService");
+const aiMessages = require("../messages/ai");
 
 /**
  * Handle AI chat/message requests
@@ -11,7 +12,7 @@ const sendMessage = async (req, res) => {
     if (!message && !prompt && !Array.isArray(messages)) {
       return res.status(400).json({
         success: false,
-        error: 'Either "message", "prompt", or "messages" array is required in the request body',
+        error: aiMessages.messagePromptOrMessagesRequired,
       });
     }
 
@@ -38,7 +39,7 @@ const sendMessage = async (req, res) => {
     const statusCode = isValidationError ? 400 : 500;
     res.status(statusCode).json({
       success: false,
-      error: error.message || "Failed to communicate with AI agent",
+      error: error.message || aiMessages.failedToCommunicateWithAiAgent,
     });
   }
 };
@@ -53,7 +54,7 @@ const callAgentEndpoint = async (req, res) => {
     if (!endpoint) {
       return res.status(400).json({
         success: false,
-        error: 'Endpoint is required in the request body',
+        error: aiMessages.endpointRequired,
       });
     }
 
@@ -62,7 +63,7 @@ const callAgentEndpoint = async (req, res) => {
     if (!validMethods.includes(method.toUpperCase())) {
       return res.status(400).json({
         success: false,
-        error: `Invalid HTTP method. Must be one of: ${validMethods.join(", ")}`,
+        error: aiMessages.invalidHttpMethod(validMethods),
       });
     }
 
@@ -84,7 +85,7 @@ const callAgentEndpoint = async (req, res) => {
     const statusCode = isClientError ? 400 : 500;
     res.status(statusCode).json({
       success: false,
-      error: error.message || "Failed to communicate with AI agent",
+      error: error.message || aiMessages.failedToCommunicateWithAiAgent,
     });
   }
 };
@@ -113,7 +114,7 @@ const checkAIAgentHealth = async (req, res) => {
     res.status(503).json({
       success: false,
       connected: false,
-      error: error.message || "AI agent is not reachable",
+      error: error.message || aiMessages.aiAgentNotReachable,
     });
   }
 };

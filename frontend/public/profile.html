@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Profile - DJ Clownfish</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/styles/global.css">
+    <link rel="stylesheet" href="/styles/header.css">
+    <link rel="stylesheet" href="/styles/profile.css">
+    <script src="/config.js"></script>
+    <link rel="shortcut icon" href="#">
+</head>
+
+<body>
+    <!-- Header will be loaded by headerUtils.js -->
+
+    <div class="wrap">
+        <h1>My Profile</h1>
+        <div class="sub">View your account information and individual API consumption</div>
+
+        <!-- User Information Section -->
+        <section class="profile-section">
+            <h2>Account Information</h2>
+            <div id="user-info-container" class="profile-card">
+                <p class="loading">Loading user information...</p>
+            </div>
+        </section>
+
+        <!-- API Consumption Section -->
+        <section class="api-consumption-section">
+            <h2>Individual API Consumption</h2>
+            <div id="api-consumption-container" class="api-consumption-card">
+                <p class="loading">Loading API consumption...</p>
+            </div>
+        </section>
+    </div>
+
+    <script src="/auth/headerUtils.js"></script>
+    <script type="module" src="/auth/profile.js"></script>
+</body>
+
+</html>
+

@@ -1,4 +1,5 @@
 const authService = require("../services/authService");
+const commonMessages = require("../messages/common");
 
 /**
  * Middleware to verify JWT token
@@ -11,7 +12,7 @@ function authenticateToken(req, res, next) {
   if (!token) {
     return res.status(401).json({
       success: false,
-      message: "Access token is required",
+      message: commonMessages.accessTokenRequired,
     });
   }
 
@@ -20,7 +21,7 @@ function authenticateToken(req, res, next) {
   if (!decoded) {
     return res.status(403).json({
       success: false,
-      message: "Invalid or expired token",
+      message: commonMessages.invalidOrExpiredToken,
     });
   }
 
@@ -29,7 +30,7 @@ function authenticateToken(req, res, next) {
   if (!user) {
     return res.status(403).json({
       success: false,
-      message: "User not found",
+      message: commonMessages.userNotFound,
     });
   }
 

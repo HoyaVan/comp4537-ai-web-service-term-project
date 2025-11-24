@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const authMessages = require("../messages/auth");
 
 // In-memory user storage (replace with database in production)
 const users = [];
@@ -49,18 +50,18 @@ async function signup(email, password, name) {
   // Check if user already exists
   const existingUser = users.find((user) => user.email === email.toLowerCase());
   if (existingUser) {
-    throw new Error("User already exists with this email");
+    throw new Error(authMessages.userAlreadyExists);
   }
 
   // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    throw new Error("Invalid email format");
+    throw new Error(authMessages.invalidEmailFormat);
   }
 
   // Validate password strength
   if (!password || password.length < 6) {
-    throw new Error("Password must be at least 6 characters long");
+    throw new Error(authMessages.passwordTooShort);
   }
 
   // Hash password
@@ -100,13 +101,13 @@ async function login(email, password) {
   // Find user
   const user = users.find((u) => u.email === email.toLowerCase());
   if (!user) {
-    throw new Error("Invalid email or password");
+    throw new Error(authMessages.invalidEmailOrPassword);
   }
 
   // Verify password
   const isValidPassword = await comparePassword(password, user.password);
   if (!isValidPassword) {
-    throw new Error("Invalid email or password");
+    throw new Error(authMessages.invalidEmailOrPassword);
   }
 
   // Generate token
