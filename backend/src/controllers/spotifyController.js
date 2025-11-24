@@ -73,20 +73,19 @@ async function searchSpotifyTracks(req, res) {
 async function initiateOAuth(req, res) {
   try {
     // Get user ID from authenticated request
-    // const userId = req.userId;
-    // if (!userId) {
-    //   return res.status(401).json({
-    //     success: false,
-    //     message: "Authentication required to connect Spotify",
-    //   });
-    // }
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required to connect Spotify",
+      });
+    }
 
     const { scopes, format } = req.query;
     const scopesArray = scopes ? scopes.split(",") : undefined;
 
     // Include user ID in state parameter so we can identify the user in callback
-    // const state = userId;
-    const state = "1234567890";
+    const state = userId.toString();
 
     const authURL = spotifyService.getAuthorizationURL(state, scopesArray);
 

@@ -266,14 +266,38 @@ async function initLoggedInHeader(additionalLinks = []) {
       spotifyBtn.className = "header-btn spotify-btn";
       spotifyBtn.textContent = "🎵 Connect Spotify";
       spotifyBtn.style.cursor = "pointer";
-      spotifyBtn.addEventListener("click", function () {
-        // Use relative URL to go through frontend proxy
-        // The proxy will forward the request to the backend and handle the OAuth redirect
-        window.location.href = BACKEND_URL + "/api/v1/spotify/auth";
-        console.log(
-          "Spotify OAuth button clicked, redirecting to:",
-          BACKEND_URL + "/api/v1/spotify/auth"
-        );
+      spotifyBtn.addEventListener("click", async function () {
+        // Make authenticated request to get OAuth URL, then redirect
+        try {
+          const token = window.authService ? window.authService.getToken() : localStorage.getItem('token');
+          if (!token) {
+            alert('Please log in to connect Spotify');
+            return;
+          }
+          
+          const response = await fetch(BACKEND_URL + "/api/v1/spotify/auth?format=json", {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/json'
+            },
+            mode: 'cors',
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data.authUrl) {
+              window.location.href = data.data.authUrl;
+            } else {
+              alert('Failed to initiate Spotify connection');
+            }
+          } else {
+            alert('Authentication required. Please log in again.');
+          }
+        } catch (error) {
+          console.error('Error initiating Spotify OAuth:', error);
+          alert('Failed to connect to Spotify. Please try again.');
+        }
       });
 
       // Insert right after Profile link if it exists, otherwise before user email
