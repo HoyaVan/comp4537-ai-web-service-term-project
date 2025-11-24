@@ -78,24 +78,13 @@ async function isAuthenticated() {
 // Fetch all users from backend
 async function fetchAllUsers() {
   try {
-    const res = await fetch(window.getBackendUrl() + '/api/auth/users', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
-      },
-      mode: 'cors',
-      credentials: 'omit'
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || adminMessages.failedToFetchUsers);
+    const { ok, data } = await apiRequest('/api/auth/users');
+    if (!ok || !data.success) {
+      throw new Error(data.message || adminMessages.failedToFetchUsers);
     }
-
-    const data = await res.json();
     return data.data || [];
   } catch (error) {
+    console.error('Error fetching users:', error);
     throw error;
   }
 }
@@ -237,10 +226,14 @@ async function initAdmin() {
   }
 
   // Initialize header with navigation links
-  await initLoggedInHeader([
-    { href: '/dashboard', text: 'Dashboard' },
-    { href: '/profile', text: 'Profile' }
-  ]);
+  if (typeof window.initLoggedInHeader === 'function') {
+    await window.initLoggedInHeader([
+      { href: '/dashboard', text: 'Dashboard' },
+      { href: '/profile', text: 'Profile' }
+    ]);
+  } else {
+    console.error('initLoggedInHeader not available. Make sure headerUtils.js is loaded.');
+  }
 
   // Setup refresh button (refresh all)
   if (refreshBtn) {

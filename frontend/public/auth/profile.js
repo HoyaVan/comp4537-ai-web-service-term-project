@@ -230,7 +230,7 @@ async function initProfile() {
   displayApiConsumption(user);
 
   // Initialize header with navigation links
-  if (typeof initLoggedInHeader === 'function') {
+  if (typeof window.initLoggedInHeader === 'function') {
     const additionalLinks = [
       { href: '/dashboard', text: 'Dashboard' }
     ];
@@ -240,7 +240,9 @@ async function initProfile() {
       additionalLinks.push({ href: '/admin', text: 'Admin' });
     }
     
-    await initLoggedInHeader(additionalLinks);
+    await window.initLoggedInHeader(additionalLinks);
+  } else {
+    console.error('initLoggedInHeader not available. Make sure headerUtils.js is loaded.');
   }
 }
 
