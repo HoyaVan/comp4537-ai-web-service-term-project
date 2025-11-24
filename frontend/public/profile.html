@@ -40,35 +40,13 @@
 
     <script src="/auth/headerUtils.js"></script>
     <script>
-        // Ensure headerUtils is loaded before modules execute
-        (function() {
-            if (!window.__headerUtilsReady) {
-                const checkReady = setInterval(function() {
-                    if (window.__headerUtilsReady && window.initLoggedInHeader) {
-                        clearInterval(checkReady);
-                        loadProfileModule();
-                    }
-                }, 10);
-                setTimeout(function() {
-                    clearInterval(checkReady);
-                    if (!window.__headerUtilsReady) {
-                        console.error('headerUtils.js failed to load');
-                    }
-                    loadProfileModule();
-                }, 1000);
-            } else {
-                loadProfileModule();
-            }
-            
-            function loadProfileModule() {
-                const script = document.createElement('script');
-                script.type = 'module';
-                script.src = '/auth/profile.js';
-                document.body.appendChild(script);
-            }
-        })();
+        console.log('[Profile] headerUtils.js loaded, checking availability...');
+        console.log('[Profile] window.__headerUtilsReady:', window.__headerUtilsReady);
+        console.log('[Profile] window.initLoggedInHeader:', typeof window.initLoggedInHeader);
     </script>
+    <script type="module" src="/auth/profile.js"></script>
     <script>
+        console.log('[Profile] Module script tag added');
         window.__profileInitialized = true;
     </script>
 </body>

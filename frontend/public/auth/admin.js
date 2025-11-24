@@ -197,11 +197,15 @@ async function loadUsers() {
 
 // Initialize admin page
 async function initAdmin() {
+  console.log('[Admin] initAdmin called');
   const refreshBtn = document.getElementById('refresh-btn');
 
   // Check authentication
+  console.log('[Admin] Checking authentication...');
   const auth = await isAuthenticated();
+  console.log('[Admin] Authentication result:', auth);
   if (!auth) {
+    console.log('[Admin] Not authenticated, redirecting to login');
     window.location.href = '/login';
     return;
   }
@@ -225,36 +229,47 @@ async function initAdmin() {
     return;
   }
 
+  console.log('[Admin] Checking headerUtils availability...');
+  console.log('[Admin] window.__headerUtilsReady:', window.__headerUtilsReady);
+  console.log('[Admin] window.initLoggedInHeader:', typeof window.initLoggedInHeader);
+  
   // Wait for headerUtils to be ready if needed
   let headerUtilsReady = false;
   if (window.__headerUtilsReady && window.initLoggedInHeader) {
     headerUtilsReady = true;
+    console.log('[Admin] headerUtils ready immediately');
   } else {
+    console.log('[Admin] Waiting for headerUtils...');
     // Wait up to 2 seconds for headerUtils
     for (let i = 0; i < 40; i++) {
       await new Promise(resolve => setTimeout(resolve, 50));
       if (window.__headerUtilsReady && window.initLoggedInHeader) {
         headerUtilsReady = true;
+        console.log('[Admin] headerUtils ready after', (i + 1) * 50, 'ms');
         break;
       }
     }
   }
 
   // Initialize header with navigation links
+  console.log('[Admin] Initializing header, headerUtilsReady:', headerUtilsReady);
   if (headerUtilsReady && typeof window.initLoggedInHeader === 'function') {
     try {
+      console.log('[Admin] Calling initLoggedInHeader...');
       await window.initLoggedInHeader([
         { href: '/dashboard', text: 'Dashboard' },
         { href: '/profile', text: 'Profile' }
       ]);
-      console.log('Header initialized successfully');
+      console.log('[Admin] Header initialized successfully');
     } catch (error) {
-      console.error('Error initializing header:', error);
+      console.error('[Admin] Error initializing header:', error);
+      console.error('[Admin] Error stack:', error.stack);
     }
   } else {
-    console.error('initLoggedInHeader not available after waiting. headerUtils.js may not have loaded correctly.');
-    console.log('window.__headerUtilsReady:', window.__headerUtilsReady);
-    console.log('window.initLoggedInHeader:', typeof window.initLoggedInHeader);
+    console.error('[Admin] initLoggedInHeader not available after waiting.');
+    console.error('[Admin] headerUtilsReady:', headerUtilsReady);
+    console.error('[Admin] window.__headerUtilsReady:', window.__headerUtilsReady);
+    console.error('[Admin] window.initLoggedInHeader type:', typeof window.initLoggedInHeader);
   }
 
   // Setup refresh button (refresh all)

@@ -640,6 +640,7 @@ async function loadAndDisplayRounds() {
 
 // Initialize dashboard
 async function initDashboard() {
+  console.log('[Dashboard] initDashboard called');
   const backend = document.getElementById("backend-url");
   const createForm = document.getElementById("create-round-form");
   const createMessage = document.getElementById("create-message");
@@ -647,9 +648,12 @@ async function initDashboard() {
 
   if (backend) backend.textContent = window.getBackendUrl();
 
+  console.log('[Dashboard] Checking authentication...');
   // Check authentication
   const auth = await isAuthenticated();
+  console.log('[Dashboard] Authentication result:', auth);
   if (!auth) {
+    console.log('[Dashboard] Not authenticated, redirecting to login');
     window.location.href = "/login";
     return;
   }
@@ -688,25 +692,35 @@ async function initDashboard() {
     }
   }
 
+  console.log('[Dashboard] Checking headerUtils availability...');
+  console.log('[Dashboard] window.__headerUtilsReady:', window.__headerUtilsReady);
+  console.log('[Dashboard] window.initLoggedInHeader:', typeof window.initLoggedInHeader);
+  
   // Wait for headerUtils to be ready if needed
   let headerUtilsReady = false;
   if (window.__headerUtilsReady && window.initLoggedInHeader) {
     headerUtilsReady = true;
+    console.log('[Dashboard] headerUtils ready immediately');
   } else {
+    console.log('[Dashboard] Waiting for headerUtils...');
     // Wait up to 2 seconds for headerUtils
     for (let i = 0; i < 40; i++) {
       await new Promise(resolve => setTimeout(resolve, 50));
       if (window.__headerUtilsReady && window.initLoggedInHeader) {
         headerUtilsReady = true;
+        console.log('[Dashboard] headerUtils ready after', (i + 1) * 50, 'ms');
         break;
       }
     }
   }
 
   // Load user info
+  console.log('[Dashboard] Loading user info...');
   const user = await loadUserInfo();
+  console.log('[Dashboard] User loaded:', user ? 'yes' : 'no');
 
   // Initialize header with navigation links
+  console.log('[Dashboard] Initializing header, headerUtilsReady:', headerUtilsReady);
   if (headerUtilsReady && typeof window.initLoggedInHeader === 'function') {
     try {
       const additionalLinks = [
@@ -718,15 +732,18 @@ async function initDashboard() {
         additionalLinks.push({ href: '/admin', text: 'Admin' });
       }
       
+      console.log('[Dashboard] Calling initLoggedInHeader with links:', additionalLinks);
       await window.initLoggedInHeader(additionalLinks);
-      console.log('Header initialized successfully');
+      console.log('[Dashboard] Header initialized successfully');
     } catch (error) {
-      console.error('Error initializing header:', error);
+      console.error('[Dashboard] Error initializing header:', error);
+      console.error('[Dashboard] Error stack:', error.stack);
     }
   } else {
-    console.error('initLoggedInHeader not available after waiting. headerUtils.js may not have loaded correctly.');
-    console.log('window.__headerUtilsReady:', window.__headerUtilsReady);
-    console.log('window.initLoggedInHeader:', typeof window.initLoggedInHeader);
+    console.error('[Dashboard] initLoggedInHeader not available after waiting.');
+    console.error('[Dashboard] headerUtilsReady:', headerUtilsReady);
+    console.error('[Dashboard] window.__headerUtilsReady:', window.__headerUtilsReady);
+    console.error('[Dashboard] window.initLoggedInHeader type:', typeof window.initLoggedInHeader);
   }
 
   // Load rounds

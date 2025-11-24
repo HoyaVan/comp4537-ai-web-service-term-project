@@ -64,35 +64,13 @@
     </div>
     <script src="/auth/headerUtils.js"></script>
     <script>
-        // Ensure headerUtils is loaded before modules execute
-        (function() {
-            if (!window.__headerUtilsReady) {
-                const checkReady = setInterval(function() {
-                    if (window.__headerUtilsReady && window.initLoggedInHeader) {
-                        clearInterval(checkReady);
-                        loadAdminModule();
-                    }
-                }, 10);
-                setTimeout(function() {
-                    clearInterval(checkReady);
-                    if (!window.__headerUtilsReady) {
-                        console.error('headerUtils.js failed to load');
-                    }
-                    loadAdminModule();
-                }, 1000);
-            } else {
-                loadAdminModule();
-            }
-            
-            function loadAdminModule() {
-                const script = document.createElement('script');
-                script.type = 'module';
-                script.src = '/auth/admin.js';
-                document.body.appendChild(script);
-            }
-        })();
+        console.log('[Admin] headerUtils.js loaded, checking availability...');
+        console.log('[Admin] window.__headerUtilsReady:', window.__headerUtilsReady);
+        console.log('[Admin] window.initLoggedInHeader:', typeof window.initLoggedInHeader);
     </script>
+    <script type="module" src="/auth/admin.js"></script>
     <script>
+        console.log('[Admin] Module script tag added');
         window.__adminInitialized = true;
     </script>
 </body>
