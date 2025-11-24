@@ -352,10 +352,24 @@ function displayResults(results) {
       <div class="winner-banner">
         <h3>🏆 Current Winner</h3>
         <p>"${results.winner.title}" by ${results.winner.artist}</p>
-        ${results.winner.spotifyId ? `
+        ${(() => {
+          // Normalize Spotify track ID - extract just the ID from various formats
+          function normalizeSpotifyTrackId(spotifyId) {
+            if (!spotifyId || typeof spotifyId !== 'string') return null;
+            const trimmed = spotifyId.trim();
+            if (!trimmed) return null;
+            if (trimmed.startsWith('spotify:track:')) return trimmed.replace('spotify:track:', '');
+            const urlMatch = trimmed.match(/spotify\.com\/track\/([a-zA-Z0-9]+)/);
+            if (urlMatch) return urlMatch[1];
+            if (/^[a-zA-Z0-9]{22}$/.test(trimmed)) return trimmed;
+            const idMatch = trimmed.match(/[a-zA-Z0-9]{15,25}/);
+            return idMatch ? idMatch[0] : null;
+          }
+          const normalizedId = normalizeSpotifyTrackId(results.winner.spotifyId);
+          return normalizedId ? `
           <div style="margin: 16px 0;">
             <iframe 
-              src="https://open.spotify.com/embed/track/${results.winner.spotifyId}" 
+              src="https://open.spotify.com/embed/track/${normalizedId}" 
               width="100%" 
               height="352" 
               frameBorder="0" 
@@ -364,7 +378,8 @@ function displayResults(results) {
               style="border-radius: 8px; max-width: 100%;">
             </iframe>
           </div>
-        ` : ''}
+        ` : '';
+        })()}
       </div>
     ` : ''}
   `;

@@ -4,6 +4,51 @@ import { updateBackendUrl } from './utils.js';
 
 const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
+/**
+ * Normalize Spotify track ID - extracts just the ID from various formats
+ * Handles: "4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:4iV5W9uYEdYUVa79Axb7Rh", null, undefined
+ * @param {string|null|undefined} spotifyId - The Spotify ID in any format
+ * @returns {string|null} - Just the track ID, or null if invalid
+ */
+function normalizeSpotifyTrackId(spotifyId) {
+  if (!spotifyId || typeof spotifyId !== 'string') {
+    return null;
+  }
+  
+  // Remove whitespace
+  const trimmed = spotifyId.trim();
+  if (!trimmed) {
+    return null;
+  }
+  
+  // If it's a full URI, extract the ID
+  if (trimmed.startsWith('spotify:track:')) {
+    return trimmed.replace('spotify:track:', '');
+  }
+  
+  // If it's a URL, extract the ID
+  const urlMatch = trimmed.match(/spotify\.com\/track\/([a-zA-Z0-9]+)/);
+  if (urlMatch) {
+    return urlMatch[1];
+  }
+  
+  // If it's just the ID, validate it's alphanumeric (Spotify IDs are base62)
+  // Spotify track IDs are 22 characters, alphanumeric
+  if (/^[a-zA-Z0-9]{22}$/.test(trimmed)) {
+    return trimmed;
+  }
+  
+  // If it doesn't match expected format, try to extract any alphanumeric sequence
+  const idMatch = trimmed.match(/[a-zA-Z0-9]{15,25}/);
+  if (idMatch) {
+    return idMatch[0];
+  }
+  
+  // Invalid format
+  console.warn('Invalid Spotify track ID format:', spotifyId);
+  return null;
+}
+
 // Display API limit warning
 function showApiLimitWarning(message) {
   // Check if warning already exists to avoid duplicates
@@ -457,28 +502,32 @@ window.viewResults = async function (roundId) {
         <h4>Winner</h4>
         <p>"${results.winner.title}" by ${results.winner.artist}</p>
         ${
-          results.winner.spotifyId
-            ? `
+          (() => {
+            const normalizedId = normalizeSpotifyTrackId(results.winner.spotifyId);
+            return normalizedId
+              ? `
           <div style="margin: 16px 0;">
             <iframe 
-              src="https://open.spotify.com/embed/track/${results.winner.spotifyId}" 
+              src="https://open.spotify.com/embed/track/${normalizedId}" 
               width="100%" 
               height="352" 
               frameBorder="0" 
               allowtransparency="true" 
               allow="encrypted-media"
-              style="border-radius: 8px;">
+              style="border-radius: 8px;"
+              onerror="this.parentElement.innerHTML='<p style=\\'color:#666;\\'>Unable to load Spotify player. <a href=\\'https://open.spotify.com/track/${normalizedId}\\' target=\\'_blank\\'>Open in Spotify</a></p>'">
             </iframe>
           </div>
-          <a href="https://open.spotify.com/track/${results.winner.spotifyId}" target="_blank" class="btn btn-small" style="margin-top: 8px;">
+          <a href="https://open.spotify.com/track/${normalizedId}" target="_blank" class="btn btn-small" style="margin-top: 8px;">
             Open in Spotify
           </a>
         `
-            : `
+              : `
           <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
-            No Spotify track ID available for this song.
+            No valid Spotify track ID available for this song.
           </p>
-        `
+        `;
+          })()
         }
       </div>
     `
