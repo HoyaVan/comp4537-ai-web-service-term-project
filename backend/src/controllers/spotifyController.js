@@ -186,6 +186,119 @@ async function handleOAuthCallback(req, res) {
 }
 
 /**
+ * Get user's currently playing track on Spotify
+ * Requires authentication and Spotify connection
+ */
+async function getCurrentlyPlaying(req, res) {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    // Get user's Spotify tokens from database
+    const tokens = await authService.getUserSpotifyTokens(userId);
+    if (!tokens || !tokens.accessToken) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          connected: false,
+          playing: false,
+          message: "Spotify not connected",
+        },
+      });
+    }
+
+    // Check if token is expired and refresh if needed
+    let accessToken = tokens.accessToken;
+    if (tokens.expiresAt && Date.now() >= tokens.expiresAt) {
+      if (tokens.refreshToken) {
+        try {
+          const refreshed = await spotifyService.refreshAccessToken(tokens.refreshToken);
+          accessToken = refreshed.access_token;
+          const newRefreshToken = refreshed.refresh_token || tokens.refreshToken;
+          const newExpiresAt = Date.now() + (refreshed.expires_in * 1000);
+          await authService.updateUserSpotifyTokens(
+            userId,
+            refreshed.access_token,
+            newRefreshToken,
+            newExpiresAt
+          );
+        } catch (error) {
+          console.error("Failed to refresh token for playback:", error.message);
+          return res.status(401).json({
+            success: false,
+            message: "Spotify authentication failed. Please reconnect to Spotify.",
+          });
+        }
+      } else {
+        return res.status(401).json({
+          success: false,
+          message: "Spotify authentication expired. Please reconnect to Spotify.",
+        });
+      }
+    }
+
+    // Get current playback
+    try {
+      const playback = await spotifyService.getCurrentPlayback(accessToken);
+      
+      if (!playback || !playback.item) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            connected: true,
+            playing: false,
+            message: "Nothing is currently playing",
+          },
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          connected: true,
+          playing: playback.is_playing || false,
+          track: {
+            id: playback.item.id,
+            name: playback.item.name,
+            artist: playback.item.artists.map(a => a.name).join(", "),
+            album: playback.item.album.name,
+            uri: playback.item.uri,
+            external_urls: playback.item.external_urls,
+            images: playback.item.album.images,
+          },
+          progress_ms: playback.progress_ms || 0,
+          duration_ms: playback.item.duration_ms || 0,
+        },
+      });
+    } catch (error) {
+      // If error is 204 (no content), nothing is playing
+      if (error.message.includes("204") || error.response?.status === 204) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            connected: true,
+            playing: false,
+            message: "Nothing is currently playing",
+          },
+        });
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error getting currently playing:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Error getting currently playing track",
+    });
+  }
+}
+
+/**
  * Get current user's Spotify token information
  * Requires authentication
  */
