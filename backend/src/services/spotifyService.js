@@ -274,7 +274,8 @@ class SpotifyService {
       "playlist-modify-public",
       "playlist-modify-private",
       "playlist-read-private",
-      "user-modify-playback-state"
+      "user-modify-playback-state",
+      "user-read-playback-state"
     ]
   ) {
     if (!this.clientId) {
@@ -678,10 +679,26 @@ class SpotifyService {
         // No content = nothing is playing
         return null;
       }
+      
+      const errorDetails = error.response?.data || error.message;
+      const statusCode = error.response?.status;
+      
       console.error(
         "Error getting current playback:",
-        error.response?.data || error.message
+        `Status: ${statusCode}`,
+        `Error: ${JSON.stringify(errorDetails)}`
       );
+      
+      // Handle specific error cases
+      if (statusCode === 403) {
+        throw new Error("Spotify access denied. Please check your app permissions in Spotify Developer Dashboard.");
+      } else if (statusCode === 401) {
+        throw new Error("Spotify authentication failed. Please reconnect to Spotify.");
+      } else if (statusCode === 404) {
+        // No active device - this is normal, not an error
+        return null;
+      }
+      
       throw new Error("Failed to get current playback");
     }
   }

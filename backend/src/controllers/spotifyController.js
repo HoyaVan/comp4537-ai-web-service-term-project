@@ -276,8 +276,30 @@ async function getCurrentlyPlaying(req, res) {
         },
       });
     } catch (error) {
-      // If error is 204 (no content), nothing is playing
-      if (error.message.includes("204") || error.response?.status === 204) {
+      // Handle specific error cases gracefully
+      if (error.message.includes("access denied") || error.message.includes("403")) {
+        // Permission issue - return connected but can't read playback
+        return res.status(200).json({
+          success: true,
+          data: {
+            connected: true,
+            playing: false,
+            message: "Cannot read playback (permission issue)",
+            error: "Spotify app permissions may need to be updated",
+          },
+        });
+      } else if (error.message.includes("authentication failed") || error.message.includes("401")) {
+        // Auth issue
+        return res.status(200).json({
+          success: true,
+          data: {
+            connected: false,
+            playing: false,
+            message: "Spotify authentication failed. Please reconnect.",
+          },
+        });
+      } else if (error.message.includes("204") || error.response?.status === 204) {
+        // No content = nothing is playing
         return res.status(200).json({
           success: true,
           data: {
@@ -287,7 +309,16 @@ async function getCurrentlyPlaying(req, res) {
           },
         });
       }
-      throw error;
+      // For other errors, return a generic message but still indicate connection
+      return res.status(200).json({
+        success: true,
+        data: {
+          connected: true,
+          playing: false,
+          message: "Unable to get playback status",
+          error: error.message,
+        },
+      });
     }
   } catch (error) {
     console.error("Error getting currently playing:", error);
