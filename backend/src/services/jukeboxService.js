@@ -958,20 +958,30 @@ async function advanceJukebox(ownerId) {
 
 /**
  * Stop jukebox
+ * @param {string} ownerId - Owner user ID
+ * @param {boolean} deleteFromMap - If true, completely remove jukebox from map (default: false for backward compatibility)
  */
-function stopJukebox(ownerId) {
+function stopJukebox(ownerId, deleteFromMap = false) {
   const jukebox = jukeboxes.get(ownerId);
   if (!jukebox) {
     return;
   }
 
+  // Clear any active timers to prevent further API calls
   if (jukebox.timer) {
     clearTimeout(jukebox.timer);
     jukebox.timer = null;
   }
 
   jukebox.isActive = false;
-  jukeboxes.set(ownerId, jukebox);
+  
+  if (deleteFromMap) {
+    // Completely remove from map to prevent any lingering references
+    jukeboxes.delete(ownerId);
+    console.log(`🗑️ [Jukebox] Completely removed jukebox for owner ${ownerId}`);
+  } else {
+    jukeboxes.set(ownerId, jukebox);
+  }
 }
 
 /**

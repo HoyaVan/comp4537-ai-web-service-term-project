@@ -91,17 +91,53 @@ async function getJukeboxStatus(req, res) {
 async function stopJukebox(req, res) {
   try {
     const ownerId = req.userId;
-    jukeboxService.stopJukebox(ownerId);
+    const { deleteFromMap = false } = req.body; // Optional: completely remove from map
+    
+    jukeboxService.stopJukebox(ownerId, deleteFromMap);
 
     return res.status(200).json({
       success: true,
-      message: "Jukebox stopped successfully",
+      message: deleteFromMap ? "Jukebox stopped and removed successfully" : "Jukebox stopped successfully",
     });
   } catch (error) {
     console.error("Error stopping jukebox:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "Error stopping jukebox",
+    });
+  }
+}
+
+/**
+ * Stop jukebox completely and clean up all resources
+ * This completely stops all API calls, clears timers, and removes jukebox from memory
+ */
+async function stopAndDeleteJukebox(req, res) {
+  try {
+    const ownerId = req.userId;
+
+    // Get jukebox info before stopping (for response)
+    const jukebox = jukeboxService.getJukeboxStatus(ownerId);
+    const hadActiveJukebox = jukebox && jukebox.isActive;
+    const votingRoundId = jukebox?.votingRound?.roundId || null;
+
+    // Stop the jukebox completely (remove from map, clear all timers)
+    jukeboxService.stopJukebox(ownerId, true);
+
+    return res.status(200).json({
+      success: true,
+      message: "Jukebox stopped and completely removed. All timers cleared and API calls stopped.",
+      data: {
+        wasActive: hadActiveJukebox,
+        votingRoundId,
+        stopped: true,
+      },
+    });
+  } catch (error) {
+    console.error("Error stopping and deleting jukebox:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error stopping and deleting jukebox",
     });
   }
 }
@@ -316,6 +352,7 @@ module.exports = {
   startJukebox,
   getJukeboxStatus,
   stopJukebox,
+  stopAndDeleteJukebox,
   getJukeboxVotingRound,
   getJukeboxNowPlaying,
   skipCurrentSong,

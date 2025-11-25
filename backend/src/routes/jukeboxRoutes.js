@@ -118,6 +118,42 @@ router.post("/stop", authenticateToken, jukeboxController.stopJukebox);
 
 /**
  * @swagger
+ * /api/v1/jukebox/stop-and-delete:
+ *   post:
+ *     summary: Stop jukebox completely and clean up all resources - stops all API calls and timers
+ *     description: This endpoint completely stops the jukebox, clears all timers, and removes it from memory. Use this if a jukebox is accidentally left running.
+ *     tags: [Jukebox]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Jukebox stopped and completely removed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     wasActive:
+ *                       type: boolean
+ *                     votingRoundId:
+ *                       type: string
+ *                       nullable: true
+ *                     stopped:
+ *                       type: boolean
+ *       500:
+ *         description: Error stopping and deleting jukebox
+ */
+router.post("/stop-and-delete", authenticateToken, jukeboxController.stopAndDeleteJukebox);
+
+/**
+ * @swagger
  * /api/v1/jukebox/skip:
  *   post:
  *     summary: Skip current song

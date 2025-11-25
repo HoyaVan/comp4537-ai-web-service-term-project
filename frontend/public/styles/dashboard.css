@@ -246,6 +246,16 @@ h2 { margin: 32px 0 16px; font-size: 20px; border-bottom: 2px solid #e2e8f0; pad
   filter: brightness(1.05);
 }
 
+.btn-danger {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-danger:hover {
+  filter: brightness(1.05);
+  background: #b91c1c;
+}
+
 .loading {
   text-align: center;
   padding: 24px;

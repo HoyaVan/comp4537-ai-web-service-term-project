@@ -254,9 +254,36 @@ async function createRound(roundData) {
 async function loadRounds() {
   const { ok, data } = await apiRequest("/api/v1/voting/rounds");
   if (ok && data.success) {
-    return data.data || [];
+    const rounds = data.data || [];
+    
+    // Check jukebox status to determine which rounds have active jukebox
+    try {
+      const jukeboxStatus = await getJukeboxStatus();
+      if (jukeboxStatus && jukeboxStatus.isActive && jukeboxStatus.votingRound) {
+        // Mark the active jukebox voting round
+        rounds.forEach(round => {
+          if (round.id === jukeboxStatus.votingRound.roundId) {
+            round._isJukeboxVotingRound = true;
+            round._jukeboxActive = true;
+          }
+        });
+      }
+    } catch (error) {
+      console.warn("Could not fetch jukebox status:", error);
+    }
+    
+    return rounds;
   }
   return [];
+}
+
+// Get jukebox status
+async function getJukeboxStatus() {
+  const { ok, data } = await apiRequest("/api/v1/jukebox/status");
+  if (ok && data.success) {
+    return data.data;
+  }
+  return null;
 }
 
 // Get QR code data
@@ -437,6 +464,14 @@ function displayRounds(rounds) {
         <button class="btn btn-small" onclick="generateNext('${
           round.id
         }')">Generate Next Round</button>
+        ${
+          round._jukeboxActive
+            ? `
+          <button class="btn btn-small btn-danger" onclick="stopJukebox()" title="Stop jukebox and prevent further API calls">🛑 Stop Jukebox</button>
+          <button class="btn btn-small btn-danger" onclick="stopAndDeleteJukebox()" title="Stop jukebox completely and remove from memory">🗑️ Stop & Delete</button>
+        `
+            : ""
+        }
       </div>
     </div>
   `
@@ -726,6 +761,51 @@ window.generateNext = async function (roundId) {
 
   btn.disabled = false;
   btn.textContent = dashboardMessages.generateNextRound;
+};
+
+// Stop jukebox
+window.stopJukebox = async function () {
+  if (!confirm("Stop jukebox? This will stop automated song advancement and clear timers.")) {
+    return;
+  }
+
+  try {
+    const { ok, data } = await apiRequest("/api/v1/jukebox/stop", {
+      method: "POST",
+      body: JSON.stringify({ deleteFromMap: true }),
+    });
+
+    if (ok && data.success) {
+      alert("Jukebox stopped successfully. All timers cleared.");
+      await loadAndDisplayRounds();
+    } else {
+      alert("Failed to stop jukebox: " + (data.message || "Unknown error"));
+    }
+  } catch (error) {
+    alert("Error stopping jukebox: " + error.message);
+  }
+};
+
+// Stop and delete jukebox completely
+window.stopAndDeleteJukebox = async function () {
+  if (!confirm("Stop and delete jukebox completely? This will:\n- Stop all API calls\n- Clear all timers\n- Remove jukebox from memory\n\nThis action cannot be undone.")) {
+    return;
+  }
+
+  try {
+    const { ok, data } = await apiRequest("/api/v1/jukebox/stop-and-delete", {
+      method: "POST",
+    });
+
+    if (ok && data.success) {
+      alert("Jukebox stopped and completely removed. All API calls stopped.");
+      await loadAndDisplayRounds();
+    } else {
+      alert("Failed to stop and delete jukebox: " + (data.message || "Unknown error"));
+    }
+  } catch (error) {
+    alert("Error stopping and deleting jukebox: " + error.message);
+  }
 };
 
 // Load and display rounds
