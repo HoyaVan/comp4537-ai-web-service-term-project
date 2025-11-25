@@ -256,6 +256,62 @@ async function resumeJukebox(req, res) {
   }
 }
 
+/**
+ * Switch jukebox to use a different voting round
+ */
+async function switchJukeboxRound(req, res) {
+  try {
+    const ownerId = req.userId;
+    const { roundId, roundNumber } = req.body;
+
+    if (!roundId) {
+      return res.status(400).json({
+        success: false,
+        message: "roundId is required",
+      });
+    }
+
+    // Verify round belongs to owner
+    const round = votingService.getRoundById(roundId);
+    if (!round) {
+      return res.status(404).json({
+        success: false,
+        message: "Round not found",
+      });
+    }
+
+    if (round.ownerId !== ownerId) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the round owner can switch jukebox to this round",
+      });
+    }
+
+    // Verify round has a winner
+    const results = votingService.getVotingResults(roundId, roundNumber || round.currentRoundNumber);
+    if (!results.winner) {
+      return res.status(400).json({
+        success: false,
+        message: "Round must have a winner before switching jukebox to it",
+      });
+    }
+
+    const jukebox = await jukeboxService.switchJukeboxRound(ownerId, roundId, roundNumber);
+
+    return res.status(200).json({
+      success: true,
+      message: "Jukebox switched to new round successfully",
+      data: jukebox,
+    });
+  } catch (error) {
+    console.error("Error switching jukebox round:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Error switching jukebox round",
+    });
+  }
+}
+
 module.exports = {
   startJukebox,
   getJukeboxStatus,
@@ -265,5 +321,6 @@ module.exports = {
   skipCurrentSong,
   pauseJukebox,
   resumeJukebox,
+  switchJukeboxRound,
 };
 
