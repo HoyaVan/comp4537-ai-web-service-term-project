@@ -234,6 +234,62 @@ h2 {
   font-style: italic;
 }
 
+/* API Consumption Warning/Info Styles */
+.api-warning-banner {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #fef3c7;
+  border: 2px solid #f59e0b;
+  border-radius: 6px;
+  color: #92400e;
+  font-size: 14px;
+}
+
+.api-info-box {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.api-breakdown-note {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #e0f2fe;
+  border-left: 4px solid #0284c7;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #0c4a6e;
+}
+
+.api-endpoint-container {
+  overflow-x: auto;
+}
+
+.api-empty-state {
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.api-empty-state small {
+  color: #64748b;
+}
+
+.refresh-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.refresh-section-header h2 {
+  margin: 0;
+}
+
 @media (max-width: 640px) {
   .user-info-grid {
     grid-template-columns: 1fr;

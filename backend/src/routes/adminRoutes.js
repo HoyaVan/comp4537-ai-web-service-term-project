@@ -205,6 +205,82 @@ router.get("/stats/logs", adminController.getAllApiCallLogs);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+/**
+ * @swagger
+ * /api/v1/admin/users/{userId}/api-consumption:
+ *   get:
+ *     summary: Get individual user API consumption
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Returns detailed API consumption for a specific user including endpoint breakdown. Requires admin role.
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User API consumption retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         role:
+ *                           type: string
+ *                     apiConsumption:
+ *                       type: object
+ *                       properties:
+ *                         callsUsed:
+ *                           type: integer
+ *                         callsLimit:
+ *                           type: integer
+ *                         remainingCalls:
+ *                           type: integer
+ *                         hasExceededLimit:
+ *                           type: boolean
+ *                         endpointBreakdown:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               method:
+ *                                 type: string
+ *                               endpoint:
+ *                                 type: string
+ *                               requests:
+ *                                 type: integer
+ *       403:
+ *         description: Forbidden - Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get("/users/:userId/api-consumption", adminController.getUserApiConsumption);
+
 router.post("/users/:userId/reset-api-count", adminController.resetUserApiCallCount);
 
 module.exports = router;

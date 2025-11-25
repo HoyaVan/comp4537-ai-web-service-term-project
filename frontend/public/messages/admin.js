@@ -13,5 +13,42 @@ export const adminMessages = {
   noConsumptionStats: 'No consumption statistics available.',
   unknownError: 'Unknown error',
   userCount: (count) => `${count} user${count !== 1 ? 's' : ''}`,
+  
+  // User API Consumption Modal
+  modalTitle: 'API Consumption:',
+  modalUserLabel: 'User:',
+  modalUserIdLabel: 'User ID:',
+  modalRoleLabel: 'Role:',
+  modalTotalCallsLabel: 'Total API Calls:',
+  modalCallLimitLabel: 'Call Limit:',
+  modalRemainingCallsLabel: 'Remaining Calls:',
+  modalLimitExceededLabel: 'Limit Exceeded:',
+  modalEndpointBreakdownTitle: 'Endpoint Breakdown',
+  modalNoEndpointData: 'No endpoint data available',
+  modalUnlimited: 'Unlimited',
+  modalYes: 'Yes',
+  modalNo: 'No',
+  modalNotAvailable: 'N/A',
+  modalFailedToLoad: 'Failed to load user API consumption:',
+  modalErrorLoading: 'Error loading user API consumption:',
+  viewDetailsButton: 'View Details',
+  
+  // Table Headers
+  tableHeaderMethod: 'Method',
+  tableHeaderEndpoint: 'Endpoint',
+  tableHeaderRequests: 'Requests',
+  tableHeaderTotalRequests: 'Total Requests',
+  tableHeaderName: 'Name',
+  tableHeaderEmail: 'Email',
+  tableHeaderUserId: 'User ID',
+  tableHeaderActions: 'Actions',
+  tableHeaderLatestUser: 'Latest User',
+  tableHeaderLastCallUserEmail: 'Last Call User Email',
+  tableHeaderLastCallUserId: 'Last Call User ID',
+  tableHeaderLatestTime: 'Latest Time',
+  
+  // Common Values
+  unknown: 'Unknown',
+  notAvailable: 'N/A',
 };
 

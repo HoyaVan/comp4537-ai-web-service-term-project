@@ -14,5 +14,18 @@ export const profileMessages = {
   remainingCalls: (remaining) => `(${remaining} remaining)`,
   limitExceeded: '(Limit exceeded)',
   noEndpointData: 'No endpoint-specific data available yet. Start making API calls to see your usage breakdown.',
+  
+  // Endpoint Breakdown Note
+  breakdownNoteLabel: 'Note:',
+  breakdownNoteMessage: (recentCalls, totalCalls) => `Endpoint breakdown shows ${recentCalls.toLocaleString()} recent calls. Your total of ${totalCalls.toLocaleString()} calls includes all API usage since account creation. Endpoint details reset when the server restarts.`,
+  emptyStateMessage: (totalCalls) => `Your total of ${totalCalls.toLocaleString()} API calls is tracked in the database, but endpoint details are only available for recent calls.`,
+  
+  // Table Headers
+  tableHeaderMethod: 'Method',
+  tableHeaderEndpoint: 'Endpoint',
+  tableHeaderRequests: 'Requests',
+  
+  // Common Labels
+  notAvailable: 'N/A',
 };
 

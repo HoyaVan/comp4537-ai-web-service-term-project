@@ -177,11 +177,14 @@ const trackApiCall = (
   apiCallLogs.push(logEntry);
 
   // Check if this is an auth endpoint (should not count towards limit)
-  // Check both full path (/api/auth/profile) and route path (/profile)
+  // Check both full path (/api/v1/auth/profile) and route path (/profile)
   const isAuthEndpoint =
     endpoint.includes("/api/auth/login") ||
+    endpoint.includes("/api/v1/auth/login") ||
     endpoint.includes("/api/auth/signup") ||
+    endpoint.includes("/api/v1/auth/signup") ||
     endpoint.includes("/api/auth/profile") ||
+    endpoint.includes("/api/v1/auth/profile") ||
     endpoint === "/profile" ||
     endpoint === "/login" ||
     endpoint === "/signup";
@@ -320,8 +323,11 @@ const getUserEndpointStats = (userId) => {
       // Check if this is an auth endpoint - exclude from user's endpoint breakdown
       const isAuthEndpoint =
         endpoint.includes("/api/auth/login") ||
+        endpoint.includes("/api/v1/auth/login") ||
         endpoint.includes("/api/auth/signup") ||
+        endpoint.includes("/api/v1/auth/signup") ||
         endpoint.includes("/api/auth/profile") ||
+        endpoint.includes("/api/v1/auth/profile") ||
         endpoint === "/profile" ||
         endpoint === "/login" ||
         endpoint === "/signup";
@@ -443,11 +449,14 @@ const apiTrackingMiddleware = (req, res, next) => {
     );
 
     // Check if this is an auth endpoint (should not show warning)
-    // Check both full path (/api/auth/profile) and route path (/profile)
+    // Check both full path (/api/v1/auth/profile) and route path (/profile)
     const isAuthEndpoint =
       endpoint.includes("/api/auth/login") ||
+      endpoint.includes("/api/v1/auth/login") ||
       endpoint.includes("/api/auth/signup") ||
+      endpoint.includes("/api/v1/auth/signup") ||
       endpoint.includes("/api/auth/profile") ||
+      endpoint.includes("/api/v1/auth/profile") ||
       endpoint === "/profile" ||
       endpoint === "/login" ||
       endpoint === "/signup";

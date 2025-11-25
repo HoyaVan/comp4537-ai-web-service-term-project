@@ -3,6 +3,11 @@ const {
   getUserConsumptionStats,
   getAllApiLogs,
   resetUserApiCount,
+  getUserApiCount,
+  getUserEndpointStats,
+  getRemainingCalls,
+  hasExceededLimit,
+  FREE_API_CALLS_LIMIT,
 } = require("../middleware/apiTrackingMiddleware");
 const authService = require("../services/authService");
 const adminMessages = require("../messages/admin");
@@ -149,6 +154,73 @@ async function getAllApiCallLogs(req, res) {
 }
 
 /**
+ * Get individual user API consumption (admin only)
+ * Allows admin to view any user's API consumption details
+ */
+async function getUserApiConsumption(req, res) {
+  try {
+    // Check if user is admin
+    const user = req.user;
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: adminMessages.adminAccessRequired,
+      });
+    }
+
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: adminMessages.userIdRequired,
+      });
+    }
+
+    // Check if user exists
+    const targetUser = await authService.getUserById(userId);
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: adminMessages.userNotFound,
+      });
+    }
+
+    // Get API consumption stats for the target user
+    const apiCallsUsed = await getUserApiCount(userId);
+    const endpointStats = getUserEndpointStats(userId);
+    const remainingCalls = await getRemainingCalls(userId, targetUser.role);
+    const exceeded = await hasExceededLimit(userId, targetUser.role);
+    const isAdmin = targetUser.role === 'admin';
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        user: {
+          id: targetUser.id,
+          email: targetUser.email,
+          name: targetUser.name,
+          role: targetUser.role,
+        },
+        apiConsumption: {
+          callsUsed: apiCallsUsed,
+          callsLimit: isAdmin ? 'unlimited' : FREE_API_CALLS_LIMIT,
+          remainingCalls: remainingCalls,
+          hasExceededLimit: exceeded,
+          hasUnlimitedCalls: isAdmin,
+          endpointBreakdown: endpointStats,
+        },
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: adminMessages.errorFetchingUserConsumptionStats,
+      error: error.message,
+    });
+  }
+}
+
+/**
  * Reset API call count for a user (admin only)
  */
 async function resetUserApiCallCount(req, res) {
@@ -198,6 +270,7 @@ module.exports = {
   getApiEndpointStats,
   getUserApiConsumptionStats,
   getAllApiCallLogs,
+  getUserApiConsumption,
   resetUserApiCallCount,
 };
 

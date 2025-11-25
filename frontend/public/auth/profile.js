@@ -95,11 +95,11 @@ function displayUserInfo(user) {
       </div>
       <div class="user-info-item">
         <span class="info-label">Email</span>
-        <span class="info-value">${user.email || 'N/A'}</span>
+        <span class="info-value">${user.email || profileMessages.notAvailable}</span>
       </div>
       <div class="user-info-item">
         <span class="info-label">User ID</span>
-        <span class="info-value info-value-monospace">${user.id || 'N/A'}</span>
+        <span class="info-value info-value-monospace">${user.id || profileMessages.notAvailable}</span>
       </div>
       <div class="user-info-item">
         <span class="info-label">Role</span>
@@ -134,13 +134,13 @@ function displayApiConsumption(user) {
   let warningHtml = '';
   if (hasExceeded) {
     warningHtml = `
-      <div style="margin-bottom: 16px; padding: 12px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 6px; color: #92400e; font-size: 14px;">
+      <div class="api-warning-banner">
         <strong>⚠️ ${profileMessages.apiLimitExceeded}:</strong> ${profileMessages.apiLimitExceededMessage(callsLimit)}
       </div>
     `;
   } else if (remainingCalls !== null && remainingCalls <= 5) {
     warningHtml = `
-      <div style="margin-bottom: 16px; padding: 12px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 6px; color: #92400e; font-size: 14px;">
+      <div class="api-warning-banner">
         <strong>⚠️ ${profileMessages.warningRemaining(remainingCalls)}</strong>
       </div>
     `;
@@ -150,7 +150,7 @@ function displayApiConsumption(user) {
   let callsInfoHtml = '';
   if (remainingCalls !== null) {
     callsInfoHtml = `
-      <div style="margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 6px; font-size: 14px;">
+      <div class="api-info-box">
         <strong>${profileMessages.freeApiCalls(callsUsed, callsLimit)}</strong>
         ${remainingCalls > 0 ? profileMessages.remainingCalls(remainingCalls) : profileMessages.limitExceeded}
       </div>
@@ -160,15 +160,29 @@ function displayApiConsumption(user) {
   // Only show per-endpoint breakdown (individual API consumption)
   let tableHtml = '';
   
+  // Calculate total from endpoint breakdown for comparison
+  const endpointTotal = endpointBreakdown.reduce((sum, ep) => sum + (ep.requests || 0), 0);
+  const hasIncompleteData = endpointTotal < callsUsed && callsUsed > 0;
+  
   if (endpointBreakdown.length > 0) {
+    let breakdownNote = '';
+    if (hasIncompleteData) {
+      breakdownNote = `
+        <div class="api-breakdown-note">
+          <strong>${profileMessages.breakdownNoteLabel}</strong> ${profileMessages.breakdownNoteMessage(endpointTotal, callsUsed)}
+        </div>
+      `;
+    }
+    
     tableHtml = `
-      <div style="overflow-x: auto;">
+      ${breakdownNote}
+      <div class="api-endpoint-container">
         <table class="endpoint-table">
           <thead>
             <tr>
-              <th>Method</th>
-              <th>Endpoint</th>
-              <th>Requests</th>
+              <th>${profileMessages.tableHeaderMethod}</th>
+              <th>${profileMessages.tableHeaderEndpoint}</th>
+              <th>${profileMessages.tableHeaderRequests}</th>
             </tr>
           </thead>
           <tbody>
@@ -176,10 +190,10 @@ function displayApiConsumption(user) {
               <tr>
                 <td>
                   <span class="method-badge method-badge-${(endpoint.method || 'GET').toLowerCase()}">
-                    ${endpoint.method || 'N/A'}
+                    ${endpoint.method || profileMessages.notAvailable}
                   </span>
                 </td>
-                <td class="endpoint-cell">${endpoint.endpoint || 'N/A'}</td>
+                <td class="endpoint-cell">${endpoint.endpoint || profileMessages.notAvailable}</td>
                 <td class="requests-cell">${(endpoint.requests || 0).toLocaleString()}</td>
               </tr>
             `).join('')}
@@ -189,13 +203,22 @@ function displayApiConsumption(user) {
     `;
   } else {
     tableHtml = `
-      <div style="padding: 12px; background: #f8fafc; border-radius: 6px; color: var(--muted); font-size: 14px;">
+      <div class="api-empty-state">
         ${profileMessages.noEndpointData}
+        ${callsUsed > 0 ? `<br><small>${profileMessages.emptyStateMessage(callsUsed)}</small>` : ''}
       </div>
     `;
   }
 
   container.innerHTML = warningHtml + callsInfoHtml + tableHtml;
+}
+
+// Load and display API consumption
+async function loadAndDisplayApiConsumption() {
+  const user = await loadUserInfo();
+  if (user) {
+    displayApiConsumption(user);
+  }
 }
 
 // Initialize profile page
@@ -220,6 +243,23 @@ async function initProfile() {
   
   // Display API consumption
   displayApiConsumption(user);
+  
+  // Setup refresh button
+  const refreshBtn = document.getElementById('refresh-api-consumption-btn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = 'Refreshing...';
+      try {
+        await loadAndDisplayApiConsumption();
+      } catch (error) {
+        console.error('Error refreshing API consumption:', error);
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = 'Refresh';
+      }
+    });
+  }
 
   // Wait for headerUtils to be ready
   let headerUtilsReady = false;

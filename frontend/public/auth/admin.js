@@ -124,8 +124,9 @@ function displayUsers(users) {
   thead.innerHTML = `
     <tr>
       <th>ID</th>
-      <th>Email</th>
-      <th>Name</th>
+      <th>${adminMessages.tableHeaderEmail}</th>
+      <th>${adminMessages.tableHeaderName}</th>
+      <th>API Calls</th>
       <th>Created At</th>
     </tr>
   `;
@@ -137,18 +138,20 @@ function displayUsers(users) {
     const row = document.createElement('tr');
     const createdAt = user.createdAt 
       ? new Date(user.createdAt).toLocaleString()
-      : 'N/A';
+      : adminMessages.notAvailable;
+    const apiCalls = user.api_calls !== undefined ? user.api_calls : (user.apiCalls !== undefined ? user.apiCalls : 0);
     
     row.innerHTML = `
-      <td class="user-id">${user.id || 'N/A'}</td>
-      <td class="user-email-cell">${user.email || 'N/A'}</td>
-      <td class="user-name">${user.name || 'N/A'}</td>
+      <td class="user-id">${user.id || adminMessages.notAvailable}</td>
+      <td class="user-email-cell">${user.email || adminMessages.notAvailable}</td>
+      <td class="user-name">${user.name || adminMessages.notAvailable}</td>
+      <td class="user-api-calls">${apiCalls.toLocaleString()}</td>
       <td class="user-created">${createdAt}</td>
     `;
     tbody.appendChild(row);
   });
   table.appendChild(tbody);
-
+  
   if (usersList) {
     usersList.appendChild(table);
   }
@@ -322,13 +325,13 @@ function displayEndpointStats(stats) {
   const thead = document.createElement('thead');
   thead.innerHTML = `
     <tr>
-      <th>Method</th>
-      <th>Endpoint</th>
-      <th>Total Requests</th>
-      <th>Latest User</th>
-      <th>Last Call User Email</th>
-      <th>Last Call User ID</th>
-      <th>Latest Time</th>
+      <th>${adminMessages.tableHeaderMethod}</th>
+      <th>${adminMessages.tableHeaderEndpoint}</th>
+      <th>${adminMessages.tableHeaderTotalRequests}</th>
+      <th>${adminMessages.tableHeaderLatestUser}</th>
+      <th>${adminMessages.tableHeaderLastCallUserEmail}</th>
+      <th>${adminMessages.tableHeaderLastCallUserId}</th>
+      <th>${adminMessages.tableHeaderLatestTime}</th>
     </tr>
   `;
   table.appendChild(thead);
@@ -342,32 +345,32 @@ function displayEndpointStats(stats) {
     if (stat.lastCall && stat.lastCall.userId && stat.lastCall.userId !== 'anonymous') {
       const latestUser = stat.users?.find(u => u.userId === stat.lastCall.userId);
       if (latestUser) {
-        const displayName = latestUser.name && latestUser.name !== 'Unknown' ? latestUser.name : (latestUser.email || 'Unknown');
+        const displayName = latestUser.name && latestUser.name !== adminMessages.unknown ? latestUser.name : (latestUser.email || adminMessages.unknown);
         latestUserHtml += `<span class="user-badge" title="${latestUser.email || latestUser.userId}">${displayName}</span>`;
       } else {
         // Fallback to email if user not found in users list
-        const displayName = stat.lastCall.email || stat.lastCall.userId || 'Unknown';
+        const displayName = stat.lastCall.email || stat.lastCall.userId || adminMessages.unknown;
         latestUserHtml += `<span class="user-badge" title="${stat.lastCall.email || stat.lastCall.userId}">${displayName}</span>`;
       }
     } else {
-      latestUserHtml += '<span class="muted-text">N/A</span>';
+      latestUserHtml += `<span class="muted-text">${adminMessages.notAvailable}</span>`;
     }
     latestUserHtml += '</div>';
     
     const requestsCount = (stat.requests || 0).toLocaleString();
     
     // Format last call info
-    const lastCallEmail = stat.lastCall?.email || '<span class="muted-text">N/A</span>';
-    const lastCallUserId = stat.lastCall?.userId || '<span class="muted-text">N/A</span>';
-    let lastCallTime = '<span class="muted-text">N/A</span>';
+    const lastCallEmail = stat.lastCall?.email || `<span class="muted-text">${adminMessages.notAvailable}</span>`;
+    const lastCallUserId = stat.lastCall?.userId || `<span class="muted-text">${adminMessages.notAvailable}</span>`;
+    let lastCallTime = `<span class="muted-text">${adminMessages.notAvailable}</span>`;
     if (stat.lastCall?.timestamp) {
       const date = new Date(stat.lastCall.timestamp);
       lastCallTime = date.toLocaleString();
     }
     
     row.innerHTML = `
-      <td class="method-cell">${stat.method || 'N/A'}</td>
-      <td class="endpoint-cell">${stat.endpoint || 'N/A'}</td>
+      <td class="method-cell">${stat.method || adminMessages.notAvailable}</td>
+      <td class="endpoint-cell">${stat.endpoint || adminMessages.notAvailable}</td>
       <td class="requests-cell">${requestsCount}</td>
       <td class="users-cell">${latestUserHtml}</td>
       <td class="email-cell">${lastCallEmail}</td>
@@ -417,10 +420,11 @@ function displayConsumptionStats(stats) {
   const thead = document.createElement('thead');
   thead.innerHTML = `
     <tr>
-      <th>Name</th>
-      <th>Email</th>
-      <th>User ID</th>
-      <th>Total Requests</th>
+      <th>${adminMessages.tableHeaderName}</th>
+      <th>${adminMessages.tableHeaderEmail}</th>
+      <th>${adminMessages.tableHeaderUserId}</th>
+      <th>${adminMessages.tableHeaderTotalRequests}</th>
+      <th>${adminMessages.tableHeaderActions}</th>
     </tr>
   `;
   table.appendChild(thead);
@@ -429,10 +433,15 @@ function displayConsumptionStats(stats) {
   stats.forEach(stat => {
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td class="name-cell">${stat.name || 'N/A'}</td>
-      <td class="email-cell">${stat.email || 'N/A'}</td>
-      <td class="user-id-cell">${stat.userId || 'N/A'}</td>
+      <td class="name-cell">${stat.name || adminMessages.notAvailable}</td>
+      <td class="email-cell">${stat.email || adminMessages.notAvailable}</td>
+      <td class="user-id-cell">${stat.userId || adminMessages.notAvailable}</td>
       <td class="requests-cell">${(stat.totalRequests || 0).toLocaleString()}</td>
+      <td class="actions-cell">
+        <button class="admin-btn-small view-user-api-btn" data-user-id="${stat.userId}" title="View API consumption details">
+          ${adminMessages.viewDetailsButton}
+        </button>
+      </td>
     `;
     tbody.appendChild(row);
   });
@@ -440,4 +449,112 @@ function displayConsumptionStats(stats) {
   
   container.innerHTML = '';
   container.appendChild(table);
+  
+  // Add click handlers for view details buttons
+  const viewButtons = container.querySelectorAll('.view-user-api-btn');
+  viewButtons.forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const userId = e.target.getAttribute('data-user-id');
+      if (userId) {
+        await viewUserApiConsumption(userId);
+      }
+    });
+  });
+}
+
+// View individual user API consumption
+async function viewUserApiConsumption(userId) {
+  try {
+    const { ok, data } = await apiRequest(`/api/v1/admin/users/${userId}/api-consumption`);
+    if (ok && data.success) {
+      showUserApiConsumptionModal(data.data);
+    } else {
+      alert(`${adminMessages.modalFailedToLoad}${data.message || adminMessages.unknownError}`);
+    }
+  } catch (error) {
+    console.error('Error loading user API consumption:', error);
+    alert(`${adminMessages.modalErrorLoading}${error.message}`);
+  }
+}
+
+// Show user API consumption in a modal
+function showUserApiConsumptionModal(userData) {
+  // Create modal overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-content';
+  
+  const consumption = userData.apiConsumption;
+  const endpointBreakdown = consumption.endpointBreakdown || [];
+  
+  let endpointTableHtml = '';
+  if (endpointBreakdown.length > 0) {
+    endpointTableHtml = `
+      <table class="stats-table modal-endpoint-table">
+        <thead>
+          <tr>
+            <th>${adminMessages.tableHeaderMethod}</th>
+            <th>${adminMessages.tableHeaderEndpoint}</th>
+            <th>${adminMessages.tableHeaderRequests}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${endpointBreakdown.map(endpoint => `
+            <tr>
+              <td><span class="method-badge method-badge-${(endpoint.method || 'GET').toLowerCase()}">${endpoint.method || adminMessages.modalNotAvailable}</span></td>
+              <td class="endpoint-cell">${endpoint.endpoint || adminMessages.modalNotAvailable}</td>
+              <td class="requests-cell">${(endpoint.requests || 0).toLocaleString()}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } else {
+    endpointTableHtml = `<p class="muted-text">${adminMessages.modalNoEndpointData}</p>`;
+  }
+  
+  const userName = userData.user.name || userData.user.email || adminMessages.modalNotAvailable;
+  const userEmail = userData.user.email || adminMessages.modalNotAvailable;
+  const userId = userData.user.id || adminMessages.modalNotAvailable;
+  const userRole = userData.user.role || 'user';
+  const callLimit = consumption.callsLimit === 'unlimited' ? adminMessages.modalUnlimited : consumption.callsLimit;
+  const remainingCalls = consumption.remainingCalls === null ? adminMessages.modalUnlimited : consumption.remainingCalls;
+  const limitExceeded = consumption.hasExceededLimit ? adminMessages.modalYes : adminMessages.modalNo;
+  
+  modal.innerHTML = `
+    <div class="modal-header">
+      <h2>${adminMessages.modalTitle} ${userName}</h2>
+      <button class="close-modal-btn">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p><strong>${adminMessages.modalUserLabel}</strong> ${userData.user.name || adminMessages.modalNotAvailable} (${userEmail})</p>
+      <p><strong>${adminMessages.modalUserIdLabel}</strong> ${userId}</p>
+      <p><strong>${adminMessages.modalRoleLabel}</strong> ${userRole}</p>
+      <hr>
+      <p><strong>${adminMessages.modalTotalCallsLabel}</strong> ${consumption.callsUsed || 0}</p>
+      <p><strong>${adminMessages.modalCallLimitLabel}</strong> ${callLimit}</p>
+      <p><strong>${adminMessages.modalRemainingCallsLabel}</strong> ${remainingCalls}</p>
+      <p><strong>${adminMessages.modalLimitExceededLabel}</strong> ${limitExceeded}</p>
+      <h3>${adminMessages.modalEndpointBreakdownTitle}</h3>
+      ${endpointTableHtml}
+    </div>
+  `;
+  
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  
+  // Close modal handlers
+  const closeBtn = modal.querySelector('.close-modal-btn');
+  const closeModal = () => {
+    document.body.removeChild(overlay);
+  };
+  
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      closeModal();
+    }
+  });
 }
