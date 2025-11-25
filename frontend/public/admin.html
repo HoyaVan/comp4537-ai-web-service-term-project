@@ -57,7 +57,10 @@
         <section class="admin-section">
             <div class="section-header">
                 <h2>All Users</h2>
-                <span id="user-count" class="user-count">0 users</span>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="user-count" class="user-count">0 users</span>
+                    <button id="refresh-users-btn" class="admin-btn-small">Refresh</button>
+                </div>
             </div>
             <div id="users-list" class="users-list"></div>
         </section>

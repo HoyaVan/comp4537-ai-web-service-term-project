@@ -10,6 +10,10 @@ const dbConfig = {
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  // SSL configuration for DigitalOcean MySQL
+  ssl: {
+    rejectUnauthorized: false
+  }
 };
 
 // Create connection pool

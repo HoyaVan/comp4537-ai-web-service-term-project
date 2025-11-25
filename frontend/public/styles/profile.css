@@ -284,10 +284,36 @@ h2 {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .refresh-section-header h2 {
   margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* Admin button small style (matching admin page) */
+.admin-btn-small {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+  background-color: var(--brand);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.admin-btn-small:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.admin-btn-small:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
 }
 
 @media (max-width: 640px) {

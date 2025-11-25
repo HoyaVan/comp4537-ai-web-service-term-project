@@ -259,6 +259,7 @@ async function initAdmin() {
   // Setup refresh buttons
   const refreshEndpointsBtn = document.getElementById('refresh-endpoints-btn');
   const refreshConsumptionBtn = document.getElementById('refresh-consumption-btn');
+  const refreshUsersBtn = document.getElementById('refresh-users-btn');
   
   if (refreshEndpointsBtn) {
     refreshEndpointsBtn.addEventListener('click', loadEndpointStats);
@@ -266,6 +267,10 @@ async function initAdmin() {
   
   if (refreshConsumptionBtn) {
     refreshConsumptionBtn.addEventListener('click', loadConsumptionStats);
+  }
+  
+  if (refreshUsersBtn) {
+    refreshUsersBtn.addEventListener('click', loadUsers);
   }
 }
 
