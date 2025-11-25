@@ -177,14 +177,22 @@ const trackApiCall = (
   apiCallLogs.push(logEntry);
 
   // Check if this is an auth endpoint (should not count towards limit)
-  // Check both full path (/api/v1/auth/profile) and route path (/profile)
+  // Auth routes are mounted at /api/v1/auth, so full paths are /api/v1/auth/login, /api/v1/auth/signup, /api/v1/auth/profile
+  // Also check route paths (/login, /signup, /profile) in case endpoint is captured differently
+  // /api/v1/auth/users is an admin-only endpoint for listing users, should not be tracked
   const isAuthEndpoint =
     endpoint.includes("/api/v1/auth/login") ||
     endpoint.includes("/api/v1/auth/signup") ||
     endpoint.includes("/api/v1/auth/profile") ||
-    endpoint === "/api/v1/profile" ||
-    endpoint === "/api/v1/login" ||
-    endpoint === "/api/v1/signup";
+    endpoint.includes("/api/v1/auth/users") ||
+    endpoint === "/login" ||
+    endpoint === "/signup" ||
+    endpoint === "/profile" ||
+    endpoint === "/users" ||
+    endpoint.includes("/auth/login") ||
+    endpoint.includes("/auth/signup") ||
+    endpoint.includes("/auth/profile") ||
+    endpoint.includes("/auth/users");
 
   // Check if this is an admin stats endpoint (should not be tracked)
   // Admin routes are mounted at /api/v1/admin, so stats endpoints are /api/v1/admin/stats/*
@@ -323,16 +331,22 @@ const getUserEndpointStats = (userId) => {
       const [method, endpoint] = endpointKey.split(" ", 2);
 
       // Check if this is an auth endpoint - exclude from user's endpoint breakdown
+      // Auth routes are mounted at /api/v1/auth, so full paths are /api/v1/auth/login, /api/v1/auth/signup, /api/v1/auth/profile
+      // Also check route paths (/login, /signup, /profile) in case endpoint is captured differently
+      // /api/v1/auth/users is an admin-only endpoint for listing users, should not be tracked
       const isAuthEndpoint =
-        endpoint.includes("/api/auth/login") ||
         endpoint.includes("/api/v1/auth/login") ||
-        endpoint.includes("/api/auth/signup") ||
         endpoint.includes("/api/v1/auth/signup") ||
-        endpoint.includes("/api/auth/profile") ||
         endpoint.includes("/api/v1/auth/profile") ||
-        endpoint === "/profile" ||
+        endpoint.includes("/api/v1/auth/users") ||
         endpoint === "/login" ||
-        endpoint === "/signup";
+        endpoint === "/signup" ||
+        endpoint === "/profile" ||
+        endpoint === "/users" ||
+        endpoint.includes("/auth/login") ||
+        endpoint.includes("/auth/signup") ||
+        endpoint.includes("/auth/profile") ||
+        endpoint.includes("/auth/users");
 
       // Check if this is an admin stats endpoint - exclude from user's endpoint breakdown
       // Admin routes are mounted at /api/v1/admin, so stats endpoints are /api/v1/admin/stats/*
@@ -455,17 +469,22 @@ const apiTrackingMiddleware = (req, res, next) => {
     );
 
     // Check if this is an auth endpoint (should not show warning)
-    // Check both full path (/api/v1/auth/profile) and route path (/profile)
+    // Auth routes are mounted at /api/v1/auth, so full paths are /api/v1/auth/login, /api/v1/auth/signup, /api/v1/auth/profile
+    // Also check route paths (/login, /signup, /profile) in case endpoint is captured differently
+    // /api/v1/auth/users is an admin-only endpoint for listing users, should not be tracked
     const isAuthEndpoint =
-      endpoint.includes("/api/auth/login") ||
       endpoint.includes("/api/v1/auth/login") ||
-      endpoint.includes("/api/auth/signup") ||
       endpoint.includes("/api/v1/auth/signup") ||
-      endpoint.includes("/api/auth/profile") ||
       endpoint.includes("/api/v1/auth/profile") ||
-      endpoint === "/profile" ||
+      endpoint.includes("/api/v1/auth/users") ||
       endpoint === "/login" ||
-      endpoint === "/signup";
+      endpoint === "/signup" ||
+      endpoint === "/profile" ||
+      endpoint === "/users" ||
+      endpoint.includes("/auth/login") ||
+      endpoint.includes("/auth/signup") ||
+      endpoint.includes("/auth/profile") ||
+      endpoint.includes("/auth/users");
 
     // Check if this is an admin stats endpoint (should not show warning)
     // Admin routes are mounted at /api/v1/admin, so stats endpoints are /api/v1/admin/stats/*
