@@ -179,26 +179,28 @@ const trackApiCall = (
   // Check if this is an auth endpoint (should not count towards limit)
   // Check both full path (/api/v1/auth/profile) and route path (/profile)
   const isAuthEndpoint =
-    endpoint.includes("/api/auth/login") ||
     endpoint.includes("/api/v1/auth/login") ||
-    endpoint.includes("/api/auth/signup") ||
     endpoint.includes("/api/v1/auth/signup") ||
-    endpoint.includes("/api/auth/profile") ||
     endpoint.includes("/api/v1/auth/profile") ||
-    endpoint === "/profile" ||
-    endpoint === "/login" ||
-    endpoint === "/signup";
+    endpoint === "/api/v1/profile" ||
+    endpoint === "/api/v1/login" ||
+    endpoint === "/api/v1/signup";
+
+  // Check if this is an admin stats endpoint (should not be tracked)
+  // Admin routes are mounted at /api/v1/admin, so stats endpoints are /api/v1/admin/stats/*
+  const isAdminStatsEndpoint = endpoint.includes("/api/v1/admin/stats");
 
   // Check if user is admin (admins don't have API call limits)
   const isAdmin = userRole === "admin";
 
-  // Update user API count (only for authenticated users, successful calls, non-auth endpoints, and non-admin users)
+  // Update user API count (only for authenticated users, successful calls, non-auth endpoints, non-admin stats endpoints, and non-admin users)
   if (
     userId &&
     userId !== "anonymous" &&
     statusCode >= 200 &&
     statusCode < 300 &&
     !isAuthEndpoint &&
+    !isAdminStatsEndpoint &&
     !isAdmin
   ) {
     // Use setImmediate to avoid blocking the response
@@ -209,9 +211,9 @@ const trackApiCall = (
     });
   }
 
-  // Update endpoint statistics (only for successful calls and non-auth endpoints)
-  // Exclude auth endpoints from endpoint stats
-  if (statusCode >= 200 && statusCode < 300 && !isAuthEndpoint) {
+  // Update endpoint statistics (only for successful calls, non-auth endpoints, and non-admin stats endpoints)
+  // Exclude auth endpoints and admin stats endpoints from endpoint stats
+  if (statusCode >= 200 && statusCode < 300 && !isAuthEndpoint && !isAdminStatsEndpoint) {
     const endpointKey = `${method} ${endpoint}`;
     const currentCount = endpointStats.get(endpointKey) || 0;
     endpointStats.set(endpointKey, currentCount + 1);
@@ -332,8 +334,12 @@ const getUserEndpointStats = (userId) => {
         endpoint === "/login" ||
         endpoint === "/signup";
 
-      // Only include non-auth endpoints in user's breakdown
-      if (!isAuthEndpoint) {
+      // Check if this is an admin stats endpoint - exclude from user's endpoint breakdown
+      // Admin routes are mounted at /api/v1/admin, so stats endpoints are /api/v1/admin/stats/*
+      const isAdminStatsEndpoint = endpoint.includes("/api/v1/admin/stats");
+
+      // Only include non-auth and non-admin-stats endpoints in user's breakdown
+      if (!isAuthEndpoint && !isAdminStatsEndpoint) {
         userEndpointStats.push({
           method,
           endpoint,
@@ -461,13 +467,18 @@ const apiTrackingMiddleware = (req, res, next) => {
       endpoint === "/login" ||
       endpoint === "/signup";
 
-    // Add warning header if user has exceeded limit (only for authenticated users, successful calls, non-auth endpoints, and non-admin users)
+    // Check if this is an admin stats endpoint (should not show warning)
+    // Admin routes are mounted at /api/v1/admin, so stats endpoints are /api/v1/admin/stats/*
+    const isAdminStatsEndpoint = endpoint.includes("/api/v1/admin/stats");
+
+    // Add warning header if user has exceeded limit (only for authenticated users, successful calls, non-auth endpoints, non-admin stats endpoints, and non-admin users)
     if (
       finalUserId &&
       finalUserId !== "anonymous" &&
       statusCode >= 200 &&
       statusCode < 300 &&
       !isAuthEndpoint &&
+      !isAdminStatsEndpoint &&
       userRole !== "admin"
     ) {
       // Use setImmediate to avoid blocking the response
