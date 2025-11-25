@@ -217,10 +217,13 @@ async function getCurrentlyPlaying(req, res) {
     if (tokens.expiresAt && Date.now() >= tokens.expiresAt) {
       if (tokens.refreshToken) {
         try {
-          const refreshed = await spotifyService.refreshAccessToken(tokens.refreshToken);
+          const refreshed = await spotifyService.refreshAccessToken(
+            tokens.refreshToken
+          );
           accessToken = refreshed.access_token;
-          const newRefreshToken = refreshed.refresh_token || tokens.refreshToken;
-          const newExpiresAt = Date.now() + (refreshed.expires_in * 1000);
+          const newRefreshToken =
+            refreshed.refresh_token || tokens.refreshToken;
+          const newExpiresAt = Date.now() + refreshed.expires_in * 1000;
           await authService.updateUserSpotifyTokens(
             userId,
             refreshed.access_token,
@@ -231,13 +234,15 @@ async function getCurrentlyPlaying(req, res) {
           console.error("Failed to refresh token for playback:", error.message);
           return res.status(401).json({
             success: false,
-            message: "Spotify authentication failed. Please reconnect to Spotify.",
+            message:
+              "Spotify authentication failed. Please reconnect to Spotify.",
           });
         }
       } else {
         return res.status(401).json({
           success: false,
-          message: "Spotify authentication expired. Please reconnect to Spotify.",
+          message:
+            "Spotify authentication expired. Please reconnect to Spotify.",
         });
       }
     }
@@ -245,7 +250,7 @@ async function getCurrentlyPlaying(req, res) {
     // Get current playback
     try {
       const playback = await spotifyService.getCurrentPlayback(accessToken);
-      
+
       if (!playback || !playback.item) {
         return res.status(200).json({
           success: true,
@@ -265,7 +270,7 @@ async function getCurrentlyPlaying(req, res) {
           track: {
             id: playback.item.id,
             name: playback.item.name,
-            artist: playback.item.artists.map(a => a.name).join(", "),
+            artist: playback.item.artists.map((a) => a.name).join(", "),
             album: playback.item.album.name,
             uri: playback.item.uri,
             external_urls: playback.item.external_urls,
@@ -277,7 +282,10 @@ async function getCurrentlyPlaying(req, res) {
       });
     } catch (error) {
       // Handle specific error cases gracefully
-      if (error.message.includes("access denied") || error.message.includes("403")) {
+      if (
+        error.message.includes("access denied") ||
+        error.message.includes("403")
+      ) {
         // Permission issue - return connected but can't read playback
         return res.status(200).json({
           success: true,
@@ -288,7 +296,10 @@ async function getCurrentlyPlaying(req, res) {
             error: "Spotify app permissions may need to be updated",
           },
         });
-      } else if (error.message.includes("authentication failed") || error.message.includes("401")) {
+      } else if (
+        error.message.includes("authentication failed") ||
+        error.message.includes("401")
+      ) {
         // Auth issue
         return res.status(200).json({
           success: true,
@@ -298,7 +309,10 @@ async function getCurrentlyPlaying(req, res) {
             message: "Spotify authentication failed. Please reconnect.",
           },
         });
-      } else if (error.message.includes("204") || error.response?.status === 204) {
+      } else if (
+        error.message.includes("204") ||
+        error.response?.status === 204
+      ) {
         // No content = nothing is playing
         return res.status(200).json({
           success: true,
@@ -466,11 +480,10 @@ async function addTrackToQueue(req, res) {
 
     // Add track to queue
     try {
-      await spotifyService.addToQueue(
+      await spotifyService.addTrackToQueue(
         accessToken,
         finalTrackUri,
-        deviceId || null
-      );
+        deviceId || null);
       return res.status(200).json({
         success: true,
         message: "Track added to queue successfully",

@@ -9,17 +9,18 @@ class SpotifyService {
     this.baseURL = "https://api.spotify.com/v1";
     this.tokenURL = "https://accounts.spotify.com/api/token";
     this.authURL = "https://accounts.spotify.com/authorize";
-    
+
     // Construct callback URI from BACKEND_URL or use explicit SPOTIFY_CALLBACK_URI
-    const backendUrl = process.env.BACKEND_URL || process.env.SPOTIFY_CALLBACK_URI || null;
+    const backendUrl =
+      process.env.BACKEND_URL || process.env.SPOTIFY_CALLBACK_URI || null;
     if (backendUrl) {
       // If SPOTIFY_CALLBACK_URI is explicitly set, use it
       if (process.env.SPOTIFY_CALLBACK_URI) {
         this.callbackURI = process.env.SPOTIFY_CALLBACK_URI;
       } else {
         // Otherwise, construct from BACKEND_URL
-        const baseUrl = backendUrl.replace(/\/$/, ''); // Remove trailing slash
-        this.callbackURI = `${baseUrl}/api/v1/spotify/oauth/callback`;
+        const baseUrl = backendUrl.replace(/\/$/, ""); // Remove trailing slash
+        this.callbackURI = `${baseUrl}/api/v1/spotify/callback`;
       }
     } else {
       this.callbackURI = null;
@@ -37,7 +38,6 @@ class SpotifyService {
     this.clientCredentialsExpiresAt = null;
   }
 
-
   /**
    * Get a valid access token - prefers OAuth token if available, otherwise uses client credentials
    */
@@ -47,16 +47,20 @@ class SpotifyService {
       // If we have tokenExpiresAt, use it; otherwise calculate from expiresIn
       let expiresAt = this.tokenExpiresAt;
       if (!expiresAt && this.expiresIn) {
-        expiresAt = Date.now() + (this.expiresIn * 1000);
+        expiresAt = Date.now() + this.expiresIn * 1000;
         this.tokenExpiresAt = expiresAt;
       }
-      
+
       // If we have expiration info and token is still valid, use it
       if (expiresAt && Date.now() < expiresAt) {
-        console.log("Using OAuth access token (expires in", Math.round((expiresAt - Date.now()) / 1000), "seconds)");
+        console.log(
+          "Using OAuth access token (expires in",
+          Math.round((expiresAt - Date.now()) / 1000),
+          "seconds)"
+        );
         return this.accessToken;
       }
-      
+
       // Token expired or no expiration info, try to refresh if we have refresh token
       if (this.refreshToken) {
         try {
@@ -64,14 +68,17 @@ class SpotifyService {
           const refreshed = await this.refreshAccessToken(this.refreshToken);
           this.accessToken = refreshed.access_token;
           this.expiresIn = refreshed.expires_in;
-          this.tokenExpiresAt = Date.now() + (refreshed.expires_in * 1000);
+          this.tokenExpiresAt = Date.now() + refreshed.expires_in * 1000;
           if (refreshed.refresh_token) {
             this.refreshToken = refreshed.refresh_token;
           }
           console.log("OAuth token refreshed successfully");
           return this.accessToken;
         } catch (error) {
-          console.error("Failed to refresh OAuth token, falling back to client credentials:", error.message);
+          console.error(
+            "Failed to refresh OAuth token, falling back to client credentials:",
+            error.message
+          );
           // Fall through to client credentials flow
         }
       } else if (!expiresAt) {
@@ -119,7 +126,8 @@ class SpotifyService {
 
       this.clientCredentialsToken = response.data.access_token;
       // Set expiration
-      this.clientCredentialsExpiresAt = Date.now() + response.data.expires_in * 1000;
+      this.clientCredentialsExpiresAt =
+        Date.now() + response.data.expires_in * 1000;
 
       return this.clientCredentialsToken;
     } catch (error) {
@@ -211,17 +219,20 @@ class SpotifyService {
         `Status: ${statusCode}`,
         `Error: ${JSON.stringify(errorDetails)}`
       );
-      
+
       // Provide more detailed error message
       let errorMessage = spotifyMessages.failedToGetSpotifyTrack;
       if (error.response?.data?.error) {
-        errorMessage = `Spotify API error: ${error.response.data.error.message || error.response.data.error}`;
+        errorMessage = `Spotify API error: ${
+          error.response.data.error.message || error.response.data.error
+        }`;
       } else if (error.response?.status === 401) {
-        errorMessage = "Spotify authentication failed. Please reconnect to Spotify.";
+        errorMessage =
+          "Spotify authentication failed. Please reconnect to Spotify.";
       } else if (error.response?.status === 404) {
         errorMessage = "Track not found on Spotify.";
       }
-      
+
       throw new Error(errorMessage);
     }
   }
@@ -264,7 +275,7 @@ class SpotifyService {
   /**
    * Generate OAuth authorization URL
    * Includes playlist scopes for creating and managing playlists
-   * Includes playback control scope for adding songs to queue
+   * Includes playback control scopes for adding songs to queue and reading playback state
    */
   getAuthorizationURL(
     state = null,
@@ -275,7 +286,8 @@ class SpotifyService {
       "playlist-modify-private",
       "playlist-read-private",
       "user-modify-playback-state",
-      "user-read-playback-state"
+      "user-read-playback-state",
+      "user-read-currently-playing",
     ]
   ) {
     if (!this.clientId) {
@@ -283,14 +295,18 @@ class SpotifyService {
     }
 
     if (!this.callbackURI) {
-      const errorMsg = spotifyMessages.spotifyCallbackUriNotConfigured + 
+      const errorMsg =
+        spotifyMessages.spotifyCallbackUriNotConfigured +
         ". Please set SPOTIFY_CALLBACK_URI environment variable to your backend URL + /api/v1/spotify/oauth/callback" +
         " (e.g., https://your-backend.com/api/v1/spotify/oauth/callback)";
       throw new Error(errorMsg);
     }
 
-    console.log('[SpotifyService] Using callback URI:', this.callbackURI);
-    console.log('[SpotifyService] Make sure this exact URI is registered in your Spotify app settings');
+    console.log("[SpotifyService] Using callback URI:", this.callbackURI);
+    console.log(
+      "[SpotifyService] Make sure this exact URI is registered in your Spotify app settings"
+    );
+    console.log("[SpotifyService] Requested scopes:", scopes.join(" "));
 
     const params = new URLSearchParams({
       client_id: this.clientId,
@@ -380,6 +396,7 @@ class SpotifyService {
       return {
         access_token: response.data.access_token,
         expires_in: response.data.expires_in,
+        scope: response.data.scope || null, // Spotify may not always return scope in refresh response
         token_type: response.data.token_type,
         scope: response.data.scope,
         refresh_token: response.data.refresh_token || refreshToken, // Spotify may or may not return a new refresh token
@@ -416,23 +433,25 @@ class SpotifyService {
     } catch (error) {
       const errorDetails = error.response?.data || error.message;
       const statusCode = error.response?.status;
-      
+
       console.error(
         "Error getting Spotify user profile:",
         `Status: ${statusCode}`,
         `Error: ${JSON.stringify(errorDetails)}`
       );
-      
+
       // Provide more specific error messages
       let errorMessage = "Failed to get Spotify user profile";
       if (statusCode === 401) {
-        errorMessage = "Spotify authentication failed. Please reconnect to Spotify.";
+        errorMessage =
+          "Spotify authentication failed. Please reconnect to Spotify.";
       } else if (statusCode === 403) {
-        errorMessage = "Spotify access denied. Please check your app permissions in Spotify Developer Dashboard.";
+        errorMessage =
+          "Spotify access denied. Please check your app permissions in Spotify Developer Dashboard.";
       } else if (errorDetails?.error?.message) {
         errorMessage = `Spotify API error: ${errorDetails.error.message}`;
       }
-      
+
       throw new Error(errorMessage);
     }
   }
@@ -446,7 +465,13 @@ class SpotifyService {
    * @param {boolean} isPublic - Whether playlist is public (default: true)
    * @returns {Promise<Object>} Created playlist with id, name, external_urls, etc.
    */
-  async createPlaylist(userAccessToken, userId, name, description = "", isPublic = true) {
+  async createPlaylist(
+    userAccessToken,
+    userId,
+    name,
+    description = "",
+    isPublic = true
+  ) {
     try {
       const response = await axios.post(
         `${this.baseURL}/users/${userId}/playlists`,
@@ -500,7 +525,7 @@ class SpotifyService {
       // Add tracks in batches of 100
       for (let i = 0; i < trackUris.length; i += maxTracksPerRequest) {
         const batch = trackUris.slice(i, i + maxTracksPerRequest);
-        
+
         const response = await axios.post(
           `${this.baseURL}/playlists/${playlistId}/tracks`,
           {
@@ -556,12 +581,12 @@ class SpotifyService {
         });
 
         const playlists = response.data.items;
-        
+
         // Search for playlist with matching name
         const found = playlists.find(
           (playlist) => playlist.name === playlistName
         );
-        
+
         if (found) {
           return {
             id: found.id,
@@ -597,7 +622,7 @@ class SpotifyService {
    * @param {string} deviceId - Optional device ID (uses active device if not provided)
    * @returns {Promise<boolean>} True if added successfully
    */
-  async addToQueue(userAccessToken, trackUri, deviceId = null) {
+  async addTrackToQueue(userAccessToken, trackUri, deviceId = null) {
     try {
       const params = new URLSearchParams({ uri: trackUri });
       if (deviceId) {
@@ -620,15 +645,19 @@ class SpotifyService {
       // Handle specific error cases
       if (error.response?.status === 404) {
         // No active device
-        throw new Error("No active Spotify device found. Please open Spotify and start playing music.");
+        throw new Error(
+          "No active Spotify device found. Please open Spotify and start playing music."
+        );
       } else if (error.response?.status === 403) {
         // Premium required
         throw new Error("Spotify Premium is required to add songs to queue.");
       } else if (error.response?.status === 401) {
         // Invalid or expired token
-        throw new Error("Spotify authentication failed. Please reconnect to Spotify.");
+        throw new Error(
+          "Spotify authentication failed. Please reconnect to Spotify."
+        );
       }
-      
+
       console.error(
         "Error adding track to Spotify queue:",
         error.response?.data || error.message
@@ -679,26 +708,30 @@ class SpotifyService {
         // No content = nothing is playing
         return null;
       }
-      
+
       const errorDetails = error.response?.data || error.message;
       const statusCode = error.response?.status;
-      
+
       console.error(
         "Error getting current playback:",
         `Status: ${statusCode}`,
         `Error: ${JSON.stringify(errorDetails)}`
       );
-      
+
       // Handle specific error cases
       if (statusCode === 403) {
-        throw new Error("Spotify access denied. Please check your app permissions in Spotify Developer Dashboard.");
+        throw new Error(
+          "Spotify access denied. Please check your app permissions in Spotify Developer Dashboard."
+        );
       } else if (statusCode === 401) {
-        throw new Error("Spotify authentication failed. Please reconnect to Spotify.");
+        throw new Error(
+          "Spotify authentication failed. Please reconnect to Spotify."
+        );
       } else if (statusCode === 404) {
         // No active device - this is normal, not an error
         return null;
       }
-      
+
       throw new Error("Failed to get current playback");
     }
   }

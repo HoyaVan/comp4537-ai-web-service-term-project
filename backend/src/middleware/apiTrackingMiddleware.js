@@ -3,13 +3,13 @@ const db = require("../utils/db");
 
 /**
  * API Tracking Middleware
- * 
+ *
  * Tracks API calls for:
  * 1. Per-user API consumption (20 free calls per user)
  * 2. Per-endpoint statistics (for admin dashboard)
- * 
+ *
  * This middleware should be applied to all API routes.
- * 
+ *
  * Attribution: Created with assistance from ChatGPT
  */
 
@@ -28,7 +28,7 @@ const endpointLastCall = new Map(); // "METHOD /endpoint" -> { userId, timestamp
  * @returns {number|null} Parsed user ID or null if invalid/anonymous
  */
 function parseUserIdForTracking(userId) {
-  if (!userId || userId === 'anonymous') {
+  if (!userId || userId === "anonymous") {
     return null;
   }
   const userIdInt = parseInt(userId, 10);
@@ -46,7 +46,7 @@ async function getUserApiCallsFromDb(userIdInt) {
       "SELECT api_calls FROM `user` WHERE user_id = ?",
       [userIdInt]
     );
-    return users.length > 0 ? (users[0].api_calls || 0) : 0;
+    return users.length > 0 ? users[0].api_calls || 0 : 0;
   } catch (error) {
     console.error("Error getting user API count:", error);
     return 0;
@@ -73,10 +73,10 @@ const getUserApiCount = async (userId) => {
  * @returns {Promise<boolean>} True if user has exceeded limit
  */
 const hasExceededLimit = async (userId, userRole = null) => {
-  if (!userId || userId === 'anonymous') {
+  if (!userId || userId === "anonymous") {
     return false; // Anonymous users don't have limits
   }
-  if (userRole === 'admin') {
+  if (userRole === "admin") {
     return false; // Admin users don't have limits
   }
   const count = await getUserApiCount(userId);
@@ -90,18 +90,16 @@ const hasExceededLimit = async (userId, userRole = null) => {
  * @returns {Promise<number|null>} Remaining calls (null for unlimited, 0 if exceeded)
  */
 const getRemainingCalls = async (userId, userRole = null) => {
-  if (!userId || userId === 'anonymous') {
+  if (!userId || userId === "anonymous") {
     return null; // Anonymous users don't have limits
   }
-  if (userRole === 'admin') {
+  if (userRole === "admin") {
     return null; // Admin users have unlimited calls
   }
   const count = await getUserApiCount(userId);
   const remaining = Math.max(0, FREE_API_CALLS_LIMIT - count);
   return remaining;
 };
-
-
 
 /**
  * Update API call count for a user in database
@@ -115,7 +113,7 @@ async function updateUserApiCallsInDb(userIdInt, increment) {
       "UPDATE `user` SET api_calls = api_calls + ? WHERE user_id = ?",
       [increment, userIdInt]
     );
-    
+
     // Get updated count for logging
     const newCount = await getUserApiCallsFromDb(userIdInt);
     return newCount;
@@ -134,10 +132,12 @@ const incrementUserApiCount = async (userId) => {
   if (!userIdInt) {
     return;
   }
-  
+
   try {
     const newCount = await updateUserApiCallsInDb(userIdInt, 1);
-    console.log(`[API Tracker] Incremented API count for user ${userId}: ${newCount}`);
+    console.log(
+      `[API Tracker] Incremented API count for user ${userId}: ${newCount}`
+    );
   } catch (error) {
     console.error("Error incrementing user API count:", error);
   }
@@ -152,61 +152,76 @@ const incrementUserApiCount = async (userId) => {
  * @param {number} responseTime - Response time in milliseconds
  * @param {string} userRole - User role (optional, to exclude admin users from counting)
  */
-const trackApiCall = (method, endpoint, userId, statusCode, responseTime, userRole = null) => {
+const trackApiCall = (
+  method,
+  endpoint,
+  userId,
+  statusCode,
+  responseTime,
+  userRole = null
+) => {
   const timestamp = new Date().toISOString();
-  
+
   // Create log entry
   const logEntry = {
     id: Date.now().toString() + Math.random().toString(36).substring(2, 11),
     method,
     endpoint,
-    userId: userId || 'anonymous',
+    userId: userId || "anonymous",
     statusCode,
     responseTime,
     timestamp,
   };
-  
+
   // Store log entry
   apiCallLogs.push(logEntry);
-  
+
   // Check if this is an auth endpoint (should not count towards limit)
   // Check both full path (/api/auth/profile) and route path (/profile)
-  const isAuthEndpoint = endpoint.includes('/api/auth/login') || 
-                         endpoint.includes('/api/auth/signup') || 
-                         endpoint.includes('/api/auth/profile') ||
-                         endpoint === '/profile' ||
-                         endpoint === '/login' ||
-                         endpoint === '/signup';
-  
+  const isAuthEndpoint =
+    endpoint.includes("/api/auth/login") ||
+    endpoint.includes("/api/auth/signup") ||
+    endpoint.includes("/api/auth/profile") ||
+    endpoint === "/profile" ||
+    endpoint === "/login" ||
+    endpoint === "/signup";
+
   // Check if user is admin (admins don't have API call limits)
-  const isAdmin = userRole === 'admin';
-  
+  const isAdmin = userRole === "admin";
+
   // Update user API count (only for authenticated users, successful calls, non-auth endpoints, and non-admin users)
-  if (userId && userId !== 'anonymous' && statusCode >= 200 && statusCode < 300 && !isAuthEndpoint && !isAdmin) {
+  if (
+    userId &&
+    userId !== "anonymous" &&
+    statusCode >= 200 &&
+    statusCode < 300 &&
+    !isAuthEndpoint &&
+    !isAdmin
+  ) {
     // Use setImmediate to avoid blocking the response
     setImmediate(() => {
-      incrementUserApiCount(userId).catch(err => {
+      incrementUserApiCount(userId).catch((err) => {
         console.error("Error incrementing API count:", err);
       });
     });
   }
-  
+
   // Update endpoint statistics (only for successful calls and non-auth endpoints)
   // Exclude auth endpoints from endpoint stats
   if (statusCode >= 200 && statusCode < 300 && !isAuthEndpoint) {
     const endpointKey = `${method} ${endpoint}`;
     const currentCount = endpointStats.get(endpointKey) || 0;
     endpointStats.set(endpointKey, currentCount + 1);
-    
+
     // Track latest call for this endpoint
     endpointLastCall.set(endpointKey, {
-      userId: userId || 'anonymous',
+      userId: userId || "anonymous",
       timestamp: timestamp,
     });
-    
+
     // Track which users called this endpoint (for per-user endpoint stats)
     // Count total requests per endpoint per user
-    if (userId && userId !== 'anonymous') {
+    if (userId && userId !== "anonymous") {
       if (!endpointUserStats.has(endpointKey)) {
         endpointUserStats.set(endpointKey, new Map());
       }
@@ -216,9 +231,10 @@ const trackApiCall = (method, endpoint, userId, statusCode, responseTime, userRo
       userStats.set(userId, currentUserCount + 1);
     }
   }
-  
+
   // Log to console
-  const userDisplay = userId && userId !== 'anonymous' ? `User: ${userId}` : 'User: anonymous';
+  const userDisplay =
+    userId && userId !== "anonymous" ? `User: ${userId}` : "User: anonymous";
   console.log(
     `[API Tracker] ${method} ${endpoint} - ${userDisplay} - Status: ${statusCode} - Time: ${responseTime}ms`
   );
@@ -231,9 +247,9 @@ const trackApiCall = (method, endpoint, userId, statusCode, responseTime, userRo
 const getEndpointStats = () => {
   const stats = [];
   for (const [endpointKey, count] of endpointStats) {
-    const [method, endpoint] = endpointKey.split(' ', 2);
+    const [method, endpoint] = endpointKey.split(" ", 2);
     const userStats = endpointUserStats.get(endpointKey) || new Map();
-    
+
     // Get user IDs who called this endpoint
     const users = [];
     for (const [userId, userCount] of userStats) {
@@ -242,22 +258,24 @@ const getEndpointStats = () => {
         count: userCount,
       });
     }
-    
+
     // Get latest call info
     const lastCall = endpointLastCall.get(endpointKey) || null;
-    
+
     const sortedUsers = [...users];
     sortedUsers.sort((a, b) => b.count - a.count);
-    
+
     stats.push({
       method,
       endpoint,
       requests: count,
       users: sortedUsers,
-      lastCall: lastCall ? {
-        userId: lastCall.userId,
-        timestamp: lastCall.timestamp,
-      } : null,
+      lastCall: lastCall
+        ? {
+            userId: lastCall.userId,
+            timestamp: lastCall.timestamp,
+          }
+        : null,
     });
   }
   const sortedStats = [...stats];
@@ -274,7 +292,7 @@ const getUserConsumptionStats = async () => {
     const users = await db.query(
       "SELECT user_id, api_calls FROM `user` ORDER BY api_calls DESC"
     );
-    
+
     return users.map((user) => ({
       userId: user.user_id.toString(),
       totalRequests: user.api_calls || 0,
@@ -293,20 +311,21 @@ const getUserConsumptionStats = async () => {
  */
 const getUserEndpointStats = (userId) => {
   const userEndpointStats = [];
-  
+
   for (const [endpointKey, userStats] of endpointUserStats) {
     const userCount = userStats.get(userId);
     if (userCount && userCount > 0) {
-      const [method, endpoint] = endpointKey.split(' ', 2);
-      
+      const [method, endpoint] = endpointKey.split(" ", 2);
+
       // Check if this is an auth endpoint - exclude from user's endpoint breakdown
-      const isAuthEndpoint = endpoint.includes('/api/auth/login') || 
-                             endpoint.includes('/api/auth/signup') || 
-                             endpoint.includes('/api/auth/profile') ||
-                             endpoint === '/profile' ||
-                             endpoint === '/login' ||
-                             endpoint === '/signup';
-      
+      const isAuthEndpoint =
+        endpoint.includes("/api/auth/login") ||
+        endpoint.includes("/api/auth/signup") ||
+        endpoint.includes("/api/auth/profile") ||
+        endpoint === "/profile" ||
+        endpoint === "/login" ||
+        endpoint === "/signup";
+
       // Only include non-auth endpoints in user's breakdown
       if (!isAuthEndpoint) {
         userEndpointStats.push({
@@ -317,7 +336,7 @@ const getUserEndpointStats = (userId) => {
       }
     }
   }
-  
+
   // Sort by endpoint name for consistency
   userEndpointStats.sort((a, b) => {
     const aKey = `${a.method} ${a.endpoint}`;
@@ -327,14 +346,15 @@ const getUserEndpointStats = (userId) => {
   return userEndpointStats;
 };
 
-
 /**
  * Get all API call logs (admin only)
  * @param {number} limit - Maximum number of logs to return
  * @returns {Array} Array of API call logs
  */
 const getAllApiLogs = (limit = 1000) => {
-  const sortedLogs = [...apiCallLogs].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const sortedLogs = [...apiCallLogs].sort(
+    (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+  );
   return sortedLogs.slice(0, limit);
 };
 
@@ -347,7 +367,7 @@ const resetUserApiCount = async (userId) => {
   if (!userIdInt) {
     return;
   }
-  
+
   try {
     // Get current count to reset to 0
     const currentCount = await getUserApiCallsFromDb(userIdInt);
@@ -370,72 +390,87 @@ const apiTrackingMiddleware = (req, res, next) => {
     return next();
   }
   req._apiTracked = true;
-  
+
   const startTime = Date.now();
   const method = req.method;
-  
+
   // Track response when it finishes
   // Note: We capture userId and endpoint here (after auth middleware may have run) to get the actual user
-  res.on('finish', () => {
+  res.on("finish", () => {
     // Prevent double counting if finish event fires multiple times
     if (req._apiTrackedFinished) {
       return;
     }
     req._apiTrackedFinished = true;
-    
+
     const responseTime = Date.now() - startTime;
     const statusCode = res.statusCode || 200;
-    
+
     // Capture userId and user role at response time (after authentication middleware has run)
     const finalUserId = req.userId || req.user?.id || null;
     const userRole = req.user?.role || null;
-    
+
     // Capture endpoint - use request path (full path including mount point)
     // req.path gives the actual path (e.g., "/api/auth/profile")
     // req.route?.path gives only the route pattern (e.g., "/profile") without mount point
     // req.url gives full URL with query string
     // We use req.path to get the full path including the mount point
     // Also check req.baseUrl + req.route?.path for more accurate route matching
-    let endpoint = req.path || req.url?.split('?')[0] || '/';
-    
+    let endpoint = req.path || req.url?.split("?")[0] || "/";
+
     // Try to get the full path with baseUrl if available
     if (req.baseUrl && req.route?.path) {
       // Combine baseUrl (mount point) with route path for accurate endpoint
       endpoint = req.baseUrl + req.route.path;
     } else if (req.baseUrl && !req.route?.path) {
       // If we have baseUrl but no route path, use baseUrl + path
-      endpoint = req.baseUrl + (req.path || '');
+      endpoint = req.baseUrl + (req.path || "");
     }
-    
+
     // Normalize endpoint (remove trailing slash except for root)
-    if (endpoint !== '/' && endpoint.endsWith('/')) {
+    if (endpoint !== "/" && endpoint.endsWith("/")) {
       endpoint = endpoint.slice(0, -1);
     }
-    
+
     // Track the API call (pass userRole to exclude admin users from counting)
-    trackApiCall(method, endpoint, finalUserId, statusCode, responseTime, userRole);
-    
+    trackApiCall(
+      method,
+      endpoint,
+      finalUserId,
+      statusCode,
+      responseTime,
+      userRole
+    );
+
     // Check if this is an auth endpoint (should not show warning)
     // Check both full path (/api/auth/profile) and route path (/profile)
-    const isAuthEndpoint = endpoint.includes('/api/auth/login') || 
-                           endpoint.includes('/api/auth/signup') || 
-                           endpoint.includes('/api/auth/profile') ||
-                           endpoint === '/profile' ||
-                           endpoint === '/login' ||
-                           endpoint === '/signup';
-    
+    const isAuthEndpoint =
+      endpoint.includes("/api/auth/login") ||
+      endpoint.includes("/api/auth/signup") ||
+      endpoint.includes("/api/auth/profile") ||
+      endpoint === "/profile" ||
+      endpoint === "/login" ||
+      endpoint === "/signup";
+
     // Add warning header if user has exceeded limit (only for authenticated users, successful calls, non-auth endpoints, and non-admin users)
-    if (finalUserId && finalUserId !== 'anonymous' && 
-        statusCode >= 200 && statusCode < 300 &&
-        !isAuthEndpoint &&
-        userRole !== 'admin') {
+    if (
+      finalUserId &&
+      finalUserId !== "anonymous" &&
+      statusCode >= 200 &&
+      statusCode < 300 &&
+      !isAuthEndpoint &&
+      userRole !== "admin"
+    ) {
       // Use setImmediate to avoid blocking the response
       setImmediate(async () => {
         try {
           const exceeded = await hasExceededLimit(finalUserId, userRole);
           if (exceeded) {
-            res.setHeader('X-API-Limit-Exceeded', 'true');
-            res.setHeader('X-API-Limit-Message', apiTrackingMessages.apiLimitExceededMessage(FREE_API_CALLS_LIMIT));
+            res.setHeader("X-API-Limit-Exceeded", "true");
+            res.setHeader(
+              "X-API-Limit-Message",
+              apiTrackingMessages.apiLimitExceededMessage(FREE_API_CALLS_LIMIT)
+            );
           }
         } catch (error) {
           console.error("Error checking API limit:", error);
@@ -443,11 +478,9 @@ const apiTrackingMiddleware = (req, res, next) => {
       });
     }
   });
-  
+
   next();
 };
-
-
 
 module.exports = {
   apiTrackingMiddleware,
@@ -461,4 +494,3 @@ module.exports = {
   getRemainingCalls,
   FREE_API_CALLS_LIMIT,
 };
-

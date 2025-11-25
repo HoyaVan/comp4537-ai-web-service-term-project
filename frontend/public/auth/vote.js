@@ -1,4 +1,7 @@
-const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+const BACKEND_URL = (window.BACKEND_URL || "http://localhost:3000").replace(
+  /\/$/,
+  ""
+);
 
 let currentRoundId = null;
 let participantToken = null;
@@ -8,7 +11,7 @@ let countdownInterval = null;
 // Get round ID from URL
 function getRoundIdFromURL() {
   const params = new URLSearchParams(window.location.search);
-  return params.get('round');
+  return params.get("round");
 }
 
 // Get participant token from localStorage
@@ -32,14 +35,23 @@ function saveParticipantToken(token) {
 // Load round data
 async function loadRound(roundId) {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/v1/voting/rounds/${roundId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      mode: 'cors',
-      credentials: 'omit',
-    });
+    const isNgrok =
+      BACKEND_URL.includes("ngrok-free.dev") ||
+      BACKEND_URL.includes("ngrok.io");
+    const headers = {
+      Accept: "application/json",
+      ...(isNgrok && { "ngrok-skip-browser-warning": "true" }),
+    };
+
+    const response = await fetch(
+      `${BACKEND_URL}/api/v1/voting/rounds/${roundId}`,
+      {
+        method: "GET",
+        headers: headers,
+        mode: "cors",
+        credentials: "omit",
+      }
+    );
 
     const data = await response.json();
     return { ok: response.ok, data };
@@ -51,14 +63,23 @@ async function loadRound(roundId) {
 // Get countdown info for round
 async function getRoundCountdown(roundId) {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/v1/voting/rounds/${roundId}/countdown`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      mode: 'cors',
-      credentials: 'omit',
-    });
+    const isNgrok =
+      BACKEND_URL.includes("ngrok-free.dev") ||
+      BACKEND_URL.includes("ngrok.io");
+    const headers = {
+      Accept: "application/json",
+      ...(isNgrok && { "ngrok-skip-browser-warning": "true" }),
+    };
+
+    const response = await fetch(
+      `${BACKEND_URL}/api/v1/voting/rounds/${roundId}/countdown`,
+      {
+        method: "GET",
+        headers: headers,
+        mode: "cors",
+        credentials: "omit",
+      }
+    );
 
     const data = await response.json();
     return { ok: response.ok, data };
@@ -69,37 +90,40 @@ async function getRoundCountdown(roundId) {
 
 // Format time remaining as MM:SS
 function formatTimeRemaining(seconds) {
-  if (seconds <= 0) return '00:00';
+  if (seconds <= 0) return "00:00";
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
-  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
 // Update countdown display
 function updateCountdownDisplay(countdownData) {
-  const container = document.getElementById('countdown-container');
-  const timerEl = document.getElementById('countdown-timer');
-  
+  const container = document.getElementById("countdown-container");
+  const timerEl = document.getElementById("countdown-timer");
+
   if (!container || !timerEl) {
     return;
   }
 
-  if (countdownData && countdownData.isJukeboxRound && countdownData.timeRemainingSeconds !== null) {
+  if (
+    countdownData &&
+    countdownData.isJukeboxRound &&
+    countdownData.timeRemainingSeconds !== null
+  ) {
     const seconds = countdownData.timeRemainingSeconds;
-    
+
     // Show countdown even if time is 0 (will show 00:00)
     timerEl.textContent = formatTimeRemaining(Math.max(0, seconds));
-    container.style.display = 'block';
-    
+    container.style.display = "block";
+
     // Add warning class if less than 30 seconds
     if (seconds < 30 && seconds > 0) {
-      timerEl.className = 'countdown-timer countdown-warning';
+      timerEl.className = "countdown-timer countdown-warning";
     } else {
-      timerEl.className = 'countdown-timer';
+      timerEl.className = "countdown-timer";
     }
-    
   } else {
-    container.style.display = 'none';
+    container.style.display = "none";
   }
 }
 
@@ -111,10 +135,14 @@ async function startCountdownTimer(roundId) {
   }
 
   const { ok, data } = await getRoundCountdown(roundId);
-  
+
   if (ok && data.success) {
     const countdownData = data.data;
-    if (countdownData && countdownData.isJukeboxRound && countdownData.timeRemainingSeconds !== null) {
+    if (
+      countdownData &&
+      countdownData.isJukeboxRound &&
+      countdownData.timeRemainingSeconds !== null
+    ) {
       updateCountdownDisplay(countdownData);
     } else {
       updateCountdownDisplay(null);
@@ -128,9 +156,13 @@ async function startCountdownTimer(roundId) {
     const { ok, data } = await getRoundCountdown(roundId);
     if (ok && data.success) {
       const countdownData = data.data;
-      if (countdownData && countdownData.isJukeboxRound && countdownData.timeRemainingSeconds !== null) {
+      if (
+        countdownData &&
+        countdownData.isJukeboxRound &&
+        countdownData.timeRemainingSeconds !== null
+      ) {
         updateCountdownDisplay(countdownData);
-        
+
         // Stop timer if time is up
         if (countdownData.timeRemainingSeconds <= 0) {
           clearInterval(countdownInterval);
@@ -156,21 +188,30 @@ function stopCountdownTimer() {
 // Submit vote
 async function submitVote(roundId, songId) {
   const token = getParticipantToken();
-  
+
   try {
-    const response = await fetch(`${BACKEND_URL}/api/v1/voting/rounds/${roundId}/vote`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      mode: 'cors',
-      credentials: 'omit',
-      body: JSON.stringify({
-        songId,
-        participantToken: token,
-      }),
-    });
+    const isNgrok =
+      BACKEND_URL.includes("ngrok-free.dev") ||
+      BACKEND_URL.includes("ngrok.io");
+    const headers = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(isNgrok && { "ngrok-skip-browser-warning": "true" }),
+    };
+
+    const response = await fetch(
+      `${BACKEND_URL}/api/v1/voting/rounds/${roundId}/vote`,
+      {
+        method: "POST",
+        headers: headers,
+        mode: "cors",
+        credentials: "omit",
+        body: JSON.stringify({
+          songId,
+          participantToken: token,
+        }),
+      }
+    );
 
     const data = await response.json();
     return { ok: response.ok, data };
@@ -184,23 +225,25 @@ function displayRound(roundData) {
   const { round, songs, results } = roundData;
 
   // Show voting container
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('voting-container').style.display = 'block';
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("voting-container").style.display = "block";
 
   // Set round info
-  document.getElementById('round-number').textContent = round.currentRoundNumber;
-  
+  document.getElementById("round-number").textContent =
+    round.currentRoundNumber;
+
   // Show status warning if paused
-  const roundInfo = document.getElementById('round-genre');
-  let infoText = '';
+  const roundInfo = document.getElementById("round-genre");
+  let infoText = "";
   if (round.genre) {
     infoText = `Genre: ${round.genre}`;
   }
   if (round.bpm) {
     infoText += infoText ? ` | BPM: ${round.bpm}` : `BPM: ${round.bpm}`;
   }
-  if (round.status === 'paused') {
-    infoText = (infoText ? infoText + ' | ' : '') + '⚠️ Voting is currently paused';
+  if (round.status === "paused") {
+    infoText =
+      (infoText ? infoText + " | " : "") + "⚠️ Voting is currently paused";
   }
   roundInfo.textContent = infoText;
 
@@ -212,66 +255,72 @@ function displayRound(roundData) {
 }
 
 // Display songs
-function displaySongs(songs, results, roundStatus = 'active') {
-  const container = document.getElementById('songs-container');
-  
+function displaySongs(songs, results, roundStatus = "active") {
+  const container = document.getElementById("songs-container");
+
   if (!songs || songs.length === 0) {
-    container.innerHTML = '<p>No songs available for this round.</p>';
+    container.innerHTML = "<p>No songs available for this round.</p>";
     return;
   }
 
   // Get vote counts from results
   const voteCounts = {};
   if (results && results.songs) {
-    results.songs.forEach(song => {
+    results.songs.forEach((song) => {
       voteCounts[song.songId] = song.votes;
     });
   }
 
-  const isPaused = roundStatus === 'paused';
+  const isPaused = roundStatus === "paused";
 
-  container.innerHTML = songs.map((song, index) => {
-    const votes = voteCounts[song.id] || 0;
-    const isSelected = selectedSongId === song.id;
-    
-    return `
-      <div class="song-card ${isSelected ? 'selected' : ''}" data-song-id="${song.id}">
+  container.innerHTML = songs
+    .map((song, index) => {
+      const votes = voteCounts[song.id] || 0;
+      const isSelected = selectedSongId === song.id;
+
+      return `
+      <div class="song-card ${isSelected ? "selected" : ""}" data-song-id="${
+        song.id
+      }">
         <div class="song-number">${index + 1}</div>
         <div class="song-info">
           <h3 class="song-title">${song.title}</h3>
           <p class="song-artist">by ${song.artist}</p>
-          ${song.genre ? `<p class="song-meta">Genre: ${song.genre}</p>` : ''}
-          ${song.bpm ? `<p class="song-meta">BPM: ${song.bpm}</p>` : ''}
+          ${song.genre ? `<p class="song-meta">Genre: ${song.genre}</p>` : ""}
+          ${song.bpm ? `<p class="song-meta">BPM: ${song.bpm}</p>` : ""}
         </div>
         <div class="song-actions">
           <div class="vote-count" id="votes-${song.id}">${votes} votes</div>
-          <button class="btn btn-vote" onclick="voteForSong('${song.id}')" ${isSelected || isPaused ? 'disabled' : ''}>
-            ${isSelected ? '✓ Voted' : isPaused ? 'Voting Paused' : 'Vote'}
+          <button class="btn btn-vote" onclick="voteForSong('${song.id}')" ${
+        isSelected || isPaused ? "disabled" : ""
+      }>
+            ${isSelected ? "✓ Voted" : isPaused ? "Voting Paused" : "Vote"}
           </button>
         </div>
       </div>
     `;
-  }).join('');
+    })
+    .join("");
 }
 
 // Vote for a song
-window.voteForSong = async function(songId) {
+window.voteForSong = async function (songId) {
   if (!currentRoundId) {
-    showMessage('Error: Round ID not found', false);
+    showMessage("Error: Round ID not found", false);
     return;
   }
 
   // Check if voting is paused (this is a client-side check, backend also validates)
-  if (document.querySelector('.btn-vote:disabled')) {
+  if (document.querySelector(".btn-vote:disabled")) {
     const btn = event?.target;
-    if (btn && btn.disabled && btn.textContent.includes('Paused')) {
-      showMessage('Voting is currently paused by the round owner', false);
+    if (btn && btn.disabled && btn.textContent.includes("Paused")) {
+      showMessage("Voting is currently paused by the round owner", false);
       return;
     }
   }
 
   // Disable all vote buttons
-  document.querySelectorAll('.btn-vote').forEach(btn => {
+  document.querySelectorAll(".btn-vote").forEach((btn) => {
     btn.disabled = true;
   });
 
@@ -285,7 +334,7 @@ window.voteForSong = async function(songId) {
     }
 
     selectedSongId = songId;
-    showMessage(data.message || 'Vote submitted successfully!', true);
+    showMessage(data.message || "Vote submitted successfully!", true);
 
     // Update UI with new results
     if (data.data && data.data.results) {
@@ -297,9 +346,9 @@ window.voteForSong = async function(songId) {
       reloadRound();
     }, 1000);
   } else {
-    showMessage('Failed to vote: ' + (data.message || 'Unknown error'), false);
+    showMessage("Failed to vote: " + (data.message || "Unknown error"), false);
     // Re-enable buttons
-    document.querySelectorAll('.btn-vote').forEach(btn => {
+    document.querySelectorAll(".btn-vote").forEach((btn) => {
       btn.disabled = false;
     });
   }
@@ -307,14 +356,14 @@ window.voteForSong = async function(songId) {
 
 // Update vote counts
 function updateVoteCount(totalVotes) {
-  document.getElementById('votes-count').textContent = totalVotes || 0;
+  document.getElementById("votes-count").textContent = totalVotes || 0;
 }
 
 // Update results
 function updateResults(results) {
   // Update individual vote counts
   if (results.songs) {
-    results.songs.forEach(song => {
+    results.songs.forEach((song) => {
       const voteEl = document.getElementById(`votes-${song.songId}`);
       if (voteEl) {
         voteEl.textContent = `${song.votes} votes`;
@@ -333,43 +382,61 @@ function updateResults(results) {
 
 // Display results
 function displayResults(results) {
-  const section = document.getElementById('results-section');
-  const container = document.getElementById('results-container');
+  const section = document.getElementById("results-section");
+  const container = document.getElementById("results-container");
 
-  section.style.display = 'block';
+  section.style.display = "block";
 
   container.innerHTML = `
     <div class="results-list">
-      ${results.songs.slice(0, 3).map((song, index) => `
-        <div class="result-item ${index === 0 ? 'winner' : ''}">
+      ${results.songs
+        .slice(0, 3)
+        .map(
+          (song, index) => `
+        <div class="result-item ${index === 0 ? "winner" : ""}">
           <span class="rank">#${index + 1}</span>
           <span class="song-info">"${song.title}" by ${song.artist}</span>
           <span class="votes">${song.votes} votes</span>
         </div>
-      `).join('')}
+      `
+        )
+        .join("")}
     </div>
-    ${results.winner ? `
+    ${
+      results.winner
+        ? `
       <div class="winner-banner">
         <h3>🏆 Current Winner</h3>
         <p>"${results.winner.title}" by ${results.winner.artist}</p>
         ${(() => {
           // Normalize Spotify track ID - extract just the ID from various formats
           function normalizeSpotifyTrackId(spotifyId) {
-            if (!spotifyId || typeof spotifyId !== 'string') return null;
+            if (!spotifyId || typeof spotifyId !== "string") return null;
             const trimmed = spotifyId.trim();
             if (!trimmed) return null;
-            if (trimmed.startsWith('spotify:track:')) return trimmed.replace('spotify:track:', '');
-            const urlMatch = trimmed.match(/spotify\.com\/track\/([a-zA-Z0-9]+)/);
+            if (trimmed.startsWith("spotify:track:"))
+              return trimmed.replace("spotify:track:", "");
+            const urlMatch = trimmed.match(
+              /spotify\.com\/track\/([a-zA-Z0-9]+)/
+            );
             if (urlMatch) return urlMatch[1];
             if (/^[a-zA-Z0-9]{22}$/.test(trimmed)) return trimmed;
             const idMatch = trimmed.match(/[a-zA-Z0-9]{15,25}/);
             return idMatch ? idMatch[0] : null;
           }
-          const normalizedId = normalizeSpotifyTrackId(results.winner.spotifyId);
+          const normalizedId = normalizeSpotifyTrackId(
+            results.winner.spotifyId
+          );
           if (!normalizedId && results.winner.spotifyId) {
-            console.warn('Failed to normalize Spotify ID:', results.winner.spotifyId, 'for song:', results.winner.title);
+            console.warn(
+              "Failed to normalize Spotify ID:",
+              results.winner.spotifyId,
+              "for song:",
+              results.winner.title
+            );
           }
-          return normalizedId ? `
+          return normalizedId
+            ? `
           <div style="margin: 16px 0;">
             <iframe 
               src="https://open.spotify.com/embed/track/${normalizedId}?utm_source=generator" 
@@ -385,31 +452,34 @@ function displayResults(results) {
               ⚠️ Preview only. <a href="https://open.spotify.com/track/${normalizedId}" target="_blank" style="color: #1DB954; text-decoration: underline;">Open in Spotify</a> for full playback
             </p>
           </div>
-        ` : '';
+        `
+            : "";
         })()}
       </div>
-    ` : ''}
+    `
+        : ""
+    }
   `;
 }
 
 // Show message
 function showMessage(text, isSuccess) {
-  const msgEl = document.getElementById('vote-message');
+  const msgEl = document.getElementById("vote-message");
   if (msgEl) {
     msgEl.textContent = text;
-    msgEl.className = `msg ${isSuccess ? 'ok' : 'err'}`;
-    msgEl.style.display = 'block';
+    msgEl.className = `msg ${isSuccess ? "ok" : "err"}`;
+    msgEl.style.display = "block";
     setTimeout(() => {
-      msgEl.style.display = 'none';
+      msgEl.style.display = "none";
     }, 3000);
   }
 }
 
 // Show error
 function showError(message) {
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('error').style.display = 'block';
-  document.getElementById('error-message').textContent = message;
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("error").style.display = "block";
+  document.getElementById("error-message").textContent = message;
 }
 
 // Reload round data
@@ -429,7 +499,9 @@ async function initVote() {
   currentRoundId = getRoundIdFromURL();
 
   if (!currentRoundId) {
-    showError('No round ID provided in URL. Please scan the QR code or use a valid voting link.');
+    showError(
+      "No round ID provided in URL. Please scan the QR code or use a valid voting link."
+    );
     return;
   }
 
@@ -445,34 +517,36 @@ async function initVote() {
     } else if (data && data.message) {
       showError(data.message);
     } else {
-      showError('Failed to load voting round. Please check the URL and try again.');
+      showError(
+        "Failed to load voting round. Please check the URL and try again."
+      );
     }
     return;
   }
 
   if (data.success && data.data) {
     displayRound(data.data);
-    
+
     // Start countdown timer
     startCountdownTimer(currentRoundId);
-    
+
     // Auto-refresh results every 5 seconds
     setInterval(() => {
       reloadRound();
     }, 5000);
   } else {
-    showError('Invalid round data received from server.');
+    showError("Invalid round data received from server.");
   }
-  
+
   // Cleanup on page unload
-  window.addEventListener('beforeunload', () => {
+  window.addEventListener("beforeunload", () => {
     stopCountdownTimer();
   });
 }
 
 // Fallback: Initialize if DOM is already loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initVote);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initVote);
 } else if (!window.__voteInitialized) {
   setTimeout(() => {
     if (!window.__voteInitialized) {

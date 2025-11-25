@@ -125,8 +125,16 @@ function verifyToken(token) {
 /**
  * Update user Spotify tokens
  */
-async function updateUserSpotifyTokens(userId, accessToken, refreshToken, expiresAt) {
-  await db.query("UPDATE `user` SET spotify_access_token = ?, spotify_refresh_token = ?, spotify_expires_at = ? WHERE user_id = ?", [accessToken, refreshToken, expiresAt, userId]);
+async function updateUserSpotifyTokens(
+  userId,
+  accessToken,
+  refreshToken,
+  expiresAt
+) {
+  await db.query(
+    "UPDATE `user` SET spotify_access_token = ?, spotify_refresh_token = ?, spotify_expires_at = ? WHERE user_id = ?",
+    [accessToken, refreshToken, expiresAt, userId]
+  );
 }
 
 /**
@@ -135,7 +143,7 @@ async function updateUserSpotifyTokens(userId, accessToken, refreshToken, expire
  */
 async function getUserSpotifyTokens(userId) {
   const tokens = await db.query(
-    "SELECT spotify_access_token as accessToken, spotify_refresh_token as refreshToken, spotify_expires_at as expiresAt FROM `user` WHERE user_id = ?", 
+    "SELECT spotify_access_token as accessToken, spotify_refresh_token as refreshToken, spotify_expires_at as expiresAt FROM `user` WHERE user_id = ?",
     [userId]
   );
   return tokens.length > 0 ? tokens[0] : null;
