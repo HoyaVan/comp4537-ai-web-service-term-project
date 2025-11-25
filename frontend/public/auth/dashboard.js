@@ -1,8 +1,11 @@
-import { dashboardMessages } from '/messages/dashboard.js';
-import { requireAuth, getCurrentUser } from './authGuard.js';
-import { updateBackendUrl } from './utils.js';
+import { dashboardMessages } from "/messages/dashboard.js";
+import { requireAuth, getCurrentUser } from "./authGuard.js";
+import { updateBackendUrl } from "./utils.js";
 
-const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+const BACKEND_URL = (window.BACKEND_URL || "http://localhost:3000").replace(
+  /\/$/,
+  ""
+);
 
 /**
  * Normalize Spotify track ID - extracts just the ID from various formats
@@ -11,61 +14,61 @@ const BACKEND_URL = (window.BACKEND_URL || 'http://localhost:3000').replace(/\/$
  * @returns {string|null} - Just the track ID, or null if invalid
  */
 function normalizeSpotifyTrackId(spotifyId) {
-  if (!spotifyId || typeof spotifyId !== 'string') {
+  if (!spotifyId || typeof spotifyId !== "string") {
     return null;
   }
-  
+
   // Remove whitespace
   const trimmed = spotifyId.trim();
   if (!trimmed) {
     return null;
   }
-  
+
   // If it's a full URI, extract the ID
-  if (trimmed.startsWith('spotify:track:')) {
-    return trimmed.replace('spotify:track:', '');
+  if (trimmed.startsWith("spotify:track:")) {
+    return trimmed.replace("spotify:track:", "");
   }
-  
+
   // If it's a URL, extract the ID
   const urlMatch = trimmed.match(/spotify\.com\/track\/([a-zA-Z0-9]+)/);
   if (urlMatch) {
     return urlMatch[1];
   }
-  
+
   // If it's just the ID, validate it's alphanumeric (Spotify IDs are base62)
   // Spotify track IDs are 22 characters, alphanumeric
   if (/^[a-zA-Z0-9]{22}$/.test(trimmed)) {
     return trimmed;
   }
-  
+
   // If it doesn't match expected format, try to extract any alphanumeric sequence
   const idMatch = trimmed.match(/[a-zA-Z0-9]{15,25}/);
   if (idMatch) {
     return idMatch[0];
   }
-  
+
   // Invalid format
-  console.warn('Invalid Spotify track ID format:', spotifyId);
+  console.warn("Invalid Spotify track ID format:", spotifyId);
   return null;
 }
 
 // Display API limit warning
 function showApiLimitWarning(message) {
   // Check if warning already exists to avoid duplicates
-  let warningEl = document.getElementById('api-limit-warning');
+  let warningEl = document.getElementById("api-limit-warning");
   if (!warningEl) {
-    warningEl = document.createElement('div');
-    warningEl.id = 'api-limit-warning';
-    warningEl.className = 'api-limit-warning';
+    warningEl = document.createElement("div");
+    warningEl.id = "api-limit-warning";
+    warningEl.className = "api-limit-warning";
     document.body.appendChild(warningEl);
   }
   warningEl.textContent = message;
-  warningEl.classList.remove('hidden');
-  
+  warningEl.classList.remove("hidden");
+
   // Auto-hide after 5 seconds
   setTimeout(() => {
     if (warningEl) {
-      warningEl.classList.add('hidden');
+      warningEl.classList.add("hidden");
     }
   }, 5000);
 }
@@ -75,12 +78,12 @@ async function apiRequest(url, options = {}) {
   // Use authService if available, otherwise fallback to direct fetch
   if (window.authService) {
     const response = await window.authService.apiRequest(url, options);
-    
+
     // Check for API limit warning headers
-    const limitExceeded = response.headers.get('X-API-Limit-Exceeded');
-    const limitMessage = response.headers.get('X-API-Limit-Message');
-    
-    if (limitExceeded === 'true' && limitMessage) {
+    const limitExceeded = response.headers.get("X-API-Limit-Exceeded");
+    const limitMessage = response.headers.get("X-API-Limit-Message");
+
+    if (limitExceeded === "true" && limitMessage) {
       // Display warning but continue with the request
       showApiLimitWarning(limitMessage);
     }
@@ -104,10 +107,10 @@ async function apiRequest(url, options = {}) {
   });
 
   // Check for API limit warning headers
-  const limitExceeded = response.headers.get('X-API-Limit-Exceeded');
-  const limitMessage = response.headers.get('X-API-Limit-Message');
-  
-  if (limitExceeded === 'true' && limitMessage) {
+  const limitExceeded = response.headers.get("X-API-Limit-Exceeded");
+  const limitMessage = response.headers.get("X-API-Limit-Message");
+
+  if (limitExceeded === "true" && limitMessage) {
     // Display warning but continue with the request
     showApiLimitWarning(limitMessage);
   }
@@ -126,27 +129,64 @@ async function loadUserInfo() {
 
     // Display API consumption
     displayApiConsumption(user.apiConsumption);
-    
+
     return user; // Return user object for role checking
   }
   return null;
 }
 
+/**
+ * Load Spotify token from backend
+ * Tokens are stored in the backend user table, not localStorage
+ * This function fetches the token info and caches it locally for quick access
+ */
 async function loadSpotifyToken() {
-  const auth = await apiRequest("/api/v1/spotify/oauth/authorize");
-  const callback = await apiRequest("/api/v1/spotify/oauth/callback" + "?code=" + encodeURIComponent(auth.data.code));
-  
-  const { ok, data } = await apiRequest("/api/v1/spotify/me/token");
-  if (ok && data.success) {
-    localStorage.setItem("spotify_token", data.data.access_token);
-    localStorage.setItem("spotify_refresh_token", data.data.refresh_token);
-    localStorage.setItem("spotify_expires_in", data.data.expires_in);
-    localStorage.setItem("spotify_token_type", data.data.token_type);
-    localStorage.setItem("spotify_scope", data.data.scope);
-    localStorage.setItem("spotify_state", data.data.state);
-    return data.data;
+  try {
+    const { ok, data } = await apiRequest("/api/v1/spotify/me/token");
+
+    if (ok && data.success && data.data.connected) {
+      // Cache token info locally for quick access (but backend is source of truth)
+      if (data.data.access_token) {
+        localStorage.setItem("spotify_token", data.data.access_token);
+      }
+      if (data.data.refresh_token) {
+        localStorage.setItem("spotify_refresh_token", data.data.refresh_token);
+      }
+      if (data.data.expires_in !== null && data.data.expires_in !== undefined) {
+        localStorage.setItem(
+          "spotify_expires_in",
+          data.data.expires_in.toString()
+        );
+      }
+      if (data.data.expires_at) {
+        localStorage.setItem(
+          "spotify_expires_at",
+          data.data.expires_at.toString()
+        );
+      }
+
+      console.log("[Dashboard] Spotify token loaded from backend:", {
+        connected: data.data.connected,
+        is_expired: data.data.is_expired,
+        expires_in: data.data.expires_in,
+      });
+
+      return data.data;
+    } else {
+      // User not connected to Spotify
+      console.log("[Dashboard] User not connected to Spotify");
+      // Clear any stale local cache
+      localStorage.removeItem("spotify_token");
+      localStorage.removeItem("spotify_refresh_token");
+      localStorage.removeItem("spotify_expires_in");
+      localStorage.removeItem("spotify_expires_at");
+      localStorage.removeItem("spotify_scope");
+      return null;
+    }
+  } catch (error) {
+    console.error("[Dashboard] Error loading Spotify token:", error);
+    return null;
   }
-  return null;
 }
 
 // Display API consumption
@@ -232,7 +272,7 @@ async function getQRCode(roundId) {
 function generateQRCode(url, containerId) {
   const container = document.getElementById(containerId);
   container.innerHTML = `<p>${dashboardMessages.generatingQrCode}</p>`;
-  
+
   // Use online QR code API (no CDN library needed)
   container.innerHTML = `
     <div style="text-align: center;">
@@ -501,14 +541,20 @@ window.viewResults = async function (roundId) {
       <div class="winner-section">
         <h4>Winner</h4>
         <p>"${results.winner.title}" by ${results.winner.artist}</p>
-        ${
-          (() => {
-            const normalizedId = normalizeSpotifyTrackId(results.winner.spotifyId);
-            if (!normalizedId && results.winner.spotifyId) {
-              console.warn('Failed to normalize Spotify ID:', results.winner.spotifyId, 'for song:', results.winner.title);
-            }
-            return normalizedId
-              ? `
+        ${(() => {
+          const normalizedId = normalizeSpotifyTrackId(
+            results.winner.spotifyId
+          );
+          if (!normalizedId && results.winner.spotifyId) {
+            console.warn(
+              "Failed to normalize Spotify ID:",
+              results.winner.spotifyId,
+              "for song:",
+              results.winner.title
+            );
+          }
+          return normalizedId
+            ? `
           <div style="margin: 16px 0;">
             <iframe 
               src="https://open.spotify.com/embed/track/${normalizedId}?utm_source=generator" 
@@ -529,13 +575,12 @@ window.viewResults = async function (roundId) {
             🎵 Open in Spotify (Full Song)
           </a>
         `
-              : `
+            : `
           <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
             No valid Spotify track ID available for this song.
           </p>
         `;
-          })()
-        }
+        })()}
       </div>
     `
         : ""
@@ -596,7 +641,10 @@ window.pauseRound = async function (roundId) {
   if (ok && data.success) {
     await loadAndDisplayRounds();
   } else {
-    alert(dashboardMessages.failedToPauseRound + (data.message || dashboardMessages.unknownError));
+    alert(
+      dashboardMessages.failedToPauseRound +
+        (data.message || dashboardMessages.unknownError)
+    );
   }
 };
 
@@ -607,7 +655,10 @@ window.resumeRound = async function (roundId) {
   if (ok && data.success) {
     await loadAndDisplayRounds();
   } else {
-    alert(dashboardMessages.failedToResumeRound + (data.message || dashboardMessages.unknownError));
+    alert(
+      dashboardMessages.failedToResumeRound +
+        (data.message || dashboardMessages.unknownError)
+    );
   }
 };
 
@@ -667,7 +718,10 @@ window.generateNext = async function (roundId) {
     alert(dashboardMessages.nextRoundGenerated);
     loadAndDisplayRounds();
   } else {
-    alert(dashboardMessages.failedToGenerateNextRound + (data.message || dashboardMessages.unknownError));
+    alert(
+      dashboardMessages.failedToGenerateNextRound +
+        (data.message || dashboardMessages.unknownError)
+    );
   }
 
   btn.disabled = false;
@@ -695,88 +749,99 @@ async function initDashboard() {
   updateBackendUrl(backend);
 
   // Check if we're in the process of logging out - skip auth check to prevent redirect loops
-  const isLoggingOut = window.__isLoggingOut || sessionStorage.getItem('__isLoggingOut') === 'true';
+  const isLoggingOut =
+    window.__isLoggingOut ||
+    sessionStorage.getItem("__isLoggingOut") === "true";
   if (isLoggingOut) {
-    sessionStorage.removeItem('__isLoggingOut');
-    window.location.replace('/');
+    sessionStorage.removeItem("__isLoggingOut");
+    window.location.replace("/");
     return;
   }
 
   // Wait for authService to be ready
-  console.log('[Dashboard] Waiting for authService...');
+  console.log("[Dashboard] Waiting for authService...");
   if (!window.authService) {
     // Wait up to 2 seconds for authService
     for (let i = 0; i < 40; i++) {
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       if (window.authService) {
-        console.log('[Dashboard] authService ready');
+        console.log("[Dashboard] authService ready");
         break;
       }
     }
   }
 
   if (!window.authService) {
-    console.error('[Dashboard] authService not available');
-    window.location.replace('/login');
+    console.error("[Dashboard] authService not available");
+    window.location.replace("/login");
     return;
   }
 
   // Check token directly before requiring auth
   const token = window.authService.getToken();
-  console.log('[Dashboard] Token check before requireAuth:', token ? 'Token found' : 'No token');
+  console.log(
+    "[Dashboard] Token check before requireAuth:",
+    token ? "Token found" : "No token"
+  );
   if (!token) {
     // Also check localStorage directly
-    const localStorageToken = localStorage.getItem('token');
-    console.log('[Dashboard] Direct localStorage check:', localStorageToken ? 'Token found' : 'No token');
+    const localStorageToken = localStorage.getItem("token");
+    console.log(
+      "[Dashboard] Direct localStorage check:",
+      localStorageToken ? "Token found" : "No token"
+    );
     if (localStorageToken && window.authService) {
       // Token exists in localStorage but not in authService - sync it
-      console.log('[Dashboard] Syncing token from localStorage to authService');
+      console.log("[Dashboard] Syncing token from localStorage to authService");
       window.authService.setToken(localStorageToken);
     } else {
-      console.log('[Dashboard] No token found, redirecting to login');
-      window.location.replace('/login');
+      console.log("[Dashboard] No token found, redirecting to login");
+      window.location.replace("/login");
       return;
     }
   }
 
   // Require authentication - will redirect if not authenticated
-  console.log('[Dashboard] Calling requireAuth...');
+  console.log("[Dashboard] Calling requireAuth...");
   const isAuth = await requireAuth();
   if (!isAuth) {
-    console.log('[Dashboard] requireAuth returned false');
+    console.log("[Dashboard] requireAuth returned false");
     return;
   }
-  console.log('[Dashboard] Authentication successful, continuing initialization');
+  console.log(
+    "[Dashboard] Authentication successful, continuing initialization"
+  );
 
   // Handle Spotify OAuth callback redirect
   const urlParams = new URLSearchParams(window.location.search);
-  const spotifyStatus = urlParams.get('spotify');
+  const spotifyStatus = urlParams.get("spotify");
   if (spotifyStatus) {
     // Clean up URL by removing query parameters
     const cleanUrl = window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);
-    
-    if (spotifyStatus === 'connected') {
+
+    if (spotifyStatus === "connected") {
       // Show success message
       if (createMessage) {
-        createMessage.textContent = '✅ Successfully connected to Spotify!';
-        createMessage.className = 'msg ok';
-        createMessage.style.display = 'block';
+        createMessage.textContent = "✅ Successfully connected to Spotify!";
+        createMessage.className = "msg ok";
+        createMessage.style.display = "block";
         // Hide after 5 seconds
         setTimeout(() => {
-          createMessage.style.display = 'none';
+          createMessage.style.display = "none";
         }, 5000);
       }
-    } else if (spotifyStatus === 'error') {
+    } else if (spotifyStatus === "error") {
       // Show error message
-      const errorMsg = urlParams.get('message') || 'Failed to connect to Spotify';
+      const errorMsg =
+        urlParams.get("message") || "Failed to connect to Spotify";
       if (createMessage) {
         createMessage.textContent = `❌ ${decodeURIComponent(errorMsg)}`;
-        createMessage.className = 'msg err';
-        createMessage.style.display = 'block';
+        createMessage.className = "msg err";
+        createMessage.style.display = "block";
         // Hide after 7 seconds
         setTimeout(() => {
-          createMessage.style.display = 'none';
+          createMessage.style.display = "none";
         }, 7000);
       }
     }
@@ -789,7 +854,7 @@ async function initDashboard() {
   } else {
     // Wait up to 2 seconds for headerUtils
     for (let i = 0; i < 40; i++) {
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       if (window.__headerUtilsReady && window.initLoggedInHeader) {
         headerUtilsReady = true;
         break;
@@ -801,35 +866,47 @@ async function initDashboard() {
   const user = await loadUserInfo();
 
   // Initialize header with navigation links
-  console.log('[Dashboard] Initializing header, headerUtilsReady:', headerUtilsReady);
-  if (headerUtilsReady && typeof window.initLoggedInHeader === 'function') {
+  console.log(
+    "[Dashboard] Initializing header, headerUtilsReady:",
+    headerUtilsReady
+  );
+  if (headerUtilsReady && typeof window.initLoggedInHeader === "function") {
     try {
-      const additionalLinks = [
-        { href: '/profile', text: 'Profile' }
-      ];
-      
+      const additionalLinks = [{ href: "/profile", text: "Profile" }];
+
       // Only add Admin link if user is an admin
-      if (user && user.role === 'admin') {
-        additionalLinks.push({ href: '/admin', text: 'Admin' });
+      if (user && user.role === "admin") {
+        additionalLinks.push({ href: "/admin", text: "Admin" });
       }
-      
-      console.log('[Dashboard] Calling initLoggedInHeader with links:', additionalLinks);
+
+      console.log(
+        "[Dashboard] Calling initLoggedInHeader with links:",
+        additionalLinks
+      );
       await window.initLoggedInHeader(additionalLinks);
-      console.log('[Dashboard] Header initialized successfully');
+      console.log("[Dashboard] Header initialized successfully");
     } catch (error) {
-      console.error('[Dashboard] Error initializing header:', error);
-      console.error('[Dashboard] Error stack:', error.stack);
+      console.error("[Dashboard] Error initializing header:", error);
+      console.error("[Dashboard] Error stack:", error.stack);
     }
   } else {
-    console.error('[Dashboard] initLoggedInHeader not available after waiting.');
-    console.error('[Dashboard] headerUtilsReady:', headerUtilsReady);
-    console.error('[Dashboard] window.__headerUtilsReady:', window.__headerUtilsReady);
-    console.error('[Dashboard] window.initLoggedInHeader type:', typeof window.initLoggedInHeader);
+    console.error(
+      "[Dashboard] initLoggedInHeader not available after waiting."
+    );
+    console.error("[Dashboard] headerUtilsReady:", headerUtilsReady);
+    console.error(
+      "[Dashboard] window.__headerUtilsReady:",
+      window.__headerUtilsReady
+    );
+    console.error(
+      "[Dashboard] window.initLoggedInHeader type:",
+      typeof window.initLoggedInHeader
+    );
   }
 
   // Load rounds
   await loadAndDisplayRounds();
-  // await loadSpotifyToken();
+  await loadSpotifyToken();
 
   // Setup create form
   if (createForm) {
@@ -853,15 +930,17 @@ async function initDashboard() {
 
       if (ok && data.success) {
         createMessage.textContent = dashboardMessages.votingRoundCreated;
-        createMessage.className = 'msg ok';
+        createMessage.className = "msg ok";
         createForm.reset();
 
         // Log the created round info
 
         await loadAndDisplayRounds();
       } else {
-        createMessage.textContent = dashboardMessages.failedToCreateRound + (data.message || dashboardMessages.unknownError);
-        createMessage.className = 'msg err';
+        createMessage.textContent =
+          dashboardMessages.failedToCreateRound +
+          (data.message || dashboardMessages.unknownError);
+        createMessage.className = "msg err";
       }
 
       createBtn.disabled = false;
@@ -910,22 +989,26 @@ async function initDashboard() {
 }
 
 // Initialize dashboard when module loads
-if (document.readyState === 'loading') {
+if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     if (!window.__dashboardInitialized) {
-      initDashboard().then(() => {
-        window.__dashboardInitialized = true;
-      }).catch(err => {
-        console.error('[Dashboard] Initialization failed:', err);
-      });
+      initDashboard()
+        .then(() => {
+          window.__dashboardInitialized = true;
+        })
+        .catch((err) => {
+          console.error("[Dashboard] Initialization failed:", err);
+        });
     }
   });
 } else {
   if (!window.__dashboardInitialized) {
-    initDashboard().then(() => {
-      window.__dashboardInitialized = true;
-    }).catch(err => {
-      console.error('[Dashboard] Initialization failed:', err);
-    });
+    initDashboard()
+      .then(() => {
+        window.__dashboardInitialized = true;
+      })
+      .catch((err) => {
+        console.error("[Dashboard] Initialization failed:", err);
+      });
   }
 }

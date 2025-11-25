@@ -287,6 +287,17 @@ router.get("/me/playing", authenticateToken, spotifyController.getCurrentlyPlayi
  *       404:
  *         description: No active Spotify device found
  */
+// router.post("/me/queue", authenticateToken, spotifyController.addTrackToQueue);
+
+/**
+ * @swagger
+ * /api/v1/spotify/me/queue:
+ *   post:
+ *     summary: Add a track to the user's Spotify playback queue
+ *     tags: [Spotify]
+ *     security:
+ *       - bearerAuth: []
+ */
 router.post("/me/queue", authenticateToken, spotifyController.addTrackToQueue);
 
 module.exports = router;

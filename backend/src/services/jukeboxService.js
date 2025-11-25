@@ -664,7 +664,7 @@ async function addWinnerToQueue(ownerId, winnerSong) {
 
     // Add track to queue (non-blocking, fails silently if Premium not available or no active device)
     try {
-      await spotifyService.addToQueue(accessToken, winnerSong.spotifyUri);
+      await spotifyService.addTrackToQueue(accessToken, winnerSong.spotifyUri);
       console.log(`✅ Successfully added "${winnerSong.title}" by ${winnerSong.artist} to Spotify queue`);
       return true;
     } catch (error) {
