@@ -319,6 +319,45 @@ async function updateRoundStatus(req, res) {
 }
 
 /**
+ * End a voting round (set status to completed)
+ */
+async function endRound(req, res) {
+  try {
+    const { roundId } = req.params;
+    const ownerId = req.userId;
+
+    const round = votingService.getRoundById(roundId);
+    if (!round) {
+      return res.status(404).json({
+        success: false,
+        message: votingMessages.roundNotFound,
+      });
+    }
+
+    if (round.ownerId !== ownerId) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the round owner can end this round",
+      });
+    }
+
+    const updatedRound = votingService.updateRoundStatus(roundId, "completed");
+
+    return res.status(200).json({
+      success: true,
+      message: "Voting round ended successfully",
+      data: updatedRound,
+    });
+  } catch (error) {
+    console.error("Error ending round:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Error ending voting round",
+    });
+  }
+}
+
+/**
  * Get Spotify track info
  */
 async function getSpotifyTrack(req, res) {
@@ -479,6 +518,7 @@ module.exports = {
   getResults,
   generateNextRound,
   updateRoundStatus,
+  endRound,
   getSpotifyTrack,
   searchSpotifyTracks,
   getQRCode,

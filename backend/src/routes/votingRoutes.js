@@ -307,6 +307,41 @@ router.patch("/rounds/:roundId/status", authenticateToken, votingController.upda
 
 /**
  * @swagger
+ * /api/v1/voting/rounds/{roundId}/end:
+ *   post:
+ *     summary: End a voting round (set status to completed)
+ *     tags: [Voting]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: roundId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Round ended successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/Round'
+ *       403:
+ *         description: Only the round owner can end the round
+ *       404:
+ *         description: Round not found
+ */
+router.post("/rounds/:roundId/end", authenticateToken, votingController.endRound);
+
+/**
+ * @swagger
  * /api/v1/voting/rounds/{roundId}/qr:
  *   get:
  *     summary: Get QR code data for voting page

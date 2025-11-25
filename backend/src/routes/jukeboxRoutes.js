@@ -274,4 +274,59 @@ router.get("/owners/:ownerId/voting-round", jukeboxController.getJukeboxVotingRo
  */
 router.get("/owners/:ownerId/now-playing", jukeboxController.getJukeboxNowPlaying);
 
+/**
+ * @swagger
+ * /api/v1/jukebox/switch-round:
+ *   post:
+ *     summary: Switch jukebox to use a different voting round
+ *     tags: [Jukebox]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - roundId
+ *             properties:
+ *               roundId:
+ *                 type: string
+ *                 example: round123
+ *               roundNumber:
+ *                 type: integer
+ *                 description: Optional round number (defaults to current round number)
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: Jukebox switched to new round successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     ownerId:
+ *                       type: string
+ *                     isActive:
+ *                       type: boolean
+ *                     votingRound:
+ *                       type: object
+ *                       properties:
+ *                         roundId:
+ *                           type: string
+ *                         roundNumber:
+ *                           type: integer
+ *       400:
+ *         description: Error switching round (jukebox not active, round not found, etc.)
+ */
+router.post("/switch-round", authenticateToken, jukeboxController.switchJukeboxRound);
+
 module.exports = router;

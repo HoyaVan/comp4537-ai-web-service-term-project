@@ -1016,6 +1016,58 @@ function getJukeboxVotingRound(ownerId) {
 }
 
 /**
+ * Switch jukebox to use a different voting round
+ * @param {string} ownerId - Owner user ID
+ * @param {string} roundId - New voting round ID to switch to
+ * @param {number} roundNumber - Optional round number (defaults to current round number)
+ * @returns {Object} Updated jukebox status
+ */
+async function switchJukeboxRound(ownerId, roundId, roundNumber = null) {
+  const jukebox = jukeboxes.get(ownerId);
+  if (!jukebox || !jukebox.isActive) {
+    throw new Error("Jukebox is not active");
+  }
+
+  // Verify the round exists and belongs to the owner
+  const votingServiceLazy = require("./votingService");
+  const round = votingServiceLazy.getRoundById(roundId);
+  if (!round) {
+    throw new Error("Voting round not found");
+  }
+
+  if (round.ownerId !== ownerId) {
+    throw new Error("Only the round owner can switch jukebox to this round");
+  }
+
+  // Use provided roundNumber or default to current round number
+  const targetRoundNumber = roundNumber !== null ? roundNumber : round.currentRoundNumber;
+
+  // Verify the round has songs
+  const songs = votingServiceLazy.getSongsByRound(roundId, targetRoundNumber);
+  if (songs.length === 0) {
+    throw new Error("Round has no songs to play");
+  }
+
+  // Update jukebox voting round
+  jukebox.votingRound = {
+    roundId: roundId,
+    roundNumber: targetRoundNumber,
+  };
+
+  console.log(`🔄 [Jukebox] Switched to round ${roundId}, round number ${targetRoundNumber}`);
+
+  // Update the timer if there's a current song playing
+  if (jukebox.nowPlaying) {
+    setupJukeboxTimer(jukebox);
+  }
+
+  jukeboxes.set(ownerId, jukebox);
+
+  const { timer, ...jukeboxResponse } = jukebox;
+  return jukeboxResponse;
+}
+
+/**
  * Get countdown info for a round (if it's part of a jukebox)
  */
 function getRoundCountdown(roundId) {
@@ -1140,4 +1192,5 @@ module.exports = {
   skipCurrentSong,
   pauseJukebox,
   resumeJukebox,
+  switchJukeboxRound,
 };
